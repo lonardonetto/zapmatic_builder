@@ -1,0 +1,503 @@
+[2024-12-11 23:39:36] Início da desconexão. IDS: 5521970402529@s.whatsapp.net
+[2024-12-11 23:42:37] Início da desconexão. IDS: 551230425173@s.whatsapp.net
+[2024-12-11 23:42:37] Erro fatal: Unknown column 'OR' in 'where clause'
+Trace: #0 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(292): mysqli->query('SELECT *\nFROM `...', 0)
+#1 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(670): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *\nFROM `...')
+#2 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(598): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *\nFROM `...')
+#3 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseBuilder.php(1455): CodeIgniter\Database\BaseConnection->query('SELECT *\nFROM `...', Array, false)
+#4 C:\xampp\htdocs\app_zapmatic_app\app\Helpers\Common_helper.php(1441): CodeIgniter\Database\BaseBuilder->get()
+#5 C:\xampp\htdocs\app_zapmatic_app\inc\core\Whatsapp_profiles\Controllers\Whatsapp_profiles.php(512): db_get('*', 'sp_accounts', Array)
+#6 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(832): Core\Whatsapp_profiles\Controllers\Whatsapp_profiles->disconnect('551230425173@s....')
+#7 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(419): CodeIgniter\CodeIgniter->runController(Object(Core\Whatsapp_profiles\Controllers\Whatsapp_profiles))
+#8 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(326): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 C:\xampp\htdocs\app_zapmatic_app\index.php(44): CodeIgniter\CodeIgniter->run()
+#10 {main}
+[2024-12-11 23:47:32] Início da desconexão. IDS: 5521970402529@s.whatsapp.net
+[2024-12-11 23:47:32] Erro fatal: Unknown column 'OR' in 'where clause'
+Trace: #0 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(292): mysqli->query('SELECT *\nFROM `...', 0)
+#1 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(670): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *\nFROM `...')
+#2 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(598): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *\nFROM `...')
+#3 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseBuilder.php(1455): CodeIgniter\Database\BaseConnection->query('SELECT *\nFROM `...', Array, false)
+#4 C:\xampp\htdocs\app_zapmatic_app\app\Helpers\Common_helper.php(1441): CodeIgniter\Database\BaseBuilder->get()
+#5 C:\xampp\htdocs\app_zapmatic_app\inc\core\Whatsapp_profiles\Controllers\Whatsapp_profiles.php(531): db_get('*', 'sp_accounts', Array)
+#6 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(832): Core\Whatsapp_profiles\Controllers\Whatsapp_profiles->disconnect('5521970402529@s...')
+#7 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(419): CodeIgniter\CodeIgniter->runController(Object(Core\Whatsapp_profiles\Controllers\Whatsapp_profiles))
+#8 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(326): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 C:\xampp\htdocs\app_zapmatic_app\index.php(44): CodeIgniter\CodeIgniter->run()
+#10 {main}
+-------------------------------------------
+[2024-12-11 23:49:26] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 551230425173@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-11 23:49:26] Buscando perfil:
+- Team ID: 1
+- IDS Original: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+[2024-12-11 23:49:26] ERRO FATAL: Unknown column 'OR' in 'where clause'
+Trace: #0 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\MySQLi\Connection.php(292): mysqli->query('SELECT *\nFROM `...', 0)
+#1 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(670): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *\nFROM `...')
+#2 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseConnection.php(598): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *\nFROM `...')
+#3 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\Database\BaseBuilder.php(1455): CodeIgniter\Database\BaseConnection->query('SELECT *\nFROM `...', Array, false)
+#4 C:\xampp\htdocs\app_zapmatic_app\app\Helpers\Common_helper.php(1441): CodeIgniter\Database\BaseBuilder->get()
+#5 C:\xampp\htdocs\app_zapmatic_app\inc\core\Whatsapp_profiles\Controllers\Whatsapp_profiles.php(538): db_get('*', 'sp_accounts', Array)
+#6 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(832): Core\Whatsapp_profiles\Controllers\Whatsapp_profiles->disconnect('551230425173@s....')
+#7 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(419): CodeIgniter\CodeIgniter->runController(Object(Core\Whatsapp_profiles\Controllers\Whatsapp_profiles))
+#8 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(326): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 C:\xampp\htdocs\app_zapmatic_app\index.php(44): CodeIgniter\CodeIgniter->run()
+#10 {main}
+-------------------------------------------
+[2024-12-11 23:51:22] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 551230425173@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-11 23:51:23] Buscando perfil:
+- Team ID: 1
+- IDS Original: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+[2024-12-11 23:51:23] Resultado da busca de perfil:
+
+Condições de busca:
+Array
+(
+    [team_id] => 1
+    [module] => whatsapp
+)
+
+IDs testados:
+Array
+(
+    [0] => 551230425173@s.whatsapp.net
+    [1] => 551230425173
+    [2] => 551230425173@s.whatsapp.net@s.whatsapp.net
+)
+
+[2024-12-11 23:51:23] ERRO: Perfil não encontrado. IDS: 551230425173@s.whatsapp.net
+-------------------------------------------
+[2024-12-11 23:54:40] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 551230425173@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-11 23:54:40] Buscando perfil:
+- Team ID: 1
+- IDS Original: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+[2024-12-11 23:54:40] Resultado da busca de perfil:
+
+[2024-12-11 23:54:40] ERRO: Perfil não encontrado. IDS: 551230425173@s.whatsapp.net
+-------------------------------------------
+[2024-12-11 23:56:07] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 551230425173@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-11 23:56:07] Buscando perfil:
+- Team ID: 1
+- IDS Original: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+[2024-12-11 23:56:07] DIAGNÓSTICO - Todas as contas do time:
+Array
+(
+    [0] => stdClass Object
+        (
+            [id] => 90
+            [ids] => xxolvf1qyqdk7
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 5521970402529@s.whatsapp.net
+            [name] => 5521970402529@s.whatsapp.net
+            [username] => 5521970402529
+            [token] => 6759DB63685E9
+            [avatar] => avatar/6759f0db53003.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"5521970402529:71@s.whatsapp.net","name":"5521970402529@s.whatsapp.net","avatar":"https://pps.whatsapp.net/v/t61.24694-24/390375652_791943742735582_4111492602653003022_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaINnFNBrW8GpcGnksasD8Cfs4940rpD6JW7lY-k6Wcc3q&oe=6766FF24&_nc_sid=5e03e0&_nc_cat=110"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 1733947609
+            [created] => 1728172460
+            [chatwoot] => 
+            [proxy_id] => 9
+        )
+
+    [1] => stdClass Object
+        (
+            [id] => 124
+            [ids] => ipnytc24bhsdm
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 551230425173@s.whatsapp.net
+            [name] => LEONARDO NETTO
+            [username] => 551230425173
+            [token] => 675335CCDE5AF
+            [avatar] => avatar/675336242c5a6.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"551230425173:71@s.whatsapp.net","name":"Disparador Zapmatic","avatar":"https://pps.whatsapp.net/v/t61.24694-24/454375544_1079664203502987_3231628089023668178_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaIMwXiUM88eNSYFOMZQxgl6G-NXtlFNa5RZ8cEnwIqw0Y&oe=6760445A&_nc_sid=5e03e0&_nc_cat=104"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 2147483647
+            [created] => 1733445982
+            [chatwoot] => 
+            [proxy_id] => 
+        )
+
+)
+
+-------------------------------------------
+Detalhes da busca:
+Tentando encontrar conta com:
+- Team ID: 1
+- IDS: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+-------------------------------------------
+[2024-12-11 23:56:07] Resultado da busca de perfil:
+
+[2024-12-11 23:56:07] ERRO: Perfil não encontrado. IDS: 551230425173@s.whatsapp.net
+-------------------------------------------
+[2024-12-12 09:12:39] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 551230425173@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-12 09:12:39] Buscando perfil:
+- Team ID: 1
+- IDS Original: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+[2024-12-12 09:12:39] DIAGNÓSTICO - Todas as contas do time:
+Array
+(
+    [0] => stdClass Object
+        (
+            [id] => 90
+            [ids] => xxolvf1qyqdk7
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 5521970402529@s.whatsapp.net
+            [name] => 5521970402529@s.whatsapp.net
+            [username] => 5521970402529
+            [token] => 6759DB63685E9
+            [avatar] => avatar/6759f0db53003.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"5521970402529:71@s.whatsapp.net","name":"5521970402529@s.whatsapp.net","avatar":"https://pps.whatsapp.net/v/t61.24694-24/390375652_791943742735582_4111492602653003022_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaINnFNBrW8GpcGnksasD8Cfs4940rpD6JW7lY-k6Wcc3q&oe=6766FF24&_nc_sid=5e03e0&_nc_cat=110"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 1733947609
+            [created] => 1728172460
+            [chatwoot] => 
+            [proxy_id] => 9
+        )
+
+    [1] => stdClass Object
+        (
+            [id] => 124
+            [ids] => ipnytc24bhsdm
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 551230425173@s.whatsapp.net
+            [name] => LEONARDO NETTO
+            [username] => 551230425173
+            [token] => 675335CCDE5AF
+            [avatar] => avatar/675336242c5a6.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"551230425173:71@s.whatsapp.net","name":"Disparador Zapmatic","avatar":"https://pps.whatsapp.net/v/t61.24694-24/454375544_1079664203502987_3231628089023668178_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaIMwXiUM88eNSYFOMZQxgl6G-NXtlFNa5RZ8cEnwIqw0Y&oe=6760445A&_nc_sid=5e03e0&_nc_cat=104"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 2147483647
+            [created] => 1733445982
+            [chatwoot] => 
+            [proxy_id] => 
+        )
+
+)
+
+-------------------------------------------
+Detalhes da busca:
+Tentando encontrar conta com:
+- Team ID: 1
+- IDS: 551230425173@s.whatsapp.net
+- IDS Limpo: 551230425173
+-------------------------------------------
+[2024-12-12 09:12:39] Resultado da busca de perfil:
+
+[2024-12-12 09:12:39] ERRO: Perfil não encontrado. IDS: 551230425173@s.whatsapp.net
+-------------------------------------------
+[2024-12-12 09:12:55] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 5521970402529@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-12 09:12:55] Buscando perfil:
+- Team ID: 1
+- IDS Original: 5521970402529@s.whatsapp.net
+- IDS Limpo: 5521970402529
+[2024-12-12 09:12:55] DIAGNÓSTICO - Todas as contas do time:
+Array
+(
+    [0] => stdClass Object
+        (
+            [id] => 90
+            [ids] => xxolvf1qyqdk7
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 5521970402529@s.whatsapp.net
+            [name] => 5521970402529@s.whatsapp.net
+            [username] => 5521970402529
+            [token] => 6759DB63685E9
+            [avatar] => avatar/6759f0db53003.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"5521970402529:71@s.whatsapp.net","name":"5521970402529@s.whatsapp.net","avatar":"https://pps.whatsapp.net/v/t61.24694-24/390375652_791943742735582_4111492602653003022_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaINnFNBrW8GpcGnksasD8Cfs4940rpD6JW7lY-k6Wcc3q&oe=6766FF24&_nc_sid=5e03e0&_nc_cat=110"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 1733947609
+            [created] => 1728172460
+            [chatwoot] => 
+            [proxy_id] => 9
+        )
+
+    [1] => stdClass Object
+        (
+            [id] => 124
+            [ids] => ipnytc24bhsdm
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 551230425173@s.whatsapp.net
+            [name] => LEONARDO NETTO
+            [username] => 551230425173
+            [token] => 675335CCDE5AF
+            [avatar] => avatar/675336242c5a6.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"551230425173:71@s.whatsapp.net","name":"Disparador Zapmatic","avatar":"https://pps.whatsapp.net/v/t61.24694-24/454375544_1079664203502987_3231628089023668178_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaIMwXiUM88eNSYFOMZQxgl6G-NXtlFNa5RZ8cEnwIqw0Y&oe=6760445A&_nc_sid=5e03e0&_nc_cat=104"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 2147483647
+            [created] => 1733445982
+            [chatwoot] => 
+            [proxy_id] => 
+        )
+
+)
+
+-------------------------------------------
+Detalhes da busca:
+Tentando encontrar conta com:
+- Team ID: 1
+- IDS: 5521970402529@s.whatsapp.net
+- IDS Limpo: 5521970402529
+-------------------------------------------
+[2024-12-12 09:12:55] Resultado da busca de perfil:
+
+[2024-12-12 09:12:55] ERRO: Perfil não encontrado. IDS: 5521970402529@s.whatsapp.net
+-------------------------------------------
+[2024-12-12 09:14:00] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 5521970402529@s.whatsapp.net
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-12 09:14:00] Buscando perfil:
+- Team ID: 1
+- IDS Original: 5521970402529@s.whatsapp.net
+- IDS Limpo: 5521970402529
+[2024-12-12 09:14:00] DIAGNÓSTICO - Todas as contas do time:
+Array
+(
+    [0] => stdClass Object
+        (
+            [id] => 90
+            [ids] => xxolvf1qyqdk7
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 5521970402529@s.whatsapp.net
+            [name] => 5521970402529@s.whatsapp.net
+            [username] => 5521970402529
+            [token] => 6759DB63685E9
+            [avatar] => avatar/6759f0db53003.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"5521970402529:71@s.whatsapp.net","name":"5521970402529@s.whatsapp.net","avatar":"https://pps.whatsapp.net/v/t61.24694-24/390375652_791943742735582_4111492602653003022_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaINnFNBrW8GpcGnksasD8Cfs4940rpD6JW7lY-k6Wcc3q&oe=6766FF24&_nc_sid=5e03e0&_nc_cat=110"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 1733947609
+            [created] => 1728172460
+            [chatwoot] => 
+            [proxy_id] => 9
+        )
+
+    [1] => stdClass Object
+        (
+            [id] => 124
+            [ids] => ipnytc24bhsdm
+            [module] => whatsapp_profiles
+            [social_network] => whatsapp
+            [category] => profile
+            [team_id] => 1
+            [login_type] => 2
+            [can_post] => 0
+            [pid] => 551230425173@s.whatsapp.net
+            [name] => LEONARDO NETTO
+            [username] => 551230425173
+            [token] => 675335CCDE5AF
+            [avatar] => avatar/675336242c5a6.jpg
+            [url] => https://web.whatsapp.com/
+            [tmp] => {"id":"551230425173:71@s.whatsapp.net","name":"Disparador Zapmatic","avatar":"https://pps.whatsapp.net/v/t61.24694-24/454375544_1079664203502987_3231628089023668178_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5AaIMwXiUM88eNSYFOMZQxgl6G-NXtlFNa5RZ8cEnwIqw0Y&oe=6760445A&_nc_sid=5e03e0&_nc_cat=104"}
+            [data] => 
+            [proxy] => 
+            [status] => 1
+            [changed] => 2147483647
+            [created] => 1733445982
+            [chatwoot] => 
+            [proxy_id] => 
+        )
+
+)
+
+-------------------------------------------
+Detalhes da busca:
+Tentando encontrar conta com:
+- Team ID: 1
+- IDS: 5521970402529@s.whatsapp.net
+- IDS Limpo: 5521970402529
+-------------------------------------------
+[2024-12-12 09:14:00] Resultado da busca de perfil:
+
+[2024-12-12 09:14:00] ERRO: Perfil não encontrado. IDS: 5521970402529@s.whatsapp.net
+-------------------------------------------
+[2024-12-12 09:15:59] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 5521970402529@s.whatsapp.net
+POST data: Array
+(
+)
+
+GET data: Array
+(
+)
+
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-12 09:15:59] Resultado da busca de perfil:
+
+[2024-12-12 09:15:59] ERRO: Perfil não encontrado. IDS: 5521970402529@s.whatsapp.net
+-------------------------------------------
+[2024-12-12 09:18:03] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 
+POST data: Array
+(
+)
+
+GET data: Array
+(
+)
+
+Variáveis de contexto:
+- Team ID: 1
+- Access Token: 
+-------------------------------------------
+[2024-12-12 09:18:03] ERRO FATAL:
+ID do perfil não fornecido
+#0 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(832): Core\Whatsapp_profiles\Controllers\Whatsapp_profiles->disconnect()
+#1 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(419): CodeIgniter\CodeIgniter->runController(Object(Core\Whatsapp_profiles\Controllers\Whatsapp_profiles))
+#2 C:\xampp\htdocs\app_zapmatic_app\vendor\codeigniter4\framework\system\CodeIgniter.php(326): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#3 C:\xampp\htdocs\app_zapmatic_app\index.php(44): CodeIgniter\CodeIgniter->run()
+#4 {main}
+-------------------------------------------
+-------------------------------------------
+[2024-12-12 09:20:01] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 
+POST data: Array
+(
+    [ids] => xxolvf1qyqdk7
+)
+
+-------------------------------------------
+[2024-12-12 09:20:01] Resultado do logout na API:
+stdClass Object
+(
+    [status] => error
+    [message] => This account seems to have logged out before.
+)
+
+[2024-12-12 09:20:01] FIM DO PROCESSO DE DESCONEXÃO
+Atualização do banco: Sucesso
+-------------------------------------------
+-------------------------------------------
+[2024-12-12 09:33:10] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 
+POST data: Array
+(
+    [ids] => ipnytc24bhsdm
+)
+
+-------------------------------------------
+[2024-12-12 09:33:10] Resultado do logout na API:
+stdClass Object
+(
+    [status] => error
+    [message] => This account seems to have logged out before.
+)
+
+[2024-12-12 09:33:10] FIM DO PROCESSO DE DESCONEXÃO
+Atualização do banco: Sucesso
+-------------------------------------------
+-------------------------------------------
+[2024-12-12 09:45:32] INÍCIO DO PROCESSO DE DESCONEXÃO
+IDS recebido: 
+POST data: Array
+(
+    [ids] => xxolvf1qyqdk7
+)
+
+-------------------------------------------
+[2024-12-12 09:45:32] Resultado do logout na API:
+stdClass Object
+(
+    [status] => success
+    [message] => Success
+)
+
+[2024-12-12 09:45:32] FIM DO PROCESSO DE DESCONEXÃO
+Atualização do banco: Sucesso
+-------------------------------------------

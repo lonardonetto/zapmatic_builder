@@ -1,0 +1,17 @@
+<?php return array (
+  'id' => 'whatsapp_api',
+  'folder' => 'core',
+  'name' => 'API',
+  'author' => 'Stackcode',
+  'author_uri' => 'sp',
+  'desc' => 'API WhatApp REST',
+  'icon' => 'fad fa-plug',
+  'color' => '#25d366',
+  'login_required' => false,
+  'parent' => 
+  array (
+    'id' => 'features',
+    'name' => 'Features',
+  ),
+  'show_plan' => false,
+);

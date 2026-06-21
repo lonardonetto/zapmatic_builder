@@ -1,0 +1,483 @@
+<?php
+$data = false;
+$sections = false;
+$desc = "";
+$image = "";
+if( !empty($result) ){
+    $data = json_decode($result->data);
+
+    if( !empty($data) && isset($data->sections) && count($data->sections) != 0 ){
+        $sections = $data->sections;
+    }
+
+    if(get_data($data, "caption")){
+    	$desc = get_data($data, "caption");
+    }else{
+    	$desc = get_data($data, "text");
+    }
+
+    if( isset($data->image) && isset($data->image->url) ){
+    	$image = remove_file_path($data->image->url);
+    }
+
+}
+?>
+
+<form class="actionForm" action="<?php _eC( get_module_url("save/".get_data($result, "ids")) )?>" method="POST" data-redirect="<?php _ec( get_module_url() ) ?>">
+	<div class="container py-5">
+		<div class="card b-r-6 mb-4">
+			<div class="card-header">
+				<div class="card-title"><i class="<?php _ec( $config['icon'] )?> me-2" style="color: <?php _ec( $config['color'] )?>;"></i> <?php _e("Button template")?></div>
+			</div>
+
+			<div class="card-body">
+				<div class="mb-4">
+					<label class="form-label"><?php _e("Name")?></label>
+					<input type="text" name="name" class="form-control form-control-solid" placeholder="<?php _e("Enter template name")?>" value="<?php _ec( get_data($result, "name") )?>">
+				</div>
+
+				<div class="alert alert-dismissible bg-light-primary border border-primary border-dashed d-flex flex-column flex-sm-row w-100 p-5 mb-10">
+					<span class="fs-2hx text-primary me-4 mb-5 mb-sm-0">
+						<i class="fad fa-info-circle text-primary fs-1"></i>
+					</span>
+					<div class="d-flex flex-column pe-0 pe-sm-10">
+						<h5 class="mb-2 text-primary"><?php _e("Guia Completo - Regras Cloud API (Meta)")?></h5>
+						<span class="fs-12 text-gray-800">
+							<ul class="mb-0">
+								<li><strong><?php _e("Títulos Únicos:")?></strong> <span class="text-danger"><?php _e("Cada botão DEVE ter um texto diferente.")?></span> <?php _e("Títulos repetidos causam falha no envio.")?></li>
+								<li><strong><?php _e("Botão de Link (URL):")?></strong> <?php _e("A Cloud API permite link real APENAS se houver 1 único botão na mensagem. Se houver mais de um, todos serão convertidos para texto para garantir a entrega.")?></li>
+								<li><strong><?php _e("Botão de Chamada:")?></strong> <?php _e("Não é suportado em mensagens dinâmicas e será convertido para texto.")?></li>
+								<li><strong><?php _e("Por que converter para Texto?")?></strong> 
+									<ol class="mt-1">
+										<li><?php _e("Permite que o Chatbot detecte o clique e continue o atendimento automático.")?></li>
+										<li><?php _e("Permite usar até 3 botões na mesma mensagem (a Meta proíbe misturar Link com outros botões).")?></li>
+									</ol>
+								</li>
+							</ul>
+						</span>
+					</div>
+				</div>
+				
+				<div class="mb-4">
+					<label class="form-label"><?php _e("Title Button")?></label>
+					<input type="text" name="title" class="form-control form-control-solid" placeholder="<?php _e("Enter Title Button")?>" value="<?php _ec( get_data($data, "title") )?>">
+				</div>
+				
+				<?php if ( permission("whatsapp_send_media") ): ?>
+				<label class="form-label"><?php _e("Main image")?></label>
+				<?php echo view_cell('\Core\File_manager\Controllers\File_manager::mini', ["type" => "image", "select_multi" => 0]) ?>
+
+				<script type="text/javascript">
+					$(function(){
+						File_manager.loadSelectedFiles(["<?php _ec( remove_file_path(  $image ) )?>"]);
+					});
+				</script>
+
+				<?php endif ?>
+
+				<label class="form-label"><?php _e("Main description")?></label>
+				<?php echo view_cell('\Core\Caption\Controllers\Caption::block', ['name' => 'desc', 'placeholder' => 'Enter main description', 'value' => $desc]) ?>
+
+				<div class="mb-4">
+					<label class="form-label"><?php _e("Footer")?></label>
+					<input type="text" name="footer" class="form-control form-control-solid" placeholder="<?php _e("Enter footer content")?>" value="<?php _ec( get_data($data, "footer") )?>">
+				</div>
+
+				<?php if ( (int)permission("cloud_api_enabled") == 1 ): ?>
+				<?php
+					$meta_cfg = isset($data->meta_official) ? $data->meta_official : (object)[];
+					$meta_enabled = (int) get_data($meta_cfg, "enabled") === 1;
+				?>
+				<div class="card border border-dashed b-r-6 mt-5">
+					<div class="card-header">
+						<div class="card-title"><?php _e("Oficial (Meta) - Enviar para análise")?></div>
+					</div>
+					<div class="card-body">
+						<div class="form-check form-switch mb-4">
+							<input class="form-check-input" type="checkbox" role="switch" id="meta_enabled" name="meta_enabled" value="1" <?php _ec($meta_enabled ? 'checked' : '')?>>
+							<label class="form-check-label" for="meta_enabled"><?php _e("Ativar modo Oficial (Meta)")?></label>
+						</div>
+
+						<div class="meta-official-fields <?php _ec($meta_enabled ? '' : 'd-none')?> ">
+							<div class="row g-3">
+								<div class="col-md-4">
+									<label class="form-label"><?php _e("Nome base (Meta)")?></label>
+									<input type="text" class="form-control form-control-solid" name="meta_base_name" placeholder="ex: desbanimento" value="<?php _ec( get_data($meta_cfg, "base_name") )?>">
+									<div class="form-text"><?php _e("A cada envio para análise, será criada uma nova versão com sufixo de data/hora.")?></div>
+								</div>
+								<div class="col-md-4">
+									<label class="form-label"><?php _e("Categoria")?></label>
+									<select class="form-select form-select-solid" name="meta_category">
+										<?php $cat = strtoupper((string) get_data($meta_cfg, "category", "MARKETING")); ?>
+										<option value="MARKETING" <?php _ec($cat === 'MARKETING' ? 'selected' : '')?>>MARKETING</option>
+										<option value="UTILITY" <?php _ec($cat === 'UTILITY' ? 'selected' : '')?>>UTILITY</option>
+									</select>
+								</div>
+								<div class="col-md-4">
+									<label class="form-label"><?php _e("Idiomas")?></label>
+									<input type="text" class="form-control form-control-solid" name="meta_languages" placeholder="pt_BR,en_US" value="<?php _ec( get_data($meta_cfg, "languages", "pt_BR") )?>">
+								</div>
+							</div>
+
+							<div class="row g-3 mt-1">
+								<div class="col-md-4">
+									<label class="form-label"><?php _e("Header")?></label>
+									<?php $hf = strtoupper((string) get_data($meta_cfg, "header_format", "TEXT")); ?>
+									<select class="form-select form-select-solid" name="meta_header_format">
+										<option value="NONE" <?php _ec($hf === 'NONE' ? 'selected' : '')?>><?php _e("Sem header")?></option>
+										<option value="TEXT" <?php _ec($hf === 'TEXT' ? 'selected' : '')?>><?php _e("Texto (usa Title Button)")?></option>
+										<option value="IMAGE" <?php _ec($hf === 'IMAGE' ? 'selected' : '')?>><?php _e("Imagem (usa Main image)")?></option>
+									</select>
+								</div>
+								<div class="col-md-8">
+									<label class="form-label"><?php _e("Variáveis do body (obrigatório se houver {{n}})")?></label>
+								<input type="text" class="form-control form-control-solid" name="meta_body_example" placeholder="ex: %nome%|%pedido% ou João|12345" value="<?php _ec( get_data($meta_cfg, "body_example") )?>">
+								<div class="form-text"><?php _e("Informe valores ou variáveis da planilha separados por |. Ex: %nome%|%email% — a ordem deve corresponder a {{1}}, {{2}}, etc.")?></div>
+								</div>
+							</div>
+
+							<div class="alert alert-warning mt-4 mb-0">
+								<strong><?php _e("Importante:")?></strong>
+								<?php _e("No modo Oficial (Meta), apenas botões Quick Reply, URL e Telefone são aceitos. Copy/Catálogo serão bloqueados na submissão.")?>
+							</div>
+						</div>
+					</div>
+					<div class="card-footer">
+						<div class="row g-2 align-items-end">
+							<div class="col-md-8">
+								<label class="form-label"><?php _e("Conta Cloud API para submissão")?></label>
+								<select class="form-select form-select-solid" name="account_ids">
+									<option value=""><?php _e("Selecione...")?></option>
+									<?php if (!empty($cloud_accounts)): ?>
+										<?php $last_acc = get_data($meta_cfg, "last_account_ids"); ?>
+										<?php foreach ($cloud_accounts as $acc): ?>
+											<option value="<?php _ec($acc->ids)?>" <?php _ec(($last_acc && $last_acc == $acc->ids) ? 'selected' : '')?>>
+												<?php _ec($acc->name)?> (<?php _ec($acc->pid)?>)
+											</option>
+										<?php endforeach; ?>
+									<?php endif; ?>
+								</select>
+							</div>
+							<div class="col-md-4 d-grid">
+								<a id="btn-meta-submit" class="btn btn-info actionMultiItem" href="<?php _ec( get_module_url("meta_submit/" . get_data($result, "ids")) )?>" data-params="">
+									<i class="fas fa-paper-plane me-2"></i><?php _e("Enviar para análise (Meta)")?>
+								</a>
+							</div>
+						</div>
+							<div class="form-check mt-3">
+								<input class="form-check-input" type="checkbox" value="1" id="meta_force" name="meta_force">
+								<label class="form-check-label" for="meta_force">
+									<?php _e("Forçar nova versão mesmo se houver PENDING recente")?>
+								</label>
+							</div>
+						<?php if (!empty($meta_statuses)): ?>
+						<div class="mt-4">
+							<div class="d-flex justify-content-between align-items-center mb-2">
+								<div class="fw-bold"><?php _e("Status do template na Meta")?></div>
+								<?php if (!empty($last_acc)): ?>
+									<button type="button" class="btn btn-sm btn-light" onclick="atualizarStatusMeta('<?php _ec($last_acc)?>')">
+										<i class="fas fa-sync-alt me-1"></i><?php _e("Atualizar status")?>
+									</button>
+								<?php endif; ?>
+							</div>
+							<div class="table-responsive">
+								<table class="table table-sm table-striped align-middle mb-0">
+									<thead>
+										<tr>
+											<th><?php _e("Nome (versão)")?></th>
+											<th><?php _e("Idioma")?></th>
+											<th><?php _e("Status")?></th>
+											<th><?php _e("Categoria")?></th>
+											<th><?php _e("Meta ID")?></th>
+										</tr>
+									</thead>
+									<tbody>
+										<?php foreach ($meta_statuses as $st): ?>
+											<?php $sd = json_decode($st->data, true) ?: []; ?>
+											<tr>
+												<td class="text-over-all"><strong><?php _ec($st->name)?></strong></td>
+												<td><?php _ec($sd['language'] ?? '-')?></td>
+												<td><?php _ec($sd['status'] ?? '-')?></td>
+												<td>
+													<?php
+														$cat = $sd['category'] ?? '-';
+														$prev = $sd['previous_category'] ?? null;
+														_ec($cat);
+														if ($prev && $prev !== $cat) {
+															echo ' <small class="text-muted">(prev: ' . htmlspecialchars((string)$prev, ENT_QUOTES, 'UTF-8') . ')</small>';
+														}
+													?>
+												</td>
+												<td><small><?php _ec($sd['meta_id'] ?? '-')?></small></td>
+											</tr>
+										<?php endforeach; ?>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<?php else: ?>
+							<div class="form-text mt-3">
+								<?php _e("Após submeter, o status aparecerá aqui. Para importar templates aprovados da Meta para o sistema, use 'Sincronizar Templates' no perfil Cloud API.")?>
+							</div>
+						<?php endif; ?>
+						<div class="form-text mt-2">
+							<?php _e("Dica: salve o template antes de submeter, e depois clique em 'Sincronizar Templates' no perfil Cloud para atualizar status.")?>
+						</div>
+					</div>
+				</div>
+				<?php endif; ?>
+			</div>
+		</div>
+
+		<div class="card b-r-6">
+			<div class="card-header">
+				<div class="card-title"><?php _e("List button")?></div>
+			</div>
+
+			<div class="card-body wa-template-option">
+				<?php
+                $options = [];
+
+                if( !empty($result) ){
+                    $data = json_decode($result->data);
+                    if( !empty($data) && isset($data->templateButtons) && count($data->templateButtons) != 0 ){
+                        $options = $data->templateButtons;
+                    }
+                }
+                ?>
+
+                <?php if(!empty($options)){?>
+
+                    <?php foreach ($options as $key => $value): 
+                        $displayText = "";
+                        if( isset( $value->quickReplyButton ) ){
+                            $displayText = $value->quickReplyButton->displayText;
+                        }else if( isset( $value->urlButton ) ){
+                            $displayText = $value->urlButton->displayText;
+                        }else if( isset( $value->callButton ) ){
+                            $displayText = $value->callButton->displayText;
+                        }else if( isset( $value->catalogButton ) ){
+                            $displayText = $value->catalogButton->displayText;
+                        }
+
+                        $catalogPhone = isset($value->catalogButton) ? get_data($value->catalogButton, "businessPhoneNumber") : "";
+                        $catalogProduct = isset($value->catalogButton) ? get_data($value->catalogButton, "catalogProductId") : "";
+                        $extracted_code = "";
+                    ?>
+                    
+                   
+
+                    <div class="card border b-r-6 mb-4 wa-template-option-item">
+						<div class="card-header">
+							<div class="card-title"><?php _e("Button")?> <?php _ec( $key + 1 )?></div>
+							<div class="card-toolbar">
+								<button type="button" class="btn btn-sm btn-light-danger wa-template-option-remove px-3 b-r-6"><i class="fad fa-trash-alt pe-0 me-0"></i></button>
+							</div>
+						</div>
+						<div class="card-body">
+							<ul class="nav nav-pills mb-3 bg-light-dark rounded border" id="pills-tab">
+						        <li class="nav-item">
+						            <label for="btn_type_text_<?php _ec( $key + 1 )?>" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-successy <?php _ec( get_data($value, "quickReplyButton") != false?"active":"" ) ?>" data-bs-toggle="pill" data-bs-target="#nav_btn_type_text_<?php _ec( $key + 1 )?>" type="button" role="tab"><?php _e("Text Button")?></label>
+						            <input class="d-none" type="radio" name="btn_msg_type[<?php _ec( $key + 1 )?>]" id="btn_type_text_<?php _ec( $key + 1 )?>" <?php _ec( get_data($value, "quickReplyButton") != false?'checked="true"':"" ) ?> value="1">
+						        </li>
+						        <li class="nav-item">
+						            <label for="btn_type_link_<?php _ec( $key + 1 )?>" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success  <?php _ec( get_data($value, "urlButton") != false?"active":"" ) ?>" data-bs-toggle="pill" data-bs-target="#nav_btn_type_link_<?php _ec( $key + 1 )?>" type="button" role="tab"><?php _e("Link Button")?></label>
+				                    <input class="d-none" type="radio" name="btn_msg_type[<?php _ec( $key + 1 )?>]" id="btn_type_link_<?php _ec( $key + 1 )?>" <?php _ec( get_data($value, "urlButton") != false?'checked="true"':"" ) ?> value="2">
+						        </li>
+						        <li class="nav-item">
+						            <label for="btn_type_call_<?php _ec( $key + 1 )?>" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success <?php _ec( get_data($value, "callButton") != false?"active":"" ) ?>" data-bs-toggle="pill" data-bs-target="#nav_btn_type_call_<?php _ec( $key + 1 )?>" type="button" role="tab"><?php _e("Call Action Button")?></label>
+				                    <input class="d-none" type="radio" name="btn_msg_type[<?php _ec( $key + 1 )?>]" id="btn_type_call_<?php _ec( $key + 1 )?>" <?php _ec( get_data($value, "callButton") != false?'checked="true"':"" ) ?> value="3">
+						        </li>
+						        <li class="nav-item">
+						            <label for="btn_type_copy_<?php _ec( $key + 1 )?>" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success  <?php _ec( get_data($value, "copyButton") != false?"active":"" ) ?>" data-bs-toggle="pill" data-bs-target="#nav_btn_type_copy_<?php _ec( $key + 1 )?>" type="button" role="tab"><?php _e("Copy Buttom")?></label>
+				                    <input class="d-none" type="radio" name="btn_msg_type[<?php _ec( $key + 1 )?>]" id="btn_type_copy_<?php _ec( $key + 1 )?>" <?php _ec( get_data($value, "copyButton") != false?'checked="true"':"" ) ?> value="4">
+						        </li>
+						        <li class="nav-item">
+						            <label for="btn_type_catalog_<?php _ec( $key + 1 )?>" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success  <?php _ec( get_data($value, "catalogButton") != false?"active":"" ) ?>" data-bs-toggle="pill" data-bs-target="#nav_btn_type_catalog_<?php _ec( $key + 1 )?>" type="button" role="tab"><?php _e("Catalog Button")?></label>
+				                    <input class="d-none" type="radio" name="btn_msg_type[<?php _ec( $key + 1 )?>]" id="btn_type_catalog_<?php _ec( $key + 1 )?>" <?php _ec( get_data($value, "catalogButton") != false?'checked="true"':"" ) ?> value="5">
+						        </li>
+						    </ul>
+
+					        <div class="tab-content pt-3" id="nav-tabContent">
+					            <div class="mb-3">
+				                    <label class="form-label"><?php _e("Display text")?></label> 
+				                    <textarea name="btn_msg_display_text[<?php _ec( $key + 1 )?>]" class="form-control form-control-solid btn_msg_display_text_<?php _ec( $key + 1 )?>" placeholder="Enter your caption"><?php _ec( $displayText ) ?></textarea>
+					            </div>
+					            <div class="tab-pane fade <?php _ec( get_data($value, "quickReplyButton") != false?"show active":"" ) ?>" id="nav_btn_type_text_<?php _ec( $key + 1 )?>" role="tabpanel"></div>
+					            <div class="tab-pane fade mb-3 <?php _ec( get_data($value, "urlButton") != false?"show active":"" ) ?>" id="nav_btn_type_link_<?php _ec( $key + 1 )?>" role="tabpanel">
+				                    <label class="form-label"><?php _e("Link")?></label> 
+				                    <input class="form-control form-control-solid" name="btn_msg_link[<?php _ec( $key + 1 )?>]" placeholder="<?php _e("Enter your url")?>" value="<?php _ec( get_data($value, "urlButton") != false?get_data($value->urlButton, "url"):"" ) ?>">
+					            </div>
+					            <div class="tab-pane fade mb-3 <?php _ec( get_data($value, "callButton") != false?"show active":"" ) ?>" id="nav_btn_type_call_<?php _ec( $key + 1 )?>" role="tabpanel">
+				                    <label class="form-label"><?php _e("Phone number")?></label> 
+				                    <input class="form-control form-control-solid" name="btn_msg_call[<?php _ec( $key + 1 )?>]" placeholder="<?php _e("Ex: +1 (234) 5678-901")?>" value="<?php _ec( get_data($value, "callButton") != false?get_data($value->callButton, "phoneNumber"):"" ) ?>">
+					            </div>
+					            <div class="tab-pane fade mb-3 <?php _ec(get_data($value, "copyButton") != false ? "show active" : "") ?>" id="nav_btn_type_copy_<?php _ec($key + 1) ?>" role="tabpanel">
+                                    <label class="form-label"><?php _e("Copy Button") ?></label> 
+                                    <input class="form-control form-control-solid" id="btn_msg_copy_<?php _ec($key + 1) ?>" name="btn_msg_copy[<?php _ec($key + 1) ?>]" placeholder="<?php _e("Enter Your Code or Text") ?>" value="<?php _ec($extracted_code) ?>">
+                                </div>
+                                <div class="tab-pane fade mb-3 <?php _ec(get_data($value, "catalogButton") != false ? "show active" : "") ?>" id="nav_btn_type_catalog_<?php _ec($key + 1) ?>" role="tabpanel">
+                                    <label class="form-label"><?php _e("Business phone number") ?></label>
+                                    <input class="form-control form-control-solid mb-3" name="btn_msg_catalog_phone[<?php _ec($key + 1) ?>]" placeholder="<?php _e("Ex: +55 21970402529") ?>" value="<?php _ec($catalogPhone) ?>">
+                                    <label class="form-label"><?php _e("Catalog product ID") ?></label>
+                                    <input class="form-control form-control-solid" name="btn_msg_catalog_product[<?php _ec($key + 1) ?>]" placeholder="<?php _e("Enter catalog product id") ?>" value="<?php _ec($catalogProduct) ?>">
+                                </div>
+					        </div>
+
+					        <ul class="text-success fs-12 mb-0">
+					            <li><?php _e("Random message by Spintax. Ex: {Hi|Hello|Hola}")?></li>
+					            <li><?php _e("CallButton: Enter Phone number for the button")?></li>
+					            <li><?php _e("UrlButton: Enter URL for the button")?></li>
+					            <li><?php _e("quickReplyButton: Enter a message to quick reply for the button")?></li>
+					            <li><?php _e("CatalogButton: Enter business phone number and product id")?></li>
+					            <li><?php _e("[Bulk messaging] - Add custom variables: %name%, %param1%, %param2%,...")?></li>
+					        </ul>
+						</div>
+					</div>
+                    <?php endforeach ?>
+
+                <?php }else{?>
+				<div class="wa-empty">
+					<?php _ec( $this->include('Core\Whatsapp\Views\empty'), false);?>
+				</div>
+                <?php }?>
+
+			</div>
+
+			<div class="card-footer wa-template-wrap-add <?php _ec( count($options)>= 3?"d-none":"" )?>">
+				<a href="javascript:void(0);" class="btn btn-dark px-3 btn-wa-add-option"><?php _e("Add new button")?></a>
+			</div>
+		</div>
+
+		<div class="mt-5 d-flex justify-content-end">
+			<button type="submit" class="btn btn-primary w-100"><?php _e("Submit")?></button>
+		</div>
+	</div>
+</form>
+
+<div class="wa-template-data-option d-none">
+    <div class="card border b-r-6 mb-4 wa-template-option-item">
+		<div class="card-header">
+			<div class="card-title"><?php _e("Button")?> {count}</div>
+			<div class="card-toolbar">
+				<button type="button" class="btn btn-sm btn-light-danger wa-template-option-remove px-3 b-r-6"><i class="fad fa-trash-alt pe-0 me-0"></i></button>
+			</div>
+		</div>
+		<div class="card-body">
+			<ul class="nav nav-pills mb-3 bg-light-dark rounded border" id="pills-tab">
+		        <li class="nav-item">
+		            <label for="btn_type_text_{count}" class="nav-link bg-active-white text-gray-700 px-4 py-3 active text-active-success" data-bs-toggle="pill" data-bs-target="#nav_btn_type_text_{count}" type="button" role="tab"><?php _e("Text Button")?></label>
+		            <input class="d-none" type="radio" name="btn_msg_type[{count}]" id="btn_type_text_{count}" checked="true" value="1">
+		        </li>
+		        <li class="nav-item">
+		            <label for="btn_type_link_{count}" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success" data-bs-toggle="pill" data-bs-target="#nav_btn_type_link_{count}" type="button" role="tab"><?php _e("Link Button")?></label>
+                    <input class="d-none" type="radio" name="btn_msg_type[{count}]" id="btn_type_link_{count}" value="2">
+		        </li>
+		        <li class="nav-item">
+		            <label for="btn_type_call_{count}" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success" data-bs-toggle="pill" data-bs-target="#nav_btn_type_call_{count}" type="button" role="tab"><?php _e("Call Action Button")?></label>
+                    <input class="d-none" type="radio" name="btn_msg_type[{count}]" id="btn_type_call_{count}" value="3">
+		        </li>
+		        <li class="nav-item">
+		            <label for="btn_type_copy_{count}" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success" data-bs-toggle="pill" data-bs-target="#nav_btn_type_copy_{count}" type="button" role="tab"><?php _e("Copy Buttom")?></label>
+                    <input class="d-none" type="radio" name="btn_msg_type[{count}]" id="btn_type_copy_{count}" value="4">
+		        </li>
+		        <li class="nav-item">
+		            <label for="btn_type_catalog_{count}" class="nav-link bg-active-white text-gray-700 px-4 py-3 text-active-success" data-bs-toggle="pill" data-bs-target="#nav_btn_type_catalog_{count}" type="button" role="tab"><?php _e("Catalog Button")?></label>
+                    <input class="d-none" type="radio" name="btn_msg_type[{count}]" id="btn_type_catalog_{count}" value="5">
+		        </li>
+		    </ul>
+
+	        <div class="tab-content pt-3" id="nav-tabContent">
+	            <div class="mb-3">
+                    <label class="form-label"><?php _e("Display text")?></label> 
+                    <textarea name="btn_msg_display_text[{count}]" class="form-control form-control-solid btn_msg_display_text_{count}" placeholder="Enter your caption"></textarea>
+	            </div>
+	            <div class="tab-pane fade" id="nav_btn_type_text_{count}" role="tabpanel"></div>
+	            <div class="tab-pane fade mb-3" id="nav_btn_type_link_{count}" role="tabpanel">
+                    <label class="form-label"><?php _e("Link")?></label> 
+                    <input class="form-control form-control-solid" name="btn_msg_link[{count}]" placeholder="<?php _e("Enter your url")?>">
+	            </div>
+	            <div class="tab-pane fade mb-3" id="nav_btn_type_call_{count}" role="tabpanel">
+                    <label class="form-label"><?php _e("Phone number")?></label> 
+                    <input class="form-control form-control-solid" name="btn_msg_call[{count}]" placeholder="<?php _e("Ex: +1 (234) 5678-901")?>">
+	            </div>
+	            <div class="tab-pane fade mb-3" id="nav_btn_type_copy_{count}" role="tabpanel">
+                    <label class="form-label"><?php _e("Copy Buttom")?></label> 
+                    <input class="form-control form-control-solid" name="btn_msg_copy[{count}]" placeholder="<?php _e("Enter Your Code or Text")?>">
+                </div>
+                <div class="tab-pane fade mb-3" id="nav_btn_type_catalog_{count}" role="tabpanel">
+                    <label class="form-label"><?php _e("Business phone number")?></label> 
+                    <input class="form-control form-control-solid mb-3" name="btn_msg_catalog_phone[{count}]" placeholder="<?php _e("Ex: +55 21970402529")?>">
+                    <label class="form-label"><?php _e("Catalog product ID")?></label> 
+                    <input class="form-control form-control-solid" name="btn_msg_catalog_product[{count}]" placeholder="<?php _e("Enter catalog product id")?>">
+                </div>
+	        </div>
+
+	        <ul class="text-success fs-12 mb-0">
+	            <li><?php _e("Random message by Spintax. Ex: {Hi|Hello|Hola}")?></li>
+	            <li><?php _e("CallButton: Enter Phone number for the button")?></li>
+	            <li><?php _e("UrlButton: Enter URL for the button")?></li>
+	            <li><?php _e("quickReplyButton: Enter a message to quick reply for the button")?></li>
+	            <li><?php _e("CatalogButton: Enter business phone number and product id")?></li>
+	            <li><?php _e("[Bulk messaging] - Add custom variables: %name%, %param1%, %param2%,...")?></li>
+	        </ul>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+$(function(){
+	$('#meta_enabled').on('change', function(){
+		const enabled = $(this).is(':checked');
+		$('.meta-official-fields').toggleClass('d-none', !enabled);
+	});
+
+	// Impede clique sem escolher a conta Cloud (evita o erro "missing_account_ids")
+	$(document).on('click', '#btn-meta-submit', function(e){
+		const enabled = $('#meta_enabled').is(':checked');
+		if(!enabled) return;
+		const acc = $('select[name=\"account_ids\"]').val();
+		if(!acc){
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			if(typeof showNotification === 'function'){
+				showNotification('Selecione a Conta Cloud API para submissão.', 'error');
+			}else{
+				alert('Selecione a Conta Cloud API para submissão.');
+			}
+			return false;
+		}
+	});
+});
+
+async function atualizarStatusMeta(accountIds){
+	try{
+		if(!accountIds){
+			alert('Conta inválida.');
+			return;
+		}
+		if (typeof Swal !== "undefined") {
+			Swal.fire({ title: "Sincronizando...", didOpen: () => Swal.showLoading() });
+		}
+		const url = "<?php _ec( base_url('whatsapp_profiles/sync_templates') )?>/" + accountIds;
+		const resp = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+		const data = await resp.json();
+		if (typeof Swal !== "undefined") Swal.close();
+		const msg = data && data.message ? data.message : "Sincronização concluída.";
+		if(typeof showNotification === 'function'){
+			showNotification(msg, data.status || 'success');
+		}else{
+			alert(msg);
+		}
+		window.location.reload();
+	}catch(e){
+		if (typeof Swal !== "undefined") Swal.close();
+		alert("Erro ao sincronizar: " + (e && e.message ? e.message : "desconhecido"));
+	}
+}
+</script>
+<script type="text/javascript">
+$(function(){
+	Core.tagsinput();
+});
+</script>

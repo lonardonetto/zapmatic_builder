@@ -1,105 +1,48 @@
 #-------------------------
-# Operating Specific Junk Files
+# OS Junk
 #-------------------------
-
-# OS X
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# OS X Thumbnails
 ._*
-
-# Windows image file caches
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
-# Recycle Bin used on file shares
 $RECYCLE.BIN/
-
-# Windows Installer files
 *.cab
 *.msi
 *.msm
 *.msp
-
-# Windows shortcuts
 *.lnk
-
-# Linux
 *~
-
-# KDE directory preferences
 .directory
-
-# Linux trash folder which might appear on any partition or disk
 .Trash-*
 
 #-------------------------
-# Environment Files
+# Security
 #-------------------------
-# These should never be under version control,
-# as it poses a security risk.
 .env
-.vagrant
-Vagrantfile
+.venv/
 
 #-------------------------
-# Temporary Files
-#-------------------------
-writable/cache/*
-!writable/cache/index.html
-
-writable/logs/*
-!writable/logs/index.html
-
-writable/session/*
-!writable/session/index.html
-
-writable/uploads/*
-!writable/uploads/index.html
-
-writable/debugbar/*
-
-php_errors.log
-
-#-------------------------
-# User Guide Temp Files
-#-------------------------
-user_guide_src/build/*
-user_guide_src/cilexer/build/*
-user_guide_src/cilexer/dist/*
-user_guide_src/cilexer/pycilexer.egg-info/*
-
-#-------------------------
-# Test Files
-#-------------------------
-tests/coverage*
-
-# Don't save phpunit under version control.
-phpunit
-
-#-------------------------
-# Composer
+# Dependencies
 #-------------------------
 vendor/
+node_modules/
 
 #-------------------------
-# IDE / Development Files
+# Cache / Logs / Temp
 #-------------------------
+writable/*
+php_errors.log
+hooktest.log
+zapmatic_recent.log
 
-# Modules Testing
-_modules/*
-
-# phpenv local config
-.php-version
-
-# Jetbrains editors (PHPStorm, etc)
+#-------------------------
+# IDE
+#-------------------------
 .idea/
 *.iml
-
-# Netbeans
 nbproject/
 build/
 nbbuild/
@@ -108,27 +51,36 @@ nbdist/
 nbactions.xml
 nb-configuration.xml
 .nb-gradle/
-
-# Sublime Text
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
 *.sublime-workspace
 *.sublime-project
 .phpintel
 /api/
-
-# Visual Studio Code
 .vscode/
 
 #-------------------------
-# Project-specific excludes
+# Tests
 #-------------------------
+tests/coverage*
+phpunit
+phpunit.xml.dist
+/results/
+/phpunit*.xml
+/.phpunit.*.cache
 
-# Zip files
+#-------------------------
+# Build / User Guide
+#-------------------------
+user_guide_src/build/*
+user_guide_src/cilexer/build/*
+user_guide_src/cilexer/dist/*
+user_guide_src/cilexer/pycilexer.egg-info/*
+_modules/*
+
+#-------------------------
+# Backups / Zips (root only)
+#------------------------
 *.zip
-
-# Backup directories and files
+*.tar.gz
 backups/
 patch_botoes_builder/
 BCKUP_*
@@ -136,18 +88,24 @@ BECKUP_*
 BK_*
 bot_builder_update_*.zip
 
-# Misc
+#-------------------------
+# Temp / Scratch files
+#-------------------------
+*.bak
+*~
+check_*.php
+fix_info_cells.php
+validate*.php
+monitor_run.php
+hooktest.php
+test_*.php
+test_*.js
+transfer.php
+response.txt
+templatetmp*.json
 waziper_diff.txt
 zip_list.txt
 zip_list_api.txt
-hooktest.log
-check_*.php
-debug-*.md
-fix_info_cells.php
-validate*.php
-*.bak
-
-/results/
-/phpunit*.xml
-/.phpunit.*.cache
-
+schema_diff.py
+temp_restore/
+uploads/

@@ -1,0 +1,88 @@
+2024-12-09 22:46:05 - Request received
+Headers: Array
+(
+    [Host] => localhost
+    [Connection] => keep-alive
+    [Content-Length] => 15
+    [Pragma] => no-cache
+    [Cache-Control] => no-cache
+    [X-Requested-With] => XMLHttpRequest
+    [User-Agent] => Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+    [Accept] => application/json
+    [Content-Type] => application/json
+    [Origin] => http://localhost
+    [Sec-Fetch-Site] => same-origin
+    [Sec-Fetch-Mode] => cors
+    [Sec-Fetch-Dest] => empty
+    [Referer] => http://localhost/app_zapmatic_app/account_manager
+    [Accept-Encoding] => gzip, deflate, br, zstd
+    [Accept-Language] => pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
+    [Cookie] => csrf_cookie=922e726661f0cd52155e0c95bf45fe98; cookieControl1=true; cookieControl1Prefs=%5B%22preferences%22%2C%22analytics%22%2C%22marketing%22%5D; apiKeys={%22Google%22:%22AIzaSyB_GZyVKV58m0clSqVfGBjth8o38X36Hxc%22}; selectedProvider=Ollama; selectedModel=qwen2.5-coder:7b; cachedPrompt=; stackpost_session=n38aqgg1q55mc2guo87vlnve3ag7va98
+)
+
+POST: Array
+(
+)
+
+GET: Array
+(
+)
+
+Raw input: {"test":"data"}
+
+Response: {"status":"success","message":"Test endpoint working","time":"2024-12-09 22:46:05","request_method":"POST"}
+
+2024-12-09 22:46:10 - Request received
+Headers: Array
+(
+    [Host] => localhost
+    [Connection] => keep-alive
+    [Content-Length] => 15
+    [Pragma] => no-cache
+    [Cache-Control] => no-cache
+    [X-Requested-With] => XMLHttpRequest
+    [User-Agent] => Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1
+    [Accept] => application/json
+    [Content-Type] => application/json
+    [Origin] => http://localhost
+    [Sec-Fetch-Site] => same-origin
+    [Sec-Fetch-Mode] => cors
+    [Sec-Fetch-Dest] => empty
+    [Referer] => http://localhost/app_zapmatic_app/account_manager
+    [Accept-Encoding] => gzip, deflate, br, zstd
+    [Accept-Language] => pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
+    [Cookie] => csrf_cookie=922e726661f0cd52155e0c95bf45fe98; cookieControl1=true; cookieControl1Prefs=%5B%22preferences%22%2C%22analytics%22%2C%22marketing%22%5D; apiKeys={%22Google%22:%22AIzaSyB_GZyVKV58m0clSqVfGBjth8o38X36Hxc%22}; selectedProvider=Ollama; selectedModel=qwen2.5-coder:7b; cachedPrompt=; stackpost_session=n38aqgg1q55mc2guo87vlnve3ag7va98
+)
+
+POST: Array
+(
+)
+
+GET: Array
+(
+)
+
+Raw input: {"test":"data"}
+
+Response: {"status":"success","message":"Test endpoint working","time":"2024-12-09 22:46:10","request_method":"POST"}
+
+[2024-12-09 22:54:56] Requisição recebida
+[2024-12-09 22:54:56] POST: Array
+(
+    [name] => wa_server
+    [description] => ggg
+)
+
+[2024-12-09 22:54:56] Sucesso: Perfil criado para wa_server
+[2024-12-09 22:54:56] Resposta: Array
+(
+    [status] => success
+    [message] => Perfil criado com sucesso
+    [data] => Array
+        (
+            [name] => wa_server
+            [description] => ggg
+        )
+
+)
+
