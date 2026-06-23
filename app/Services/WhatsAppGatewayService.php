@@ -15,13 +15,157 @@ class WhatsAppGatewayService
         return self::sendViaBaileys($instanceId, $chatId, $type, $payload);
     }
 
+    public static function register($instanceId, string $baseUrl, ?string $apiKey = null, ?int $teamId = null): array
+    {
+        self::ensureTables();
+        $db = \Config\Database::connect();
+
+        $existing = $db->table('sp_whatsapp_gateways')
+            ->where('instance_id', $instanceId)
+            ->get()
+            ->getRowArray();
+
+        $data = [
+            'instance_id' => $instanceId,
+            'provider' => 'whatsmeow',
+            'base_url' => $baseUrl,
+            'api_key' => $apiKey ?? '',
+            'status' => 1,
+            'capabilities_json' => null,
+            'changed' => time(),
+        ];
+
+        if ($teamId) {
+            $data['team_id'] = $teamId;
+        }
+
+        if (empty($data['created'])) {
+            $data['created'] = time();
+        }
+
+        if ($existing) {
+            $db->table('sp_whatsapp_gateways')
+                ->where('id', $existing['id'])
+                ->update($data);
+            return ['status' => 'success', 'message' => 'Gateway atualizado para whatsmeow'];
+        }
+
+        $data['created'] = time();
+        $db->table('sp_whatsapp_gateways')->insert($data);
+        return ['status' => 'success', 'message' => 'Gateway whatsmeow registrado'];
+    }
+
+    public static function qr($instanceId): array
+    {
+        $gateway = self::gatewayForInstance($instanceId);
+        if ($gateway['provider'] !== 'whatsmeow') {
+            return ['status' => 'error', 'message' => 'Instancia nao usa whatsmeow'];
+        }
+
+        $baseUrl = rtrim($gateway['base_url'] ?? '', '/');
+        $url = $baseUrl . '/qrcode?instance_id=' . urlencode($instanceId);
+        if (!empty($gateway['api_key'])) {
+            $url .= '&api_key=' . urlencode($gateway['api_key']);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) return ['status' => 'error', 'message' => $error];
+        return json_decode($response, true) ?: ['status' => 'error', 'message' => 'Resposta invalida do gateway'];
+    }
+
+    public static function status($instanceId): array
+    {
+        $gateway = self::gatewayForInstance($instanceId);
+        if ($gateway['provider'] !== 'whatsmeow') {
+            return ['status' => 'error', 'message' => 'Instancia nao usa whatsmeow'];
+        }
+
+        $baseUrl = rtrim($gateway['base_url'] ?? '', '/');
+        $url = $baseUrl . '/status?instance_id=' . urlencode($instanceId);
+        if (!empty($gateway['api_key'])) {
+            $url .= '&api_key=' . urlencode($gateway['api_key']);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) return ['status' => 'error', 'message' => $error];
+        return json_decode($response, true) ?: ['status' => 'error', 'message' => 'Resposta invalida do gateway'];
+    }
+
+    public static function logout($instanceId): array
+    {
+        $gateway = self::gatewayForInstance($instanceId);
+        if ($gateway['provider'] !== 'whatsmeow') {
+            return ['status' => 'error', 'message' => 'Instancia nao usa whatsmeow'];
+        }
+
+        $baseUrl = rtrim($gateway['base_url'] ?? '', '/');
+        $url = $baseUrl . '/logout';
+        $headers = ['Content-Type: application/json'];
+        if (!empty($gateway['api_key'])) {
+            $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode(['instance_id' => $instanceId]),
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) return ['status' => 'error', 'message' => $error];
+
+        self::unregisterGateway($instanceId);
+
+        return json_decode($response, true) ?: ['status' => 'success'];
+    }
+
+    public static function unregisterGateway($instanceId): void
+    {
+        $db = \Config\Database::connect();
+        $db->table('sp_whatsapp_gateways')
+            ->where('instance_id', $instanceId)
+            ->delete();
+    }
+
     public static function capabilities($instanceId): array
     {
         self::ensureTables();
         $gateway = self::gatewayForInstance($instanceId);
-        if (!empty($gateway['capabilities_json'])) {
-            $capabilities = json_decode($gateway['capabilities_json'], true);
-            if (is_array($capabilities)) return $capabilities;
+
+        if ($gateway['provider'] === 'whatsmeow' && !empty($gateway['base_url'])) {
+            $baseUrl = rtrim($gateway['base_url'], '/');
+            $ch = curl_init($baseUrl . '/capabilities');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5,
+            ]);
+            $response = curl_exec($ch);
+            curl_close($ch);
+            if ($response) {
+                $caps = json_decode($response, true);
+                if (is_array($caps)) return $caps;
+            }
         }
 
         return [
@@ -112,31 +256,45 @@ class WhatsAppGatewayService
             return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Gateway Whatsmeow sem base_url.'];
         }
 
-        $endpoint = $type === 'text' ? '/send/text' : '/send/media';
+        $endpoint = '/send/text';
+        if (in_array($type, ['image', 'audio', 'video', 'document'])) {
+            $endpoint = '/send/media';
+        }
+
         $headers = ['Content-Type: application/json'];
         if (!empty($gateway['api_key'])) $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
+
+        $body = [
+            'instance_id' => $instanceId,
+            'chat_id' => $chatId,
+            'type' => $type,
+            'payload' => $payload,
+        ];
 
         $ch = curl_init($baseUrl . $endpoint);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode([
-                'instance_id' => $instanceId,
-                'chat_id' => $chatId,
-                'type' => $type,
-                'payload' => $payload,
-            ]),
+            CURLOPT_POSTFIELDS => json_encode($body),
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => 60,
         ]);
         $response = curl_exec($ch);
         $error = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($error) return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => $error];
+
         $decoded = json_decode($response, true);
-        return is_array($decoded)
-            ? $decoded + ['provider' => 'whatsmeow']
-            : ['status' => 'success', 'provider' => 'whatsmeow', 'raw' => $response];
+        if (is_array($decoded)) {
+            return $decoded + ['provider' => 'whatsmeow'];
+        }
+
+        return [
+            'status' => $httpCode === 200 ? 'success' : 'error',
+            'provider' => 'whatsmeow',
+            'raw' => $response,
+        ];
     }
 }

@@ -141,3 +141,11 @@ node_modules/
 
 # PHP packages
 vendor/
+
+# Go
+app_zapmatic_whatsmeow_api/zapmatic-whatsmeow
+app_zapmatic_whatsmeow_api/storage/sessions/
+app_zapmatic_whatsmeow_api/logs/
+*.db
+*.db-shm
+*.db-wal
