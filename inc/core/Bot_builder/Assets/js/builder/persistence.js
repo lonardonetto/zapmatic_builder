@@ -95,5 +95,6 @@ window.filterBlocks = function() {
 
 M.markDirty = markDirty;
 M.triggerAutoSave = triggerAutoSave;
+M.saveFlow = window.saveFlow;
 
 })();

@@ -48,6 +48,7 @@ $bot_builder_routes = function($routes) {
     $routes->post('webhook', 'Bot_builder::webhook');
     $routes->get('export/(:num)', 'Bot_builder::export/$1');
     $routes->post('import', 'Bot_builder::import');
+    $routes->post('promote_to_native', 'Bot_builder::promote_to_native');
     
     // Start from scratch
     $routes->post('start-scratch', 'Bot_builder::start_scratch');

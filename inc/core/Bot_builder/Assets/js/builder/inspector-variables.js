@@ -123,10 +123,11 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function initMediaUpload(nodeId, type) {
+function initMediaUpload(nodeId, type, fieldName) {
+    fieldName = fieldName || 'url';
     var btn = document.querySelector('.bb-media-upload-btn');
     var input = document.querySelector('.bb-media-file');
-    var hidden = document.getElementById('conf-url');
+    var hidden = document.getElementById('conf-' + fieldName);
     var current = document.querySelector('.bb-media-current');
 
     if(!btn || !input || !hidden) return;
@@ -165,8 +166,8 @@ function initMediaUpload(nodeId, type) {
             var node = ctx().BB.nodes[nodeId];
             if(node) {
                 node.config = node.config || {};
-                node.config.url = result.url;
-                node.config.media_name = result.name || '';
+                node.config[fieldName] = result.url;
+                if(fieldName === 'url') node.config.media_name = result.name || '';
             }
             if(current) {
                 var thumb = type === 'image' ? '<img src="' + ctx().escHtml(result.url) + '" alt="Prévia">' : '<i class="fas ' + (type === 'video' ? 'fa-video' : (type === 'audio' ? 'fa-microphone' : 'fa-file-alt')) + '"></i>';
@@ -186,6 +187,79 @@ function initMediaUpload(nodeId, type) {
         }
     });
 }
+
+function initKnowledgeUpload(nodeId) {
+    var btn = document.querySelector('.bb-knowledge-upload-btn');
+    var input = document.querySelector('.bb-knowledge-file');
+    var hidden = document.getElementById('conf-knowledge_files');
+    if(!btn || !input || !hidden) return;
+
+    function readFiles() { try { return JSON.parse(hidden.value || '[]'); } catch(e) { return []; } }
+    function writeFiles(files) {
+        files = files.slice(0, 5);
+        hidden.value = JSON.stringify(files);
+        var node = ctx().BB.nodes[nodeId];
+        if(node) {
+            node.config = node.config || {};
+            node.config.knowledge_files = hidden.value;
+        }
+        ctx().updateNodePreview(nodeId);
+        ctx().saveSnapshot();
+        ctx().triggerAutoSave();
+        M.openInspector(nodeId);
+    }
+
+    document.querySelectorAll('.bb-knowledge-remove').forEach(function(removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            var files = readFiles();
+            files.splice(parseInt(removeBtn.dataset.index, 10), 1);
+            writeFiles(files);
+        });
+    });
+
+    btn.addEventListener('click', function() { input.click(); });
+    input.addEventListener('change', async function() {
+        if(!input.files || !input.files.length) return;
+        var files = readFiles();
+        if(files.length + input.files.length > 5) {
+            alert('A base de conhecimento aceita no máximo 5 anexos.');
+            input.value = '';
+            return;
+        }
+
+        btn.disabled = true;
+        var originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+        try {
+            for(var i = 0; i < input.files.length; i++) {
+                var formData = new FormData();
+                formData.append('media', input.files[i]);
+                formData.append('type', 'document');
+                formData.append('bot_id', window.bsConfig.bot_id);
+                if(window.bsConfig && window.bsConfig.csrf_name && window.bsConfig.csrf_hash) {
+                    formData.append(window.bsConfig.csrf_name, window.bsConfig.csrf_hash);
+                }
+                var response = await fetch(window.bsConfig.upload_media_url, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                var text = await response.text();
+                var result;
+                try { result = JSON.parse(text); } catch(e) { throw new Error('Resposta inválida do servidor no upload'); }
+                if(!response.ok || result.status !== 'success') throw new Error(result.message || 'Falha ao enviar anexo');
+                if(window.bsConfig && result.csrf_hash) window.bsConfig.csrf_hash = result.csrf_hash;
+                files.push({url: result.url, name: result.name || input.files[i].name, extension: result.extension || ''});
+            }
+            writeFiles(files);
+        } catch(error) {
+            alert(error.message || 'Não foi possível enviar os anexos');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            input.value = '';
+        }
+    });
+}
+
+M.initKnowledgeUpload = initKnowledgeUpload;
 
 window.uploadDynamicMedia = async function(input, selector, syncName) {
     if(!input.files || !input.files[0]) return;

@@ -35,7 +35,20 @@ function renderWhatsAppPreview(node) {
         } else {
             labels = String(config.options || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 10);
         }
-        if(labels.length) body += '<div class="wa-preview-actions">' + labels.map(function(label) { return '<div class="wa-preview-action"><i class="fas fa-reply"></i>' + ctx.escHtml(label) + '</div>'; }).join('') + '</div>';
+        if(labels.length) {
+            var btnIcon = function(label) {
+                // Detect pipe-delimited button types in options
+                var parts = label.split('|');
+                if(parts.length >= 2) {
+                    var t = parts[1];
+                    if(t === 'url') return '<i class="fas fa-link" style="color:#2563eb;"></i>';
+                    if(t === 'phone') return '<i class="fas fa-phone-alt" style="color:#059669;"></i>';
+                    if(t === 'copy') return '<i class="fas fa-copy" style="color:#7c3aed;"></i>';
+                }
+                return '<i class="fas fa-reply"></i>';
+            };
+            body += '<div class="wa-preview-actions">' + labels.map(function(label) { return '<div class="wa-preview-action">' + btnIcon(label) + ctx.escHtml(label.split('|')[0]) + '</div>'; }).join('') + '</div>';
+        }
     }
 
     if(type === 'list' && config.native_template) {

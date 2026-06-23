@@ -135,11 +135,15 @@ function openInspector(id) {
         } else {
             html += M.field('textarea', 'conf-text', 'Mensagem', d.text, 'Escolha uma opção:', 3);
             html += M.varInsertHint('conf-text');
+            html += M.field('input', 'conf-title', 'Título (opcional)', d.title||'', 'Ex: Confirmação');
+            html += '<div class="form-group bb-media-upload-wrap"><label>Imagem</label><input type="hidden" id="conf-image" value="' + ctx().escHtml(d.image||'') + '"><div class="bb-media-upload-box"><input type="file" class="bb-media-file" data-media-type="image" accept="image/jpeg,image/png,image/gif,image/webp"><button type="button" class="btn-add-dynamic bb-media-upload-btn"><i class="fas fa-cloud-upload-alt"></i> Enviar Imagem</button></div><div id="conf-image-preview" class="bb-media-current' + (d.image?'':' muted') + '">' + (d.image?'<div class="bb-media-thumb image"><img src="' + ctx().escHtml(d.image) + '" alt="Prévia"></div><div><strong>Mídia carregada</strong><a href="' + ctx().escHtml(d.image) + '" target="_blank" rel="noopener">Abrir arquivo</a></div>':'<div class="bb-media-thumb image"><i class="fas fa-image"></i></div><div><strong>Nenhuma imagem</strong><span>Escolha uma imagem para o cabeçalho dos botões.</span></div>') + '</div></div>';
             html += '<div class="form-section"><div class="form-section-title"><i class="fas fa-check-square"></i> Itens <span style="color:#94a3b8;font-weight:400;font-size:10px;">(máx. 10 via Native Flow)</span></div>';
             html += '<div id="dyn-btn-list"></div>';
             html += '<button type="button" class="btn-add-dynamic" onclick="dynBtnAdd()"><i class="fas fa-plus"></i> Adicionar item</button>';
             html += '<input type="hidden" id="conf-options" value="' + ctx().escHtml(d.options||'') + '">';
             html += '</div>';
+            var alreadyPromoted = (d.template_ids && d.template_ids.indexOf('bb_promoted_') === 0);
+            html += '<button type="button" class="btn-duplicate-node" onclick="promoteToNative(\'' + id + '\')"><i class="fas ' + (alreadyPromoted ? 'fa-sync-alt' : 'fa-rocket') + '"></i> ' + (alreadyPromoted ? 'Atualizar template nativo' : 'Promover para template nativo') + '</button>';
         }
         html += M.varFieldWithPicker('conf-variable', 'Salvar seleção na variável', d.variable || 'selection', id);
         html += '<div class="tb-toggle-row">\n            <span class="tb-toggle-label"><i class="fas fa-asterisk" style="color:#ef4444"></i> Obrigatório</span>\n            <label class="tb-toggle"><input type="checkbox" id="conf-required" data-bool="true" ' + ((d.required||'true')==='true'?'checked':'') + '><span class="tb-toggle-track"></span></label>\n        </div>';
@@ -223,11 +227,21 @@ function openInspector(id) {
         html += M.field('input', 'conf-seconds', 'Espera (segundos)', d.seconds, '3');
     }
     if(node.type === 'ai_reply') {
-        html += M.field('textarea', 'conf-prompt', 'Prompt do sistema', d.prompt, 'Você é um assistente útil...', 5);
-        html += M.select('conf-model', 'Modelo de IA', d.model, ['gemini','gpt-3.5-turbo','gpt-4','gpt-4o']);
+        html += '<div class="insp-alert info"><i class="fas fa-brain"></i>Este bloco usa a Central de IA global. Configure as chaves em <b>Central de IA</b>.</div>';
+        html += M.select('conf-provider', 'Provider', d.provider, ['auto','openrouter','openai','anthropic','mistral','groq','deepseek','perplexity','together']);
+        html += M.select('conf-mode', 'Modo de resposta', d.mode, ['once','continuous']);
+        html += '<div class="form-hint"><b>once</b>: responde uma vez e segue o fluxo. <b>continuous</b>: mantém a conversa neste node.</div>';
+        html += M.field('input', 'conf-model', 'Modelo', d.model, 'vazio = modelo padrão da central');
+        html += M.field('textarea', 'conf-system_prompt', 'Prompt de comportamento', d.system_prompt, 'Você é um assistente útil.', 3);
+        html += M.field('textarea', 'conf-knowledge_base', 'Base de conhecimento', d.knowledge_base, 'Cole aqui informações da empresa, produtos, regras, preços, políticas e perguntas frequentes.', 6);
+        var knowledgeFiles = [];
+        try { knowledgeFiles = JSON.parse(d.knowledge_files || '[]'); } catch(e) { knowledgeFiles = []; }
+        html += '<div class="form-group bb-knowledge-upload-wrap"><label>Anexos da base de conhecimento</label><input type="hidden" id="conf-knowledge_files" value="' + M._ctx.escHtml(d.knowledge_files || '[]') + '"><div class="bb-media-upload-box"><input type="file" class="bb-knowledge-file" accept=".pdf,.xls,.xlsx,.csv,.txt" multiple><button type="button" class="btn-add-dynamic bb-knowledge-upload-btn"><i class="fas fa-paperclip"></i> Enviar anexos</button></div><div class="form-hint">Até 5 arquivos: PDF, XLS, XLSX, CSV ou TXT. O texto extraído entra no contexto da IA.</div><div class="bb-knowledge-files">' + knowledgeFiles.map(function(f, idx){ return '<div class="bb-media-current"><div class="bb-media-thumb document"><i class="fas fa-file-alt"></i></div><div><strong>' + M._ctx.escHtml(f.name || ('Arquivo ' + (idx+1))) + '</strong><a href="' + M._ctx.escHtml(f.url || '#') + '" target="_blank" rel="noopener">Abrir arquivo</a></div><button type="button" class="btn btn-sm btn-light border bb-knowledge-remove" data-index="' + idx + '">Remover</button></div>'; }).join('') + '</div></div>';
+        html += M.field('textarea', 'conf-prompt', 'Prompt do usuário', d.prompt, '{{last_message}}', 4);
         html += M.field('input', 'conf-temperature', 'Temperatura', d.temperature, '0.7');
         html += M.field('input', 'conf-max_tokens', 'Máximo de tokens', d.max_tokens, '500');
-        html += '<div class="form-hint">Use {{variavel}} no prompt para inserir contexto</div>';
+        html += M.field('input', 'conf-variable', 'Salvar resposta em', d.variable, 'ai_reply');
+        html += '<div class="form-hint">Use {{variavel}} para inserir contexto da sessão.</div>';
     }
     if(node.type === 'webhook') {
         html += M.field('input', 'conf-url', 'Webhook URL', d.url, 'https://api.example.com/hook');
@@ -344,9 +358,21 @@ function openInspector(id) {
     var modeSelect = document.getElementById('conf-button_mode');
     if(modeSelect) {
         modeSelect.addEventListener('change', function() {
-            ctx().BB.nodes[id].config.button_mode = modeSelect.value;
-            if(modeSelect.value === 'native') {
-                ctx().BB.nodes[id].config.template_mode = 'native';
+            var bm = modeSelect.value;
+            var node = ctx().BB.nodes[id];
+            node.config.button_mode = bm;
+            if(bm === 'native') {
+                node.config.template_mode = 'native';
+            } else {
+                // Switching to quick: full reset — template data stays in native_template
+                node.config.text = '';
+                node.config.title = '';
+                node.config.image = '';
+                node.config.options = '';
+                delete node.config.template_ids;
+                delete node.config.template_name;
+                delete node.config.template_type;
+                delete node.config.native_template;
             }
             ctx().updateNodePreview(id);
             ctx().markDirty();
@@ -360,8 +386,10 @@ function openInspector(id) {
         if(['buttons','list','cards'].indexOf(node.type) !== -1) { M.initNativeTemplateControls(id); }
         if(node.type === 'pic_choice') { M.dynPicInit(id); }
         if(node.type === 'rating') { M.dynRatingPreview(id); }
+        if(node.type === 'buttons') { M.initMediaUpload(id, 'image', 'image'); }
         if(['image','video','audio'].indexOf(node.type) !== -1) { M.initMediaUpload(id, node.type); }
         if(node.type === 'file_upload') { M.dynFileTypeInit(id); }
+        if(node.type === 'ai_reply') { M.initKnowledgeUpload(id); }
         if(node.type === 'intg_woocommerce') {
             var actionSel = document.getElementById('conf-woo_action');
             if(actionSel) {
@@ -373,8 +401,60 @@ function openInspector(id) {
                 });
             }
         }
+        ctx().updateNodePreview(id);
     }, 0);
 }
+
+// ===================== PROMOTE TO NATIVE =====================
+window.promoteToNative = function(id) {
+    var BB = window.BotBuilder ? window.BotBuilder.BB : null;
+    if(!BB) return;
+    var node = BB.nodes[id];
+    if(!node || node.type !== 'buttons') return;
+
+    var d = node.config || {};
+    var options = d.options || '';
+    var labels = options.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    if(labels.length < 1) {
+        alert('Adicione pelo menos um item nos botões antes de promover.');
+        return;
+    }
+
+    if(!confirm((d.template_ids && d.template_ids.indexOf('bb_promoted_') === 0 ? 'Atualizar' : 'Criar') + ' um template nativo reutilizável com este bloco?\n\nO template poderá ser usado em outros fluxos.')) return;
+
+    var fd = new FormData();
+    fd.append('block_id', id);
+    fd.append('text', d.text || '');
+    fd.append('title', d.title || '');
+    fd.append('image', d.image || '');
+    fd.append('options', options);
+    if(d.template_ids) fd.append('ids', d.template_ids);
+    fd.append(window.bsConfig.csrf_name, window.bsConfig.csrf_hash);
+
+    fetch(window.bsConfig.base_url + 'bot-builder/promote_to_native', {
+        method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if(res.status === 'error') { alert(res.message); return; }
+        // Preserve preview data from quick config, then switch to native
+        node.config.template_ids = res.ids;
+        node.config.template_name = res.name;
+        node.config.template_type = '2';
+        node.config.button_mode = 'native';
+        window.showToast(res.message, 'success');
+        var pers = window.BotBuilderModules && window.BotBuilderModules.persistence;
+        if(pers && pers.triggerAutoSave) pers.triggerAutoSave();
+        if(window.BotBuilderModules && window.BotBuilderModules.inspector && window.BotBuilderModules.inspector.openInspector) {
+            window.BotBuilderModules.inspector.openInspector(id);
+        }
+    })
+    .catch(function(err) {
+        console.error('Promote error:', err);
+        alert('Erro ao promover template: ' + err.message);
+    });
+};
 
 M.buildInputInspector = buildInputInspector;
 M.openInspector = openInspector;

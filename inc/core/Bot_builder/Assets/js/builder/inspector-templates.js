@@ -33,8 +33,16 @@ function renderNativeTemplatePreview(tpl, type) {
 
     if(type === 2) {
         var buttons = Array.isArray(data.templateButtons) ? data.templateButtons : [];
-        var labels = buttons.map(function(btn) { return btn.quickReplyButton?.displayText || btn.urlButton?.displayText || btn.callButton?.displayText || 'Botão'; }).filter(Boolean);
-        var rows = labels.slice(0, 6).map(function(label, i) { return '<div class="native-preview-row"><span>Botão ' + (i + 1) + '</span><b title="' + ctx().escHtml(label) + '">' + ctx().escHtml(label) + '</b></div>'; }).join('');
+        var labels = buttons.map(function(btn) {
+            return btn.quickReplyButton?.displayText || btn.urlButton?.displayText || btn.callButton?.displayText || 'Botão';
+        }).filter(Boolean);
+        var rows = labels.slice(0, 6).map(function(label, i) {
+            var prefix = 'Botão ' + (i + 1);
+            if(buttons[i] && buttons[i].urlButton) prefix = 'URL ' + (i + 1);
+            else if(buttons[i] && buttons[i].callButton) prefix = 'Tel. ' + (i + 1);
+            else if(buttons[i] && (buttons[i].urlButton?.url || '').indexOf('otp_type=COPY_CODE') !== -1) prefix = 'Cópia ' + (i + 1);
+            return '<div class="native-preview-row"><span>' + prefix + '</span><b title="' + ctx().escHtml(label) + '">' + ctx().escHtml(label) + '</b></div>';
+        }).join('');
         return '<div class="native-preview-card"><div class="native-preview-head"><b>' + title + '</b><small>Botões · ' + labels.length + ' saída(s)</small></div>' + (compactText ? '<div class="native-preview-text" title="' + ctx().escHtml(text) + '">' + ctx().escHtml(compactText) + '</div>' : '') + '<div class="native-preview-list">' + (rows || '<small>Sem botões detectados</small>') + '</div></div>';
     }
     if(type === 1) {
@@ -60,6 +68,10 @@ function nativeOptionEntries(tpl, type) {
         (data.templateButtons || []).forEach(function(btn) {
             var q = btn.quickReplyButton || null;
             if(q) entries.push({ id: q.id || q.displayText, label: q.displayText || q.id });
+            var u = btn.urlButton || null;
+            if(u) entries.push({ id: u.displayText || 'link', label: u.displayText || 'Link' });
+            var c = btn.callButton || null;
+            if(c) entries.push({ id: c.displayText || 'call', label: c.displayText || 'Ligar' });
         });
     } else if(type === 1) {
         (data.sections || []).forEach(function(sec) { (sec.rows || []).forEach(function(row) { entries.push({ id: row.rowId || row.title, label: row.title || row.rowId }); }); });
@@ -110,7 +122,14 @@ function initNativeTemplateControls(nodeId) {
 
     loadNativeTemplatesIntoSelect(nodeId, type).catch(function(err) { console.warn(err); });
     if(node.config.template_ids && !node.config.native_template) {
-        loadNativeTemplate(nodeId, node.config.template_ids).then(function() { c.openInspector(nodeId); }).catch(function(err) { console.warn(err); });
+        loadNativeTemplate(nodeId, node.config.template_ids).then(function(tpl) {
+            if(tpl) {
+                var previewEl = document.getElementById('native-template-preview');
+                if(previewEl) previewEl.innerHTML = renderNativeTemplatePreview(tpl, type);
+                c.updateNodePreview(nodeId);
+                c.markDirty();
+            }
+        }).catch(function(err) { console.warn(err); });
     }
 
     selectEl.addEventListener('change', async function() {
@@ -121,6 +140,8 @@ function initNativeTemplateControls(nodeId) {
                 c.updateNodePreview(nodeId);
                 c.markDirty();
                 c.triggerAutoSave();
+                // Rebuild handles to match new template buttons and remove orphaned edges
+                if(typeof M.rebuildButtonHandles === 'function') M.rebuildButtonHandles(nodeId);
             }
         } catch(error) { alert(error.message); }
     });

@@ -23,6 +23,10 @@ function getCubicPoint(x1, y1, cx1, cy1, cx2, cy2, x2, y2, t) {
 function enableConnections(node) {
     if(!ctx || !node) return;
 
+    var container = node.querySelector('.handles-container');
+    var contL = container ? container.offsetLeft : 0;
+    var contT = container ? container.offsetTop : 0;
+
     node.querySelectorAll('.handle.out').forEach(h => {
         h.addEventListener('mousedown', e => {
             e.stopPropagation();
@@ -33,8 +37,9 @@ function enableConnections(node) {
             dragLine.setAttribute('class', 'drag-connection-line');
 
             const n = ctx.BB.nodes[node.dataset.id];
-            const hx = n.x + h.offsetLeft + 6;
-            const hy = n.y + h.offsetTop + 6;
+            // Start from center of the handle dot
+            const hx = n.x + contL + h.offsetLeft + h.offsetWidth / 2;
+            const hy = n.y + contT + h.offsetTop + h.offsetHeight / 2;
             dragLine.setAttribute('x1', hx);
             dragLine.setAttribute('y1', hy);
             dragLine.setAttribute('x2', hx);
@@ -84,35 +89,66 @@ function bindListeners() {
     listenersBound = true;
 }
 
+function _buildNodeHandleCache() {
+    // Cache container offsets per node once per draw cycle
+    var cache = {};
+    ctx.BB.edges.forEach(function(edge) {
+        if(!cache[edge.from]) {
+            var el = ctx.$('[data-id="' + edge.from + '"]');
+            if(el) {
+                var c = el.querySelector('.handles-container');
+                cache[edge.from] = c ? { l: c.offsetLeft, t: c.offsetTop } : { l: 0, t: 0 };
+            }
+        }
+        if(!cache[edge.to]) {
+            var el = ctx.$('[data-id="' + edge.to + '"]');
+            if(el) {
+                var c = el.querySelector('.handles-container');
+                cache[edge.to] = c ? { l: c.offsetLeft, t: c.offsetTop } : { l: 0, t: 0 };
+            }
+        }
+    });
+    return cache;
+}
+
 function drawConnections() {
     if(!ctx) return;
 
     ctx.svg.innerHTML = '';
-    const sim = typeof ctx.getSim === 'function' ? ctx.getSim() : null;
+    var sim = typeof ctx.getSim === 'function' ? ctx.getSim() : null;
+    var handleCache = _buildNodeHandleCache();
 
-    ctx.BB.edges.forEach(edge => {
-        const fn = ctx.BB.nodes[edge.from], tn = ctx.BB.nodes[edge.to];
+    ctx.BB.edges.forEach(function(edge) {
+        var fn = ctx.BB.nodes[edge.from], tn = ctx.BB.nodes[edge.to];
         if(!fn || !tn) return;
-        const fromEl = ctx.$(`[data-id="${edge.from}"]`);
-        const toEl = ctx.$(`[data-id="${edge.to}"]`);
+        var fromEl = ctx.$('[data-id="' + edge.from + '"]');
+        var toEl = ctx.$('[data-id="' + edge.to + '"]');
         if(!fromEl || !toEl) return;
 
-        let hEl = fromEl.querySelector(`.handle.out[data-handle="${edge.handle}"]`);
+        var hEl = fromEl.querySelector('[data-handle="' + edge.handle + '"].handle.out');
         if(!hEl) hEl = fromEl.querySelector('.handle.out');
         if(!hEl) return;
 
-        const x1 = fn.x + fromEl.offsetWidth + 6;
-        const y1 = fn.y + hEl.offsetTop + 6;
-        const x2 = tn.x - 6;
-        const y2 = tn.y + (toEl.offsetHeight / 2);
+        var inEl = toEl.querySelector('.handle.in');
+        if(!inEl) return;
+
+        var fc = handleCache[edge.from] || { l: 0, t: 0 };
+        var tc = handleCache[edge.to] || { l: 0, t: 0 };
+        var x1 = fn.x + fc.l + hEl.offsetLeft + hEl.offsetWidth / 2;
+        var y1 = fn.y + fc.t + hEl.offsetTop + hEl.offsetHeight / 2;
+        var x2 = tn.x + tc.l + inEl.offsetLeft + inEl.offsetWidth / 2;
+        var y2 = tn.y + tc.t + inEl.offsetTop + inEl.offsetHeight / 2;
 
         const dx = Math.abs(x2 - x1) * 0.5;
         const d = `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
         let cls = 'connection-line';
+        const handleColor = getComputedStyle(hEl).backgroundColor || '#6478ff';
         const edgeKey = `${edge.from}->${edge.to}:${edge.handle || 'default'}`;
         if(edge.handle === 'true') cls += ' true-edge';
         if(edge.handle === 'false') cls += ' false-edge';
-        if(sim && sim.traversedEdges && sim.traversedEdges.includes(edgeKey)) cls += ' sim-traversed-edge';
+        const isTraversed = sim && sim.traversedEdges && sim.traversedEdges.includes(edgeKey);
+        if(isTraversed) cls += ' sim-traversed-edge';
+        const lineColor = isTraversed ? '#10b981' : handleColor;
 
         const deleteEdge = () => {
             ctx.saveSnapshot();
@@ -130,15 +166,29 @@ function drawConnections() {
         });
         ctx.svg.appendChild(hitbox);
 
+        const shadowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        shadowPath.setAttribute('d', d);
+        shadowPath.setAttribute('class', cls + ' connection-line-shadow');
+        shadowPath.dataset.edgeKey = edgeKey;
+        shadowPath.style.stroke = lineColor;
+        ctx.svg.appendChild(shadowPath);
+
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', d);
-        path.setAttribute('class', cls);
+        path.setAttribute('class', cls + ' connection-line-core');
         path.dataset.edgeKey = edgeKey;
+        path.style.stroke = lineColor;
 
         path.addEventListener('click', () => {
             if(confirm('Excluir esta conexão?')) deleteEdge();
         });
         ctx.svg.appendChild(path);
+
+        const shinePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        shinePath.setAttribute('d', d);
+        shinePath.setAttribute('class', cls + ' connection-line-shine');
+        shinePath.dataset.edgeKey = edgeKey;
+        ctx.svg.appendChild(shinePath);
 
         const mid = getCubicPoint(x1, y1, x1 + dx, y1, x2 - dx, y2, x2, y2, 0.5);
         const action = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');

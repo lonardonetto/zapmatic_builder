@@ -37,6 +37,7 @@ writable/*
 php_errors.log
 hooktest.log
 zapmatic_recent.log
+*.log
 
 #-------------------------
 # IDE
@@ -109,3 +110,34 @@ zip_list_api.txt
 schema_diff.py
 temp_restore/
 uploads/
+
+# Baileys sessions / credentials
+app_zapmatic_api/sessions/
+app_zapmatic_api/files/
+
+# Logs
+writable/logs/
+writable/bot_builder_*.log
+writable/*.log
+
+# Debug / temp markdown
+debug-*.md
+
+# Temp restore
+temp_restore/
+uploads/
+builds/
+temp/
+*.zip
+*.gz
+
+# IDE
+.vscode/
+.agent/
+.idea/
+
+# Node
+node_modules/
+
+# PHP packages
+vendor/

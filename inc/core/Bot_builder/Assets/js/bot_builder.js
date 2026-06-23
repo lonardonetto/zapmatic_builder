@@ -56,6 +56,7 @@ if(builderInspectorModule) {
         triggerAutoSave,
         openInspector,
         drawConnections,
+        enableConnections,
         saveSnapshot,
         refreshWhatsAppPreview: refreshInspectorWhatsAppPreview,
         showToast,
@@ -216,7 +217,30 @@ function renderNodeBodyHTML(type, config, def = {}) {
     }
 
     if(type === 'buttons' && config.button_mode === 'native') {
-        return `<div class="bb-node-caption"><strong>Botões nativos</strong>${config.template_name ? ': ' + escHtml(config.template_name) : ': selecione um template'}</div>`;
+        var nt = config.native_template || {};
+        var ntData = nt.data || {};
+        if(typeof ntData === 'string') { try { ntData = JSON.parse(ntData); } catch(e) { ntData = {}; } }
+        var imgUrl = (ntData.image && ntData.image.url) ? ntData.image.url : '';
+        var btns = ntData.templateButtons || [];
+        var labels = btns.map(function(b) {
+            return (b.quickReplyButton && b.quickReplyButton.displayText) ||
+                   (b.button && b.button.displayText) || '';
+        }).filter(Boolean).slice(0, 3);
+        var tplText = ntData.text || ntData.caption || '';
+        let html = imgUrl ? `<div class="bb-node-media"><img src="${escHtml(imgUrl)}" alt="Prévia da imagem" loading="lazy"></div>` : '';
+        html += `<div class="bb-node-caption"><strong>Botões nativos</strong>${config.template_name ? ': ' + escHtml(config.template_name) : ': selecione um template'}</div>`;
+        if(labels.length) html += `<div class="bb-node-options-preview">${labels.map(function(l) { return '<span class="bb-node-option-tag">' + escHtml(l) + '</span>'; }).join('')}</div>`;
+        return html;
+    }
+
+    if(type === 'buttons' && config.button_mode === 'quick') {
+        const imgUrl = (config.image || '').trim();
+        const labels = (config.options || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 3);
+        var displayLabels = labels.map(function(l) { return l.split('|')[0]; }); // Extract label from pipe-delimited format
+        let html = imgUrl ? `<div class="bb-node-media"><img src="${escHtml(imgUrl)}" alt="Prévia da imagem" loading="lazy"></div>` : '';
+        html += `<div class="bb-node-caption">${safeText}</div>`;
+        if(displayLabels.length) html += `<div class="bb-node-options-preview">${displayLabels.map(function(l) { return '<span class="bb-node-option-tag">' + escHtml(l) + '</span>'; }).join('')}</div>`;
+        return html;
     }
 
     if(type === 'list' && config.template_mode === 'native') {
@@ -244,7 +268,7 @@ function renderNodeBodyHTML(type, config, def = {}) {
 
 // ===================== NODE DRAG =====================
 function enableNodeDrag(node) {
-    let dragging = false, didMove = false, sx, sy;
+    let dragging = false, didMove = false, sx, sy, drawQueued = false;
     const header = node.querySelector('.node-header');
 
     header.addEventListener('mousedown', e => {
@@ -255,22 +279,28 @@ function enableNodeDrag(node) {
         BB.isDraggingNode = true;
         node.classList.add('dragging');
         selectNode(node.dataset.id);
+        e.preventDefault();
         e.stopPropagation();
     });
 
     const onMove = e => {
         if(!dragging) return;
         if(Math.abs(e.clientX - sx) > 3 || Math.abs(e.clientY - sy) > 3) didMove = true;
-        const rect = canvasContainer.getBoundingClientRect();
         const dx = (e.clientX - sx) / BB.zoom;
         const dy = (e.clientY - sy) / BB.zoom;
         const n = BB.nodes[node.dataset.id];
         if(!n) return;
-        n.x = snap(n.x + dx);
-        n.y = snap(n.y + dy);
+        n.x += dx;
+        n.y += dy;
         node.style.left = n.x + 'px';
         node.style.top = n.y + 'px';
-        drawConnections();
+        if(!drawQueued) {
+            drawQueued = true;
+            requestAnimationFrame(() => {
+                drawQueued = false;
+                if(dragging) drawConnections();
+            });
+        }
         sx = e.clientX; sy = e.clientY;
     };
 
@@ -299,6 +329,7 @@ function enableNodeDrag(node) {
 function enableNodeClick(node) {
     node.addEventListener('mousedown', e => {
         if(e.target.classList.contains('handle')) return;
+        if(e.target.closest('.node-header')) return;
         selectNode(node.dataset.id);
         openInspector(node.dataset.id);
     });
@@ -424,6 +455,9 @@ if(historyModule) {
         inspectorPanel
     });
 }
+
+window.BotBuilder = window.BotBuilder || {};
+window.BotBuilder.BB = BB;
 
 const persistenceModule = window.BotBuilderModules && window.BotBuilderModules.persistence;
 if(persistenceModule) {
