@@ -1572,14 +1572,60 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         if ($status && !empty($status->state) && $status->state === 'connected') {
             $team_id = get_team("id");
 
-            // Verifica se conta já existe
+            // Busca profile completo no Go
+            $profileName = "";
+            $profilePhone = "";
+            $profileJid = $status->jid ?? "";
+            $profileAvatar = "";
+
+            $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
+            curl_setopt_array($chProfile, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 15,
+            ]);
+            $profileResp = curl_exec($chProfile);
+            curl_close($chProfile);
+            if ($profileResp) {
+                $profileData = json_decode($profileResp);
+                if ($profileData && !empty($profileData->push_name)) {
+                    $profileName = $profileData->push_name;
+                }
+                if ($profileData && !empty($profileData->phone)) {
+                    $profilePhone = $profileData->phone;
+                }
+                if ($profileData && !empty($profileData->jid)) {
+                    $profileJid = $profileData->jid;
+                }
+                // Avatar: salva URL direto no banco (igual Baileys)
+                if ($profileData && !empty($profileData->avatar_url)) {
+                    $profileAvatar = $profileData->avatar_url;
+                }
+            }
+
+            // Limpa JID: remove sufixo de dispositivo (:XX@s.whatsapp.net -> @s.whatsapp.net)
+            $cleanJid = preg_replace('/:\d+@/', '@', $profileJid);
+
+            // Se push_name veio vazio, usa telefone limpo como nome
+            if (empty($profileName) || $profileName === 'Whatsmeow') {
+                $profileName = !empty($profilePhone) ? $profilePhone : preg_replace('/@.*$/', '', $cleanJid);
+            }
+
+            // Fallback avatar: gera com iniciais (igual Baileys usa ui-avatars.com)
+            if (empty($profileAvatar)) {
+                $avatarText = urlencode(preg_replace('/[^a-zA-Z0-9 ]/', '', $profileName));
+                $colors = ['E74645', 'FB7756', 'FACD60', '12492F', 'F7A400', '58B368'];
+                $color = $colors[array_rand($colors)];
+                $profileAvatar = "https://ui-avatars.com/api/?name={$avatarText}&background={$color}&color=fff&font-size=0.5&rounded=false&format=png";
+            }
+
+            $pid = !empty($cleanJid) ? $cleanJid : $instance_id;
+
             $account = db_get("*", self::TB_ACCOUNTS, [
                 "token" => $instance_id,
                 "team_id" => $team_id
             ]);
 
             if (!$account) {
-                // Cria conta automaticamente
                 db_insert(self::TB_ACCOUNTS, [
                     "ids" => ids(),
                     "module" => "whatsapp_profiles",
@@ -1587,29 +1633,32 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                     "category" => "profile",
                     "login_type" => 3,
                     "team_id" => $team_id,
-                    "pid" => $status->jid ?? $instance_id,
-                    "name" => "Whatsmeow - " . substr($instance_id, 0, 12),
+                    "pid" => $pid,
+                    "name" => $profileName,
                     "token" => $instance_id,
+                    "avatar" => $profileAvatar,
                     "status" => 1,
                     "created" => time(),
                     "changed" => time(),
                 ]);
             } else {
-                db_update(self::TB_ACCOUNTS, ["status" => 1, "changed" => time()], ["token" => $instance_id]);
+                $updateData = ["status" => 1, "changed" => time(), "name" => $profileName];
+                if (!empty($profileAvatar)) $updateData["avatar"] = $profileAvatar;
+                db_update(self::TB_ACCOUNTS, $updateData, ["token" => $instance_id]);
             }
 
-            // Marca sessão como concluída
+            $sessionData = json_encode(["gateway" => "whatsmeow", "jid" => $profileJid]);
             $session = db_get("*", self::TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
             if (!$session) {
                 db_insert(self::TB_WHATSAPP_SESSIONS, [
                     "ids" => ids(),
                     "instance_id" => $instance_id,
                     "team_id" => $team_id,
-                    "data" => json_encode(["gateway" => "whatsmeow", "jid" => $status->jid ?? ""]),
+                    "data" => $sessionData,
                     "status" => 1,
                 ]);
             } else {
-                db_update(self::TB_WHATSAPP_SESSIONS, ["status" => 1], ["instance_id" => $instance_id]);
+                db_update(self::TB_WHATSAPP_SESSIONS, ["status" => 1, "data" => $sessionData], ["instance_id" => $instance_id]);
             }
 
             echo json_encode(["status" => "success", "message" => "Whatsmeow connected"]);
@@ -1724,7 +1773,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
             // Remove avatar se existir
             if (!empty($account->avatar)) {
-                $avatar_path = WRITEPATH . 'avatar/' . $account->avatar;
+                $avatar_file = str_replace('avatar/', '', $account->avatar);
+                $avatar_path = WRITEPATH . 'avatar/' . $avatar_file;
                 if (file_exists($avatar_path)) {
                     @unlink($avatar_path);
                 }

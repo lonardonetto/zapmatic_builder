@@ -6,7 +6,7 @@
                 <div>
                     <div class="central-eyebrow"><?php _e('Central de Conexão') ?></div>
                     <h1 class="central-title"><?php _ec($page_title ?? 'Central de Conexão WhatsApp') ?></h1>
-                    <p class="central-subtitle mb-0"><?php _ec($page_subtitle ?? 'Gerencie conexões Baileys e Cloud API em um único lugar.') ?></p>
+                    <p class="central-subtitle mb-0"><?php _ec($page_subtitle ?? 'Gerencie conexões Baileys, Cloud API e Whatsmeow em um único lugar.') ?></p>
                 </div>
             </div>
         </div>
@@ -351,10 +351,14 @@
             <?php
                 $cloud_accounts_total = 0;
                 $baileys_accounts_total = 0;
+                $whatsmeow_accounts_total = 0;
                 $offline_accounts_total = 0;
                 foreach ($accounts as $account_counter) {
-                    if ((int) ($account_counter->login_type ?? 0) === 1) {
+                    $lt = (int) ($account_counter->login_type ?? 0);
+                    if ($lt === 1) {
                         $cloud_accounts_total++;
+                    } elseif ($lt === 3) {
+                        $whatsmeow_accounts_total++;
                     } else {
                         $baileys_accounts_total++;
                     }
@@ -374,6 +378,7 @@
                                     <span class="wa-summary-pill"><?php _e('Total') ?> <?php _ec((string) count($accounts)) ?></span>
                                     <span class="wa-summary-pill"><?php _e('Cloud') ?> <?php _ec((string) $cloud_accounts_total) ?></span>
                                     <span class="wa-summary-pill"><?php _e('Baileys') ?> <?php _ec((string) $baileys_accounts_total) ?></span>
+                                    <span class="wa-summary-pill wa-summary-pill-info"><?php _e('Whatsmeow') ?> <?php _ec((string) $whatsmeow_accounts_total) ?></span>
                                     <span class="wa-summary-pill wa-summary-pill-warning"><?php _e('Exigem atenção') ?> <?php _ec((string) $offline_accounts_total) ?></span>
                                 </div>
                             </div>
@@ -387,6 +392,7 @@
                                     <button type="button" class="wa-filter-pill active" data-filter="all"><?php _e('Todas') ?></button>
                                     <button type="button" class="wa-filter-pill" data-filter="cloud"><?php _e('Cloud API') ?></button>
                                     <button type="button" class="wa-filter-pill" data-filter="baileys"><?php _e('Baileys') ?></button>
+                                    <button type="button" class="wa-filter-pill" data-filter="whatsmeow"><?php _e('Whatsmeow') ?></button>
                                     <button type="button" class="wa-filter-pill" data-filter="attention"><?php _e('Com alerta') ?></button>
                                 </div>
                             </div>
@@ -395,12 +401,18 @@
                             <div class="wa-accounts-grid">
                                 <?php foreach ($accounts as $value): ?>
                                     <?php
-                                        $is_cloud = (int) ($value->login_type ?? 0) === 1;
+                                        $login_type_val = (int) ($value->login_type ?? 0);
+                                        $is_cloud = $login_type_val === 1;
+                                        $is_whatsmeow = $login_type_val === 3;
                                         $is_connected = (int) ($value->status ?? 0) === 1;
                                         $display_name = trim((string) ($value->name ?? ''));
                                         if ($display_name === '') {
                                             $display_name = trim((string) ($value->pid ?? 'Perfil WhatsApp'));
                                         }
+
+                                        $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Baileys');
+                                        $profile_type_color = $is_cloud ? 'success' : ($is_whatsmeow ? 'info' : 'primary');
+                                        $profile_type_filter = $is_cloud ? 'cloud' : ($is_whatsmeow ? 'whatsmeow' : 'baileys');
 
                                         $avatar_url = get_file_url($value->avatar);
                                         $data_acc = $is_cloud ? json_decode($value->data) : null;
@@ -411,7 +423,7 @@
                                         $integration_access_token = $is_cloud ? (string) $token_meta : (string) get_team('ids');
                                         $integration_access_token_label = $is_cloud ? 'Access Token (Meta)' : 'Token de acesso';
                                     ?>
-                                    <div class="wa-account-cell" data-account-type="<?php _ec($is_cloud ? 'cloud' : 'baileys') ?>" data-account-state="<?php _ec($is_connected ? 'connected' : 'attention') ?>" data-account-search="<?php _ec(strtolower($display_name . ' ' . $value->pid)) ?>">
+                                    <div class="wa-account-cell" data-account-type="<?php _ec($profile_type_filter) ?>" data-account-state="<?php _ec($is_connected ? 'connected' : 'attention') ?>" data-account-search="<?php _ec(strtolower($display_name . ' ' . $value->pid)) ?>">
                                         <div class="wa-account-tile" data-profile-id="<?php _ec($value->ids) ?>" data-profile-name="<?php _ec($display_name) ?>">
                                             <div class="wa-account-top">
                                                 <div class="wa-account-identity">
@@ -427,7 +439,7 @@
                                                         <div class="wa-account-subline"><?php _ec($value->pid) ?></div>
                                                     </div>
                                                 </div>
-                                                <span class="badge badge-light-<?php echo $is_cloud ? 'success' : 'primary' ?> fs-10"><?php echo $is_cloud ? 'Cloud API' : 'Baileys' ?></span>
+                                                <span class="badge badge-light-<?php echo $profile_type_color ?> fs-10"><?php echo $profile_type_label ?></span>
                                             </div>
 
                                             <div class="wa-account-middle">
@@ -445,6 +457,8 @@
                                                     <div id="cloud-health-<?php _ec($value->ids)?>" class="cloud-health-inline mt-2" data-cloud-health-id="<?php _ec($value->ids)?>">
                                                         <div class="cloud-health-loading"><?php _e('Consultando Cloud...') ?></div>
                                                     </div>
+                                                <?php elseif ($is_whatsmeow): ?>
+                                                    <div class="wa-local-note"><?php _e('Conexão via Whatsmeow (Go)') ?></div>
                                                 <?php else: ?>
                                                     <div class="wa-local-note"><?php _e('Conexão local via Baileys') ?></div>
                                                 <?php endif; ?>
@@ -475,7 +489,7 @@
                                                         <?php endif; ?>
 
                                                         <li><a class="dropdown-item" href="javascript:void(0);" onclick="editProfileName('<?php _ec($value->ids) ?>')"><i class="fas fa-pen text-primary me-2"></i><?php _e('Editar nome') ?></a></li>
-                                                        <li><a class="dropdown-item js-open-integration-data" href="javascript:void(0);" data-profile-name="<?php _ec($display_name) ?>" data-profile-type="<?php _ec($is_cloud ? 'Cloud API' : 'Baileys') ?>" data-record-id="<?php _ec((string) ($value->ids ?? '')) ?>" data-instance-id="<?php _ec((string) ($value->token ?? '')) ?>" data-access-token="<?php _ec($integration_access_token) ?>" data-access-token-label="<?php _ec($integration_access_token_label) ?>" data-profile-pid="<?php _ec((string) ($value->pid ?? '')) ?>" data-phone-number-id="<?php _ec((string) $phone_id) ?>" data-waba-id="<?php _ec((string) $waba_id) ?>" data-verify-token="<?php _ec((string) $v_token) ?>"><i class="fas fa-fingerprint text-dark me-2"></i><?php _e('ID e token da integração') ?></a></li>
+                                                        <li><a class="dropdown-item js-open-integration-data" href="javascript:void(0);" data-profile-name="<?php _ec($display_name) ?>" data-profile-type="<?php _ec($profile_type_label) ?>" data-record-id="<?php _ec((string) ($value->ids ?? '')) ?>" data-instance-id="<?php _ec((string) ($value->token ?? '')) ?>" data-access-token="<?php _ec($integration_access_token) ?>" data-access-token-label="<?php _ec($integration_access_token_label) ?>" data-profile-pid="<?php _ec((string) ($value->pid ?? '')) ?>" data-phone-number-id="<?php _ec((string) $phone_id) ?>" data-waba-id="<?php _ec((string) $waba_id) ?>" data-verify-token="<?php _ec((string) $v_token) ?>"><i class="fas fa-fingerprint text-dark me-2"></i><?php _e('ID e token da integração') ?></a></li>
 
                                                         <?php if ($is_cloud): ?>
                                                             <li><a class="dropdown-item" href="javascript:void(0);" onclick="testarConexaoCloud('<?php _ec($value->ids)?>', this)"><i class="fas fa-bolt text-primary me-2"></i><?php _e('Testar conexão') ?></a></li>
@@ -2027,6 +2041,7 @@ $(function() {
             var matchesFilter = activeAccountFilter === 'all'
                 || (activeAccountFilter === 'cloud' && accountType === 'cloud')
                 || (activeAccountFilter === 'baileys' && accountType === 'baileys')
+                || (activeAccountFilter === 'whatsmeow' && accountType === 'whatsmeow')
                 || (activeAccountFilter === 'attention' && accountState === 'attention');
 
             var matchesSearch = searchTerm === '' || searchData.indexOf(searchTerm) !== -1;

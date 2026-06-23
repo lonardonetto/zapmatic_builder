@@ -15,7 +15,7 @@ class Whatsapp_autoresponder extends \CodeIgniter\Controller
         ];
 
         $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -32,7 +32,7 @@ class Whatsapp_autoresponder extends \CodeIgniter\Controller
         $team_id = get_team("id");
         $access_token = get_team("ids");
         $ids = post("account");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2], "ids" => $ids, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids, "team_id" => $team_id]);
 
         if(!empty($account) || $ids == "all"){
             $result = false;
@@ -221,7 +221,7 @@ class Whatsapp_autoresponder extends \CodeIgniter\Controller
                 );
             }
         }else{
-            $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "login_type" => [1, 2], "team_id" => $team_id]);
+            $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "login_type" => [1, 2, 3], "team_id" => $team_id]);
             foreach ($accounts as $key => $account) {
                 $item = db_get("*", TB_WHATSAPP_AUTORESPONDER, ["ids" => $account->ids, "team_id" => $team_id]);
                 if(!$item ){

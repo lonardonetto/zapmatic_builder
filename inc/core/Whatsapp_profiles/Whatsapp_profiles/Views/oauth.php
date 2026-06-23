@@ -155,12 +155,18 @@ DEBUG-PROFILE-VIEW
                                             <a href="<?php _ec( $value->url)?>" class="text-gray-800 text-hover-primary fs-14 fw-bold"><?php _e( $value->name )?></a>
                                             <span class="text-muted fw-semibold d-block fs-12">
                                                 <?php _e( $value->pid )?> 
-                                                <span class="badge badge-light-<?php echo ($value->login_type == 1)?'success':'primary'?> fs-10 ml-2">
-                                                    <?php echo ($value->login_type == 1)?'Cloud API':'Baileys'?>
+                                                <?php
+                                                    $lt = (int) ($value->login_type ?? 0);
+                                                    $badge_class = $lt === 1 ? 'success' : ($lt === 3 ? 'info' : 'primary');
+                                                    $badge_label = $lt === 1 ? 'Cloud API' : ($lt === 3 ? 'Go / Whatsmeow' : 'Baileys');
+                                                ?>
+                                                <span class="badge badge-light-<?php echo $badge_class ?> fs-10 ml-2">
+                                                    <?php echo $badge_label ?>
                                                 </span>
                                             </span>
                                             <div id="status-<?php _ec($value->ids)?>">
-                                                <?php if ($value->login_type == 2 && $value->status == 0): ?>
+                                                <?php $is_local_type = in_array((int)($value->login_type ?? 0), [2, 3], true); ?>
+                                                <?php if ($is_local_type && $value->status == 0): ?>
                                                 <a href="javascript:void(0);" onclick="iniciarConexao('<?php echo htmlspecialchars($value->token, ENT_QUOTES, 'UTF-8'); ?>')" class="text-danger fw-semibold d-block fs-12"><?php _e( "Re-login required" )?></a>
                                                 <?php elseif($value->status == 1): ?>
                                                 <span class="text-success fw-semibold d-block fs-12"><i class="fas fa-check-circle fs-10 me-1"></i><?php _e( "Conectado" )?></span>
@@ -169,7 +175,7 @@ DEBUG-PROFILE-VIEW
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center">
-                                        <?php if ($value->login_type == 2 && $value->status == 0): ?>
+                                        <?php if ($is_local_type && $value->status == 0): ?>
                                             <a href="<?php echo base_url('whatsapp_profiles/oauth/' . $value->token); ?>" class="btn btn-success btn-sm me-2">
                                                 <i class="fas fa-plug"></i> <?php _e("Conectar")?>
                                             </a>

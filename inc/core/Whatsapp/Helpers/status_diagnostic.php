@@ -107,7 +107,7 @@ if (!function_exists('diagnostic_status_table')) {
                         'id' => $acc['id'],
                         'name' => $acc['name'],
                         'login_type' => (int)($acc['login_type'] ?? 0),
-                        'tipo' => ($acc['login_type'] == 1) ? 'Cloud API (grava status)' : 'Baileys (não grava status)',
+                        'tipo' => ($acc['login_type'] == 1) ? 'Cloud API (grava status)' : (($acc['login_type'] == 3) ? 'Whatsmeow/Go (não grava status)' : 'Baileys (não grava status)'),
                     ];
                     if (($acc['login_type'] ?? 0) == 1) {
                         $result['uses_cloud'] = true;

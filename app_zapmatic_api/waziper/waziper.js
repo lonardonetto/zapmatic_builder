@@ -3087,10 +3087,10 @@ const WAZIPER = {
 								console.log(`[DEBUG] Processing bulk item ${item.id}, account ${instance_id}, to ${phone_number}`);
 								const isCallCampaign = parseInt(item.type || 0, 10) === 7;
 
-								if (isCallCampaign && account_item.login_type != 2) {
+								if (isCallCampaign && account_item.login_type != 2 && account_item.login_type != 3) {
 									await WAZIPER.handle_bulk_schedule_result(item, next_account, {
 										action: "pause",
-										message: "Call campaigns require Baileys accounts"
+										message: "Call campaigns require Baileys or Whatsmeow accounts"
 									});
 								} else if (!isCallCampaign && account_item.login_type != 1 && sessions[instance_id] == undefined) {
 									console.log(`[DEBUG] Session undefined for Baileys account ${instance_id}, skipping/rescheduling`);

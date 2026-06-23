@@ -15,7 +15,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         ];
 
         $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -32,7 +32,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         $team_id = get_team("id");
         $access_token = get_team("ids");
         $ids = post("account");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2], "ids" => $ids, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids, "team_id" => $team_id]);
 
         if(!empty($account)){
             $result = wa_get_curl("get_groups", [ "instance_id" => $account->token, "access_token" => $access_token ]);
@@ -66,7 +66,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     public function export_group($account_id = false, $group_id = false){
         $team_id = get_team("id");
         $access_token = get_team("ids");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2], "ids" => $account_id, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id, "team_id" => $team_id]);
     
         if(!empty($account)){
             $result = wa_get_curl("get_groups", [ "instance_id" => $account->token, "access_token" => $access_token ]);

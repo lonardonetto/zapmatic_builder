@@ -44,8 +44,8 @@
 									break;
 
 								case 3:
-									$login_type = __("Cookie");
-									$login_type_color = "warning";
+									$login_type = __("Go / Whatsmeow");
+									$login_type_color = "info";
 									break;
 								
 								default:

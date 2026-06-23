@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -39,6 +40,7 @@ func (r *Router) registerRoutes() {
 	r.mux.HandleFunc("/capabilities", r.corsMiddleware(r.handleCapabilities))
 	r.mux.HandleFunc("/status", r.corsMiddleware(r.authGuard(r.handleStatus)))
 	r.mux.HandleFunc("/qrcode", r.corsMiddleware(r.authGuard(r.handleQRCode)))
+	r.mux.HandleFunc("/profile", r.corsMiddleware(r.authGuard(r.handleProfile)))
 	r.mux.HandleFunc("/logout", r.corsMiddleware(r.authGuard(r.handleLogout)))
 	r.mux.HandleFunc("/send/text", r.corsMiddleware(r.authGuard(r.handleSendText)))
 	r.mux.HandleFunc("/send/", r.corsMiddleware(r.authGuard(r.handleSend)))
@@ -175,7 +177,7 @@ func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := r.sm.StartInstance(req.Context(), instanceID); err != nil {
+	if err := r.sm.StartInstance(context.Background(), instanceID); err != nil {
 		r.writeJSON(w, http.StatusConflict, map[string]string{
 			"status": "error", "message": err.Error(),
 		})
@@ -198,6 +200,78 @@ func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 		"status":      "success",
 		"instance_id": instanceID,
 		"qrcode":      qrCode,
+	})
+}
+
+func (r *Router) handleProfile(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+
+	instanceID := req.URL.Query().Get("instance_id")
+	if instanceID == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id is required"})
+		return
+	}
+
+	inst := r.sm.GetInstance(instanceID)
+	if inst == nil {
+		r.writeJSON(w, http.StatusNotFound, map[string]string{"status": "error", "message": "Instance not found"})
+		return
+	}
+
+	if inst.State != session.StateConnected {
+		r.writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status": "success",
+			"id":     instanceID,
+			"state":  "not_connected",
+		})
+		return
+	}
+
+	pushName := inst.DisplayName()
+	if pushName == "" {
+		pushName = inst.JID
+	}
+
+	phone := inst.Phone
+	if phone == "" && inst.Client() != nil && inst.Client().Store != nil && inst.Client().Store.ID != nil {
+		phone = inst.Client().Store.ID.User
+	}
+
+	// Busca URL da foto de perfil (igual Baileys: retorna URL do CDN, não baixa)
+	var avatarURL string
+	client := inst.Client()
+	if client != nil {
+		jid := client.Store.ID
+		if jid != nil {
+			// ToNonAD() remove sufixo de dispositivo (:XX) — WhatsApp rejeita JIDs AD em profile picture
+			cleanJID := jid.ToNonAD()
+			picCtx, picCancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer picCancel()
+			picInfo, err := client.GetProfilePictureInfo(picCtx, cleanJID, nil)
+			if err != nil {
+				logging.Log.Warn().Err(err).Str("instance", instanceID).Str("jid", cleanJID.String()).Msg("GetProfilePictureInfo failed")
+			}
+			if err == nil && picInfo != nil && picInfo.URL != "" {
+				avatarURL = picInfo.URL
+				logging.Log.Info().Str("instance", instanceID).Str("avatar_url", avatarURL).Msg("Profile picture URL retrieved")
+			}
+		} else {
+			logging.Log.Warn().Str("instance", instanceID).Msg("Store.ID is nil, cannot fetch profile picture")
+		}
+	}
+
+	r.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":       "success",
+		"id":           instanceID,
+		"jid":          inst.JID,
+		"phone":        phone,
+		"push_name":    pushName,
+		"avatar_url":   avatarURL,
+		"avatar_base64": "", // ponytail: mantido para compat; remover quando PHP migrar 100%
+		"state":        "connected",
 	})
 }
 

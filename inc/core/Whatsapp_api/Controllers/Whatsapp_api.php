@@ -51,7 +51,7 @@ class Whatsapp_api extends Controller
         ];
 
         $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
