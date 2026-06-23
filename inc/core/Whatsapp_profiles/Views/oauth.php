@@ -26,9 +26,9 @@
                         <i class="fas fa-qrcode me-2"></i><?php _e('Baileys') ?>
                     </button>
 
-                    <button type="button" class="btn btn-info rounded-pill px-4 js-open-connection-drawer" data-connection-drawer-target="whatsmeow">
+                    <a href="<?php _ec(base_url('whatsapp_profiles/oauth?open=whatsmeow')) ?>" class="btn btn-info rounded-pill px-4 js-progress-navigation" data-progress-title="<?php _e('Abrindo Whatsmeow') ?>" data-progress-detail="<?php _e('Nenhuma instância será criada até iniciar a conexão.') ?>" data-progress-duration="800">
                         <i class="fab fa-golang me-2"></i><?php _e('Whatsmeow') ?>
-                    </button>
+                    </a>
 
                     <?php if ((int)permission("cloud_api_enabled") == 1): ?>
                         <button type="button" class="btn btn-primary rounded-pill px-4 js-open-connection-drawer" data-connection-drawer-target="cloud">
@@ -44,7 +44,7 @@
         </div>
     </div>
 
-            <div id="waConnectionDrawer" class="wa-connection-drawer<?php _e(!empty($show_baileys_qr) || !empty($show_whatsmeow_qr) ? ' is-open' : '') ?>" data-default-view="<?php _e(!empty($show_whatsmeow_qr) ? 'whatsmeow' : (!empty($show_baileys_qr) ? 'baileys' : '')) ?>">
+            <div id="waConnectionDrawer" class="wa-connection-drawer<?php _e(!empty($show_baileys_qr) || !empty($show_whatsmeow_qr) || !empty($open_whatsmeow_drawer) ? ' is-open' : '') ?>" data-default-view="<?php _e(!empty($show_whatsmeow_qr) || !empty($open_whatsmeow_drawer) ? 'whatsmeow' : (!empty($show_baileys_qr) ? 'baileys' : '')) ?>">
         <div class="wa-connection-drawer-backdrop" data-close-connection-drawer></div>
         <div class="wa-connection-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="waConnectionDrawerTitle">
             <div class="wa-connection-drawer-header">
@@ -161,7 +161,7 @@
                 </div>
 
     <!-- Whatsmeow Gateway -->
-                <div class="wa-connection-drawer-view" data-drawer-view="whatsmeow">
+                <div class="wa-connection-drawer-view<?php _e(!empty($show_whatsmeow_qr) || !empty($open_whatsmeow_drawer) ? ' is-active' : '') ?>" data-drawer-view="whatsmeow">
         <form class="actionForm" action="<?php _e( base_url("whatsapp_profiles/" . ( uri('segment', 3)=="unofficial"?"save_unofficial":"save" ) ) )?>" method="POST" data-redirect="<?php _e( base_url("account_manager") )?>">
         <div class="row justify-content-center mt-3">
             <div class="col-xl-10 col-lg-11">
@@ -173,10 +173,23 @@
                     <div id="tab_whatsmeow">
                         <?php if (check_number_account("whatsapp", "profile", false, false)): ?>
                         <div class="py-2 check-wrap-all">
+                            <?php if (empty($show_whatsmeow_qr)): ?>
+                            <div class="whatsmeow-launcher">
+                                <div class="whatsmeow-launcher-copy">
+                                    <div class="whatsmeow-launcher-title"><?php _e('Preparar nova conexão Whatsmeow') ?></div>
+                                    <div class="whatsmeow-launcher-text"><?php _e('O QR Code será gerado quando você iniciar a conexão.') ?></div>
+                                </div>
+                                <div class="whatsmeow-launcher-actions">
+                                    <a href="<?php _ec(base_url('whatsapp_profiles/generate_whatsmeow_instance')) ?>" class="btn btn-info rounded-pill px-4 js-progress-navigation" data-progress-title="<?php _e('Preparando conexão Whatsmeow') ?>" data-progress-detail="<?php _e('Gerando QR via gateway Go.') ?>" data-progress-duration="3000">
+                                        <i class="fab fa-golang me-2"></i><?php _e('Iniciar conexão Whatsmeow') ?>
+                                    </a>
+                                </div>
+                            </div>
+                            <?php else: ?>
                             <div class="border b-r-10 p-20 mb-4">
                                 <div class="fs-16 fw-6 d-flex flex-wrap align-items-center gap-2">
-                                    <span><i class="fad fa-key"></i> <?php _e("ID da instância:")?> <span class="text-info"><?php _ec($instance_id)?></span></span>
-                                    <a href="<?php _ec(base_url('whatsapp_profiles/generate_whatsmeow_instance')) ?>" class="btn btn-outline btn-outline-dashed bg-white js-progress-navigation" data-progress-title="<?php _e('Gerando nova instância Whatsmeow') ?>" data-progress-detail="<?php _e('Preparando nova sessão Whatsmeow.') ?>" data-progress-duration="3000">
+                                    <span><i class="fad fa-key"></i> <?php _e("ID da instância:")?> <span class="text-info"><?php _ec($whatsmeow_instance_id)?></span></span>
+                                    <a href="<?php _ec(base_url('whatsapp_profiles/generate_whatsmeow_instance')) ?>" class="btn btn-outline btn-outline-dashed bg-white js-progress-navigation" data-progress-title="<?php _e('Gerando nova instância') ?>" data-progress-detail="<?php _e('Preparando nova sessão Whatsmeow.') ?>" data-progress-duration="3000">
                                         <i class="fas fa-random text-info" style="margin-right:5px;"></i> <?php _e("Gerar Nova Instância")?>
                                     </a>
                                     <a href="<?php _ec(base_url('whatsapp_profiles/oauth')) ?>" class="btn btn-light btn-sm rounded-pill px-3"><i class="fas fa-arrow-left me-1"></i><?php _e('Voltar para a Central') ?></a>
@@ -184,13 +197,14 @@
                                 <div class="text-gray-600"><?php _e("Escaneie o QR Code no seu aplicativo WhatsApp")?></div>
                             </div>
 
-                            <div class="text-center wa-qr-code" data-instance-id="<?php _ec($instance_id)?>">
+                            <div class="text-center wa-qr-code" data-instance-id="<?php _ec($whatsmeow_instance_id)?>">
                                 <div class="wa-code text-center">
                                     <div class="w-300 h-300 d-flex justify-content-center align-items-center fs-60 m-auto border b-r-10 text-dark">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </div>
                                 </div>
                             </div>
+                            <?php endif; ?>
                         </div>
                         <?php else: ?>
                         <div class="alert alert-danger d-flex align-items-center">

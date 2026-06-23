@@ -615,6 +615,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
     {
         $team_id = get_team("id");
         $connect_mode = trim((string) $this->request->getGet('connect'));
+        $open_tab = trim((string) $this->request->getGet('open'));
         $phone_post_requested = isset($_POST['phone']);
         $pending_session = db_get("*", self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
         $should_prepare_baileys_session = (!empty($instance_id) || $connect_mode === 'baileys' || $phone_post_requested);
@@ -625,6 +626,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "page_title" => "Central de Conexão WhatsApp",
             "page_subtitle" => "Gerencie conexões Baileys, Cloud API e Whatsmeow em um único lugar.",
             "show_baileys_qr" => false,
+            "show_whatsmeow_qr" => false,
+            "open_whatsmeow_drawer" => $open_tab === 'whatsmeow',
             "pending_baileys_session" => $pending_session,
             "baileys_connect_url" => base_url("whatsapp_profiles/generate_instance")
         ];
