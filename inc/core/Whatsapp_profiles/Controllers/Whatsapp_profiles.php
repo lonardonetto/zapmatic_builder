@@ -623,7 +623,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "config" => $this->config,
             "cloud_api_embedded_signup_enabled" => $this->canUseCloudEmbeddedSignup($team_id),
             "page_title" => "Central de Conexão WhatsApp",
-            "page_subtitle" => "Gerencie conexões Baileys e Cloud API em um único lugar.",
+            "page_subtitle" => "Gerencie conexões Baileys, Cloud API e Whatsmeow em um único lugar.",
             "show_baileys_qr" => false,
             "pending_baileys_session" => $pending_session,
             "baileys_connect_url" => base_url("whatsapp_profiles/generate_instance")
@@ -1383,9 +1383,74 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         return view('Core\Whatsapp_profiles\Views\index', $data);
     }
 
+    public function generate_whatsmeow_instance()
+    {
+        $team_id = get_team("id");
+        $instance_id = 'WMEOW_' . strtoupper(uniqid());
+
+        // Registra gateway whatsmeow no banco
+        try {
+            \App\Services\WhatsAppGatewayService::register(
+                $instance_id,
+                'http://127.0.0.1:8090',
+                '',
+                $team_id
+            );
+        } catch (\Throwable $e) {
+            // Falha silenciosa, continua
+        }
+
+        // Cria sessão pendente (status=0) igual ao Baileys
+        db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
+        db_insert(self::TB_WHATSAPP_SESSIONS, [
+            "ids" => ids(),
+            "instance_id" => $instance_id,
+            "team_id" => $team_id,
+            "data" => NULL,
+            "status" => 0
+        ]);
+
+        $accounts = db_fetch("*", self::TB_ACCOUNTS, [
+            "social_network" => "whatsapp",
+            "category" => "profile",
+            "team_id" => $team_id
+        ]);
+
+        $content_data = [
+            "config" => $this->config,
+            "cloud_api_embedded_signup_enabled" => $this->canUseCloudEmbeddedSignup($team_id),
+            "page_title" => "Central de Conexão WhatsApp",
+            "page_subtitle" => "Gerencie conexões Baileys, Cloud API e Whatsmeow em um único lugar.",
+            "show_baileys_qr" => false,
+            "show_whatsmeow_qr" => true,
+            "pending_baileys_session" => null,
+            "baileys_connect_url" => base_url("whatsapp_profiles/generate_instance"),
+            "accounts" => $accounts,
+            "instance_id" => $instance_id,
+            "whatsmeow_instance_id" => $instance_id,
+        ];
+
+        $data = [
+            "title" => "Central de Conexão WhatsApp",
+            "desc" => "Gerencie conexões Baileys, Cloud API e Whatsmeow.",
+            "config" => $this->config,
+            "content" => view('Core\Whatsapp_profiles\Views\oauth', $content_data)
+        ];
+
+        return view('Core\Whatsapp_profiles\Views\index', $data);
+    }
+
     public function get_qrcode($instance_id = false)
     {
         $team_id = get_team("id");
+
+        // Detecta se é instância Whatsmeow
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        if (($gateway['provider'] ?? 'baileys') === 'whatsmeow') {
+            $this->get_whatsmeow_qrcode($instance_id);
+            return;
+        }
+
         $access_token = get_team("ids");
 
         $account = db_get("*", self::TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "token" => $instance_id, "team_id" => $team_id]);
@@ -1434,8 +1499,132 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
     }
 
+    public function get_whatsmeow_qrcode($instance_id)
+    {
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+        $ch = curl_init($baseUrl . '/qrcode?instance_id=' . urlencode($instance_id));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || !$response) {
+            echo json_encode([
+                "status" => "error",
+                "message" => "Gateway Whatsmeow offline: $error"
+            ]);
+            exit;
+        }
+
+        $decoded = json_decode($response, true);
+        if (!is_array($decoded) || empty($decoded['qrcode'])) {
+            echo json_encode([
+                "status" => "error",
+                "message" => "Resposta inválida do gateway"
+            ]);
+            exit;
+        }
+
+        $qrRaw = $decoded['qrcode'];
+        $qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' . urlencode($qrRaw);
+
+        echo json_encode([
+            "status" => "success",
+            "base64" => $qrImgUrl,
+            "instance_id" => $instance_id,
+        ]);
+        exit;
+    }
+
+    public function check_whatsmeow_login($instance_id)
+    {
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
+            echo json_encode(["status" => "error", "message" => "Not a whatsmeow instance"]);
+            exit;
+        }
+
+        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+        $ch = curl_init($baseUrl . '/status?instance_id=' . urlencode($instance_id));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || !$response) {
+            echo json_encode(["status" => "error", "message" => "Gateway offline"]);
+            exit;
+        }
+
+        $status = json_decode($response);
+        if ($status && !empty($status->state) && $status->state === 'connected') {
+            $team_id = get_team("id");
+
+            // Verifica se conta já existe
+            $account = db_get("*", self::TB_ACCOUNTS, [
+                "token" => $instance_id,
+                "team_id" => $team_id
+            ]);
+
+            if (!$account) {
+                // Cria conta automaticamente
+                db_insert(self::TB_ACCOUNTS, [
+                    "ids" => ids(),
+                    "module" => "whatsapp_profiles",
+                    "social_network" => "whatsapp",
+                    "category" => "profile",
+                    "login_type" => 3,
+                    "team_id" => $team_id,
+                    "pid" => $status->jid ?? $instance_id,
+                    "name" => "Whatsmeow - " . substr($instance_id, 0, 12),
+                    "token" => $instance_id,
+                    "status" => 1,
+                    "created" => time(),
+                    "changed" => time(),
+                ]);
+            } else {
+                db_update(self::TB_ACCOUNTS, ["status" => 1, "changed" => time()], ["token" => $instance_id]);
+            }
+
+            // Marca sessão como concluída
+            $session = db_get("*", self::TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+            if (!$session) {
+                db_insert(self::TB_WHATSAPP_SESSIONS, [
+                    "ids" => ids(),
+                    "instance_id" => $instance_id,
+                    "team_id" => $team_id,
+                    "data" => json_encode(["gateway" => "whatsmeow", "jid" => $status->jid ?? ""]),
+                    "status" => 1,
+                ]);
+            } else {
+                db_update(self::TB_WHATSAPP_SESSIONS, ["status" => 1], ["instance_id" => $instance_id]);
+            }
+
+            echo json_encode(["status" => "success", "message" => "Whatsmeow connected"]);
+            exit;
+        }
+
+        echo json_encode(["status" => "error", "message" => "Aguardando scan do QR"]);
+        exit;
+    }
+
     public function check_login($instance_id = "")
     {
+        // Roteia instâncias Whatsmeow para o gateway Go
+        if (strpos($instance_id, 'WMEOW_') === 0) {
+            $this->check_whatsmeow_login($instance_id);
+            return;
+        }
+
         $team_id = get_team("id");
         $whatsapp_session = db_get("*", self::TB_WHATSAPP_SESSIONS, ["status" => 1, "team_id" => $team_id, "instance_id" => $instance_id]);
 

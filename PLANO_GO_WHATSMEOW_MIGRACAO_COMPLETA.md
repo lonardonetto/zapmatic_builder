@@ -1422,3 +1422,17 @@ Nunca avançar fase sem registrar testes.
   ```
 - Compilação OK, gateway rodando em `127.0.0.1:8090`
 - Próximo passo: Fase 6 — Provider whatsmeow no PHP
+
+### 2026-06-23 — Fase 6: Provider whatsmeow no PHP + Frontend
+- WhatsAppGatewayService expandido:
+  - `register()` — cria/atualiza `sp_whatsapp_gateways` com provider whatsmeow
+  - `qr()` — GET `/qrcode` no Go
+  - `status()` — GET `/status` no Go
+  - `logout()` — POST `/logout` + remove registro
+  - `capabilities()` — consulta Go ou fallback default
+- Instância registrada no banco: `EMB6A316A3593D3E → provider=whatsmeow, base_url=http://127.0.0.1:8090`
+- Frontend (Central de Conexão - `oauth.php`):
+  - Botão "Whatsmeow" adicionado na switchboard + drawer tab
+  - Drawer com QR code gerado via Go gateway
+  - Controller: `generate_whatsmeow_instance()` — gera instance_id + QR
+- Próximos passos: testar conexão real escaneando QR, depois seguir para Fase 7 (mídia), 8 (interativos), 9 (campanhas)

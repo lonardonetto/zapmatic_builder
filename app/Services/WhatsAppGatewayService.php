@@ -204,7 +204,7 @@ class WhatsAppGatewayService
         $forge->createTable('sp_whatsapp_gateways', true);
     }
 
-    private static function gatewayForInstance($instanceId): array
+    public static function gatewayForInstance($instanceId): array
     {
         $row = \Config\Database::connect()
             ->table('sp_whatsapp_gateways')

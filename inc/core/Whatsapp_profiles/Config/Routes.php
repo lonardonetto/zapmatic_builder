@@ -20,6 +20,7 @@ $routes->add('whatsapp_profiles/cloud_health_batch', '\Core\Whatsapp_profiles\Co
 $routes->add('whatsapp_profiles/cloud_health/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::cloud_health/$1');
 $routes->add('whatsapp_profiles/generate_instance', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::generate_instance');
 $routes->add('whatsapp_profiles/generate_instance/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::generate_instance/$1');
+$routes->add('whatsapp_profiles/generate_whatsmeow_instance', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::generate_whatsmeow_instance');
 $routes->add('whatsapp_profiles/get_qrcode/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::get_qrcode/$1');
 $routes->add('whatsapp_profiles/check_login/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::check_login/$1');
 
