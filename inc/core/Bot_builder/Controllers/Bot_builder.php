@@ -1211,7 +1211,7 @@ class Bot_builder extends \CodeIgniter\Controller
                             ]
                         ];
                     }
-                    $runtime_template_id = $this->save_quick_buttons_runtime_template($team_id, $current_block->id, $msg, $templateButtons);
+                    $runtime_template_id = $this->save_quick_buttons_runtime_template($team_id, $current_block->id, $msg, $templateButtons, $bData->title ?? '', $bData->image ?? '');
                     if($runtime_template_id) {
                         $this->send_whatsapp($instance_id, $session->phone, 'buttons', [
                             '_template_id' => (int)$runtime_template_id
@@ -1413,7 +1413,7 @@ class Bot_builder extends \CodeIgniter\Controller
                     $model = $bData->model ?? 'gemini';
                     $temperature = floatval($bData->temperature ?? 0.7);
                     $max_tokens = intval($bData->max_tokens ?? 500);
-                    $reply = $this->call_ai_service($prompt, $context, $model, $temperature, $max_tokens, $team_id);
+                    $reply = $this->call_ai_service($prompt, $context, $model, $temperature, $max_tokens);
                     $context['ai_reply'] = $reply;
                     $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $reply]);
                     $next_id = $this->find_next_node($edges, $current_block->id);
@@ -2764,12 +2764,8 @@ private function find_reply_trigger($text, $instance_id) {
         }
     }
 
-    private function call_ai_service($prompt, $context, $model = 'gemini', $temperature = 0.7, $max_tokens = 500, $team_id = null) {
-        if (!$team_id) $team_id = get_team('id') ?? null;
-        if (!$team_id) return "Serviço de IA indisponível.";
-
+    private function call_ai_service($prompt, $context, $model = 'gemini', $temperature = 0.7, $max_tokens = 500) {
         $settings = $this->model->db->table('sp_options')
-            ->where('team_id', $team_id)
             ->whereIn('name', ['gemini_api_key', 'openai_api_key'])
             ->get()->getResult();
 
