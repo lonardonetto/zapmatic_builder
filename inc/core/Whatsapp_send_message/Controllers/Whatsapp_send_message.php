@@ -209,8 +209,19 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         }
 
         if (!empty($account)) {
-            // Verifica se é Cloud API (login_type = 1) ou Baileys (login_type = 2)
-            if ($account->login_type == 1) {
+            // Verifica se é Cloud API (login_type = 1), Baileys (login_type = 2) ou Whatsmeow (login_type = 3)
+            if ($account->login_type == 3) {
+                $text = spintax($caption);
+                if (!empty($media)) {
+                    $text = !empty($caption) ? $caption : '';
+                }
+                $result = wa_send_via_whatsmeow($account->token, $send_to, $text, 'composing', 2);
+                if ($result['status'] == 'success') {
+                    ms(["status" => "success", "message" => "Message sent via Whatsmeow"]);
+                } else {
+                    ms(["status" => "error", "message" => $result['message'] ?? "Cannot send via Whatsmeow"]);
+                }
+            } elseif ($account->login_type == 1) {
                 // Cloud API - Usa a API do Meta
                 if ($type === 6) {
                     $flow = db_get("*", TB_WHATSAPP_FLOWS, [
