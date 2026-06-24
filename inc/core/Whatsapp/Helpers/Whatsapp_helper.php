@@ -106,6 +106,10 @@ if(!function_exists('wa_post_curl')){
 if(!function_exists('wa_send_via_whatsmeow')){
 	function wa_send_via_whatsmeow($instance_id, $chat_id, $text, $presence_type = 'composing', $presence_time = 2)
 	{
+		// Garante JID completo
+		if (strpos($chat_id, '@') === false) {
+			$chat_id = $chat_id . '@s.whatsapp.net';
+		}
 		$gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
 		if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
 			return ['status' => 'error', 'message' => 'Not a whatsmeow instance'];
