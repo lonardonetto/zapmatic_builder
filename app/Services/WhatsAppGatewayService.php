@@ -256,10 +256,9 @@ class WhatsAppGatewayService
         $headers = ['Content-Type: application/json'];
         if (!empty($gateway['api_key'])) $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
 
-        // Presença digitando (composing) antes de enviar
         $presenceTime = isset($payload['presenceTime']) ? (int)$payload['presenceTime'] : 2;
         $presenceType = isset($payload['presenceType']) ? $payload['presenceType'] : 'composing';
-        if ($presenceTime > 0) {
+        if ($presenceTime > 0 && $type === 'text') {
             $presenceBody = [
                 'instance_id' => $instanceId,
                 'chat_id' => $chatId,
@@ -268,28 +267,88 @@ class WhatsAppGatewayService
             ];
             $chP = curl_init($baseUrl . '/send/presence');
             curl_setopt_array($chP, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => json_encode($presenceBody),
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_TIMEOUT => 5,
+                CURLOPT_HTTPHEADER => $headers, CURLOPT_TIMEOUT => 5,
             ]);
             curl_exec($chP);
             curl_close($chP);
         }
 
-        // Texto: /send/text
+        // Roteia conforme tipo
         $endpoint = '/send/text';
-        if (in_array($type, ['image', 'audio', 'video', 'document'])) {
-            $endpoint = '/send/media';
-        }
-
         $body = [
             'instance_id' => $instanceId,
             'chat_id' => $chatId,
             'type' => $type,
-            'payload' => $payload,
         ];
+
+        if (in_array($type, ['image', 'audio', 'video', 'document'])) {
+            $endpoint = '/send/media';
+            $body['payload'] = $payload;
+        } elseif ($type === 'buttons' || $type === 'carousel') {
+            $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
+            if (!$templateId) {
+                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
+            }
+            $db = \Config\Database::connect();
+            $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+            if (!$tpl) {
+                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+            }
+            $tData = json_decode($tpl['data'], true) ?: [];
+            $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
+            $body['title'] = $tData['title'] ?? '';
+            $body['footer'] = $tData['footer'] ?? '';
+
+            $endpoint = '/send/buttons';
+            $buttons = [];
+            $source = $tData['interactiveButtons'] ?? $tData['templateButtons'] ?? $tData['buttons'] ?? [];
+            foreach ($source as $i => $btn) {
+                $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
+                $qr = $b['quickReplyButton'] ?? [];
+                $id = $qr['id'] ?? $b['id'] ?? "btn_$i";
+                $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção " . ($i+1);
+                $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+            }
+            $body['buttons'] = $buttons;
+
+            if ($type === 'carousel') {
+                $body['type'] = 'carousel';
+            }
+        } elseif ($type === 'list') {
+            $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
+            if (!$templateId) {
+                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
+            }
+            $db = \Config\Database::connect();
+            $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+            if (!$tpl) {
+                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+            }
+            $tData = json_decode($tpl['data'], true) ?: [];
+            $endpoint = '/send/list';
+            $body['body'] = $tData['text'] ?? 'Selecione';
+            $body['title'] = $tData['title'] ?? '';
+            $body['footer'] = $tData['footer'] ?? '';
+            $body['button_text'] = $tData['buttonText'] ?? 'Opções';
+            $sections = [];
+            foreach ($tData['sections'] ?? [] as $sec) {
+                $rows = [];
+                foreach ($sec['rows'] ?? [] as $r) {
+                    $rows[] = [
+                        'id' => $r['rowId'] ?? $r['id'] ?? uniqid(),
+                        'title' => $r['title'] ?? '',
+                        'description' => $r['description'] ?? ''
+                    ];
+                }
+                $sections[] = ['title' => $sec['title'] ?? '', 'rows' => $rows];
+            }
+            $body['sections'] = $sections;
+        } else {
+            // Texto normal
+            $body['payload'] = $payload;
+        }
 
         $ch = curl_init($baseUrl . $endpoint);
         curl_setopt_array($ch, [
