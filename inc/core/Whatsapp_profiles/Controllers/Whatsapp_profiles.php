@@ -1581,7 +1581,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
             curl_setopt_array($chProfile, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 15,
+                CURLOPT_TIMEOUT => 35,
             ]);
             $profileResp = curl_exec($chProfile);
             curl_close($chProfile);

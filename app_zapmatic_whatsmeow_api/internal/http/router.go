@@ -236,7 +236,19 @@ func (r *Router) handleProfile(w http.ResponseWriter, req *http.Request) {
 		phone = inst.Client().Store.ID.User
 	}
 
+	// ESPERA ativamente o push_name chegar (igual Baileys: a API só responde quando está pronto)
+	// O proxy do WhatsApp pode levar até 2min para enviar o push_name via history sync.
+	// O PHP tem timeout de 30s, o JS tem polling infinito — então bloqueamos até 25s.
 	pushName := inst.DisplayName()
+	if pushName == "" {
+		for i := 0; i < 25; i++ {
+			time.Sleep(1000 * time.Millisecond)
+			pushName = inst.DisplayName()
+			if pushName != "" {
+				break
+			}
+		}
+	}
 	if pushName == "" {
 		if phone != "" {
 			pushName = phone
