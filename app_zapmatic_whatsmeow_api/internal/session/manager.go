@@ -101,7 +101,24 @@ func (m *Manager) Init(ctx context.Context) error {
 	}
 	m.container = container
 
-	logging.Log.Info().Str("db_path", dbPath).Msg("Session store initialized")
+	// Restaura sessões existentes via instance_map.json → JID
+	mappings := m.loadMappings()
+	devices, _ := container.GetAllDevices(ctx)
+	deviceJIDs := make(map[string]bool)
+	for _, d := range devices { deviceJIDs[d.ID.String()] = true }
+
+	for instanceID, jidStr := range mappings {
+		if _, exists := m.instances[instanceID]; exists { continue }
+		if !deviceJIDs[jidStr] {
+			logging.Log.Warn().Str("instance", instanceID).Str("jid", jidStr).Msg("Device not in DB, removing mapping")
+			m.deleteMapping(instanceID)
+			continue
+		}
+		logging.Log.Info().Str("instance", instanceID).Str("jid", jidStr).Msg("Auto-reconnecting")
+		m.StartInstance(ctx, instanceID)
+	}
+
+	logging.Log.Info().Str("db_path", dbPath).Int("devices", len(devices)).Int("restored", len(mappings)).Msg("Session store initialized")
 	return nil
 }
 
@@ -222,13 +239,12 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 
 	client := whatsmeow.NewClient(deviceStore, waLog.Zerolog(logging.Log))
 
-	clientCtx, cancel := context.WithCancel(ctx)
-
+	clientCtx, clientCancel := context.WithCancel(ctx)
 	inst := &Instance{
 		ID:     instanceID,
 		State:  StateConnecting,
 		client: client,
-		cancel: cancel,
+		cancel: clientCancel,
 	}
 	m.instances[instanceID] = inst
 	m.mu.Unlock()
