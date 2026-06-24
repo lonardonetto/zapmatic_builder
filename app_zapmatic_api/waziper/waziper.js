@@ -4708,8 +4708,20 @@ const WAZIPER = {
 					try {
 						const gateway = await Common.db_query(`SELECT * FROM sp_whatsapp_gateways WHERE instance_id = '${instance_id}' AND status = 1 LIMIT 1`);
 						const baseUrl = (gateway && gateway.length > 0 && gateway[0].base_url) ? gateway[0].base_url : 'http://127.0.0.1:8090';
-						const waApiUrl = `${baseUrl.replace(/\/+$/, '')}/send/text?instance_id=${instance_id}`;
-						const waResp = await axios.post(waApiUrl, {
+						const baseApi = baseUrl.replace(/\/+$/, '');
+
+						// Envia presença digitando via gateway Go
+						const presenceTime = Math.max(1, Math.min(8, parseInt(req.body.presence_time || payload.presence_time || payload.presenceTime || 2, 10) || 2));
+						try {
+							await axios.post(`${baseApi}/send/presence`, {
+								instance_id: instance_id,
+								chat_id: chat_id,
+								presence: 'composing',
+								duration: presenceTime
+							}, { timeout: 5000 });
+						} catch (_) {}
+
+						const waResp = await axios.post(`${baseApi}/send/text`, {
 							instance_id: instance_id,
 							chat_id: chat_id,
 							type: 'text',
@@ -5101,9 +5113,22 @@ const WAZIPER = {
 			try {
 				const gateway = await Common.db_query(`SELECT * FROM sp_whatsapp_gateways WHERE instance_id = '${instance_id}' AND status = 1 LIMIT 1`);
 				const baseUrl = (gateway && gateway.length > 0 && gateway[0].base_url) ? gateway[0].base_url : 'http://127.0.0.1:8090';
-				const waApiUrl = `${baseUrl.replace(/\/+$/, '')}/send/text`;
+				const baseApi = baseUrl.replace(/\/+$/, '');
 				const textPayload = String(data.text || data.caption || item.caption || '');
-				const waResp = await axios.post(waApiUrl, {
+
+				// Envia presença digitando (composing + duração) via gateway Go
+				if (item.presenceTime > 0 && item.presenceType > 0) {
+					try {
+						await axios.post(`${baseApi}/send/presence`, {
+							instance_id: instance_id,
+							chat_id: chat_id,
+							presence: item.presenceType == 2 ? 'recording' : 'composing',
+							duration: item.presenceTime
+						}, { timeout: 5000 });
+					} catch (_) {}
+				}
+
+				const waResp = await axios.post(`${baseApi}/send/text`, {
 					instance_id: instance_id,
 					chat_id: chat_id,
 					type: 'text',
