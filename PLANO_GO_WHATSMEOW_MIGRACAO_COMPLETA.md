@@ -1436,3 +1436,21 @@ Nunca avançar fase sem registrar testes.
   - Drawer com QR code gerado via Go gateway
   - Controller: `generate_whatsmeow_instance()` — gera instance_id + QR
 - Próximos passos: testar conexão real escaneando QR, depois seguir para Fase 7 (mídia), 8 (interativos), 9 (campanhas)
+
+### 2026-06-24 — Fase 7: Mídia + modularização + runtime
+- Modularizado:
+  - `router.go` — apenas rotas + CORS + auth
+  - `handler_session.go` — QR, status, profile, logout
+  - `handler_send.go` — send/text, send/media, send/presence
+  - `handler_health.go` — health, capabilities
+- Implementado:
+  - `POST /send/media` — imagem/áudio/video/documento via whatsmeow
+  - `internal/storage/storage.go` — mídia própria (Save/Path/List/Delete/SaveFromURL)
+  - `internal/runtime/runtime.go` — orquestrador principal
+  - Download automático de mídia de mensagens recebidas
+  - `storage/files/` — diretório de mídia independente do Node
+- Não alterado:
+  - Nenhum arquivo do waziper.js ou Node
+  - Nenhum arquivo PHP legado
+- Regra mantida: **nenhum arquivo ultrapassa 200 linhas**
+- Próximo passo: Fase 8 — Interativos (botões/lista/poll) + grupos (listar/criar/edit)

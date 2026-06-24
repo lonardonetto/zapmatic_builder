@@ -219,54 +219,16 @@ class WhatsAppGatewayService
     private static function sendViaBaileys($instanceId, string $chatId, string $type, array $payload): array
     {
         $access_token = self::resolveAccessToken($instanceId);
-        if (!$access_token) {
-            return ['status' => 'error', 'provider' => 'baileys', 'message' => 'Access token not found'];
-        }
 
-        $params = [
-            'instance_id' => $instanceId,
-            'access_token' => $access_token,
-        ];
+        $params = ['instance_id' => $instanceId];
+        if ($access_token) $params['access_token'] = $access_token;
 
-        // Botões, lista, carrossel, poll usam direct_send_message com type numérico
-        $typeMap = ['buttons' => 2, 'list' => 3, 'carousel' => 5, 'poll' => 6];
-        if (!empty($payload['_template_id']) && isset($typeMap[$type])) {
-            $params['type'] = $typeMap[$type];
-            $body = [
-                'chat_id' => $chatId,
-                'type' => $typeMap[$type],
-                'template' => (int)$payload['_template_id'],
-            ];
-            $response = wa_post_curl('direct_send_message', $params, $body);
-            $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
-            return is_array($decoded)
-                ? $decoded + ['provider' => 'baileys']
-                : ['status' => 'success', 'provider' => 'baileys', 'raw' => $response];
-        }
-
-        // Áudio usa direct_send_message type=1
-        if ($type === 'audio' && !empty($payload['url'])) {
-            $params['type'] = 1;
-            $body = [
-                'chat_id' => $chatId,
-                'type' => 1,
-                'caption' => $payload['caption'] ?? '',
-                'media_url' => $payload['url'],
-            ];
-            $response = wa_post_curl('direct_send_message', $params, $body);
-            $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
-            return is_array($decoded)
-                ? $decoded + ['provider' => 'baileys']
-                : ['status' => 'success', 'provider' => 'baileys', 'raw' => $response];
-        }
-
-        // Texto e outros usam bot_builder_send
-        $messageType = $type === 'text' ? 'text' : $type;
         $body = [
             'chat_id' => $chatId,
-            'message_type' => $messageType,
+            'message_type' => $type === 'text' ? 'text' : $type,
             'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ];
+
         $response = wa_post_curl('bot_builder_send', $params, $body);
         $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
 
@@ -316,81 +278,18 @@ class WhatsAppGatewayService
             curl_close($chP);
         }
 
-        // Identifica endpoint base
+        // Texto: /send/text
         $endpoint = '/send/text';
+        if (in_array($type, ['image', 'audio', 'video', 'document'])) {
+            $endpoint = '/send/media';
+        }
+
         $body = [
             'instance_id' => $instanceId,
             'chat_id' => $chatId,
             'type' => $type,
+            'payload' => $payload,
         ];
-
-        if (in_array($type, ['image', 'audio', 'video', 'document'])) {
-            $endpoint = '/send/media';
-            $body['payload'] = $payload;
-        } elseif (in_array($type, ['buttons', 'list', 'poll', 'carousel'])) {
-            // Consulta o template no banco
-            $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
-            if (!$templateId) {
-                return ['status' => 'error', 'message' => 'ID do template ausente'];
-            }
-            $db = \Config\Database::connect();
-            $template = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRow();
-            if (!$template) {
-                return ['status' => 'error', 'message' => 'Template não encontrado no banco'];
-            }
-
-            $tData = json_decode($template->data, true) ?: [];
-            $body['body'] = $tData['text'] ?? $tData['caption'] ?? $payload['text'] ?? 'Escolha uma opção';
-            $body['title'] = $tData['title'] ?? '';
-            $body['footer'] = $tData['footer'] ?? '';
-
-            if ($type === 'buttons' || $type === 'carousel') {
-                $endpoint = '/send/buttons';
-                $buttons = [];
-                $sourceBtns = $tData['interactiveButtons'] ?? $tData['templateButtons'] ?? $tData['buttons'] ?? [];
-                foreach ($sourceBtns as $i => $btn) {
-                    $bInfo = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
-                    $name = $bInfo['name'] ?? 'quick_reply';
-                    $btnParams = is_string($bInfo['buttonParamsJson'] ?? '') ? json_decode($bInfo['buttonParamsJson'], true) : ($bInfo['buttonParamsJson'] ?? []);
-                    
-                    $btnData = [
-                        'id' => $btnParams['id'] ?? $btnParams['buttonId'] ?? "btn_" . ($i+1),
-                        'text' => $btnParams['display_text'] ?? $btnParams['displayText'] ?? "Opção " . ($i+1),
-                        'type' => $name == 'cta_url' ? 'url' : ($name == 'cta_call' ? 'call' : 'reply')
-                    ];
-                    if ($btnData['type'] === 'url') $btnData['url'] = $btnParams['url'] ?? $btnParams['merchant_url'] ?? '';
-                    if ($btnData['type'] === 'call') $btnData['phone_number'] = $btnParams['phone_number'] ?? '';
-                    $buttons[] = $btnData;
-                }
-                $body['buttons'] = $buttons;
-            } elseif ($type === 'list') {
-                $endpoint = '/send/list';
-                $body['button_text'] = $tData['buttonText'] ?? 'Opções';
-                $sections = [];
-                foreach ($tData['sections'] ?? [] as $sec) {
-                    $rows = [];
-                    foreach ($sec['rows'] ?? [] as $r) {
-                        $rows[] = [
-                            'id' => $r['rowId'] ?? $r['id'] ?? uniqid(),
-                            'title' => $r['title'] ?? '',
-                            'description' => $r['description'] ?? ''
-                        ];
-                    }
-                    $sections[] = ['title' => $sec['title'] ?? '', 'rows' => $rows];
-                }
-                $body['sections'] = $sections;
-            } elseif ($type === 'poll') {
-                $endpoint = '/send/poll';
-                $options = [];
-                foreach ($tData['options'] ?? [] as $opt) {
-                    $options[] = ['name' => $opt['optionName'] ?? $opt['name'] ?? ''];
-                }
-                $body['options'] = $options;
-            }
-        } else {
-            // Text normal
-            $body['payload'] = $payload;
-        }
 
         $ch = curl_init($baseUrl . $endpoint);
         curl_setopt_array($ch, [

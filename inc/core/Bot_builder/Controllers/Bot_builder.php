@@ -1409,12 +1409,22 @@ class Bot_builder extends \CodeIgniter\Controller
                     break;
 
                 case 'ai_reply':
-                    $prompt = $this->replace_vars($bData->prompt ?? '', $context);
-                    $model = $bData->model ?? 'gemini';
+                    $prompt = $this->replace_vars($bData->prompt ?? '{{last_message}}', $context);
+                    $provider = $bData->provider ?? 'openrouter';
+                    $model = $bData->model ?? '';
                     $temperature = floatval($bData->temperature ?? 0.7);
                     $max_tokens = intval($bData->max_tokens ?? 500);
-                    $reply = $this->call_ai_service($prompt, $context, $model, $temperature, $max_tokens);
+                    $systemPrompt = $this->replace_vars($bData->system_prompt ?? 'Você é um assistente útil.', $context);
+                    $reply = \App\Services\AIService::reply($provider, [
+                        'model' => $model,
+                        'system_prompt' => $systemPrompt,
+                        'temperature' => $temperature,
+                        'max_tokens' => $max_tokens,
+                    ], $prompt, $team_id);
                     $context['ai_reply'] = $reply;
+                    if (($bData->mode ?? 'once') === 'continuous') {
+                        $context['ai_history'] = array_slice(array_merge($context['ai_history'] ?? [], [['user' => $prompt, 'assistant' => $reply]]), -6);
+                    }
                     $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $reply]);
                     $next_id = $this->find_next_node($edges, $current_block->id);
                     break;
