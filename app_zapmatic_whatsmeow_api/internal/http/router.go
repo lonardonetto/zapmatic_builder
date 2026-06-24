@@ -230,14 +230,19 @@ func (r *Router) handleProfile(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pushName := inst.DisplayName()
-	if pushName == "" {
-		pushName = inst.JID
-	}
-
+	// Extrai telefone ANTES do pushName para usar como fallback sem sufixo AD
 	phone := inst.Phone
 	if phone == "" && inst.Client() != nil && inst.Client().Store != nil && inst.Client().Store.ID != nil {
 		phone = inst.Client().Store.ID.User
+	}
+
+	pushName := inst.DisplayName()
+	if pushName == "" {
+		if phone != "" {
+			pushName = phone
+		} else {
+			pushName = instanceID
+		}
 	}
 
 	// Busca URL da foto de perfil (igual Baileys: retorna URL do CDN, não baixa)

@@ -1572,34 +1572,39 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         if ($status && !empty($status->state) && $status->state === 'connected') {
             $team_id = get_team("id");
 
-            // Busca profile completo no Go
+            // Busca profile completo no Go — até 3 tentativas (push_name pode demorar a chegar)
             $profileName = "";
             $profilePhone = "";
             $profileJid = $status->jid ?? "";
             $profileAvatar = "";
 
-            $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
-            curl_setopt_array($chProfile, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 15,
-            ]);
-            $profileResp = curl_exec($chProfile);
-            curl_close($chProfile);
-            if ($profileResp) {
-                $profileData = json_decode($profileResp);
-                if ($profileData && !empty($profileData->push_name)) {
-                    $profileName = $profileData->push_name;
+            $retries = [0, 2000000, 5000000]; // 0s, 2s, 5s
+            foreach ($retries as $delay) {
+                if ($delay > 0) usleep($delay);
+
+                $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
+                curl_setopt_array($chProfile, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 15,
+                ]);
+                $profileResp = curl_exec($chProfile);
+                curl_close($chProfile);
+                if ($profileResp) {
+                    $profileData = json_decode($profileResp);
+                    if ($profileData && !empty($profileData->push_name)) {
+                        $profileName = $profileData->push_name;
+                    }
+                    if ($profileData && !empty($profileData->phone)) {
+                        $profilePhone = $profileData->phone;
+                    }
+                    if ($profileData && !empty($profileData->jid)) {
+                        $profileJid = $profileData->jid;
+                    }
+                    if ($profileData && !empty($profileData->avatar_url)) {
+                        $profileAvatar = $profileData->avatar_url;
+                    }
                 }
-                if ($profileData && !empty($profileData->phone)) {
-                    $profilePhone = $profileData->phone;
-                }
-                if ($profileData && !empty($profileData->jid)) {
-                    $profileJid = $profileData->jid;
-                }
-                // Avatar: salva URL direto no banco (igual Baileys)
-                if ($profileData && !empty($profileData->avatar_url)) {
-                    $profileAvatar = $profileData->avatar_url;
-                }
+                if (!empty($profileName) && $profileName !== $instance_id) break;
             }
 
             // Limpa JID: remove sufixo de dispositivo (:XX@s.whatsapp.net -> @s.whatsapp.net)
