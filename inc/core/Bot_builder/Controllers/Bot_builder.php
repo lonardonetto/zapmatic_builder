@@ -3138,95 +3138,9 @@ private function find_reply_trigger($text, $instance_id) {
             return false;
         }
 
-        $params = [
-            'instance_id' => $instance_id,
-            'access_token' => $access_token,
-        ];
-
-        if($type === 'audio' && !empty($content['url'])) {
-            $direct_payload = [
-                'chat_id' => $phone,
-                'type' => 1,
-                'caption' => '',
-                'media_url' => $content['url']
-            ];
-
-            $result = wa_post_curl('direct_send_message', [
-                'instance_id' => $instance_id,
-                'access_token' => $access_token,
-                'type' => 1
-            ], $direct_payload);
-
-            try {
-                file_put_contents(
-                    WRITEPATH . 'bot_builder_send.log',
-                    date('Y-m-d H:i:s') . ' | DIRECT_AUDIO | instance=' . $instance_id . ' | chat=' . $phone . ' | media=' . $content['url'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
-                    FILE_APPEND
-                );
-            } catch(\Throwable $e) {}
-
-            return $result;
-        }
-
-        if($type === 'buttons' && !empty($content['_template_id'])) {
-            $direct_payload = [
-                'chat_id' => $phone,
-                'template' => (int)$content['_template_id']
-            ];
-
-            $result = wa_post_curl('direct_send_message', [
-                'instance_id' => $instance_id,
-                'access_token' => $access_token,
-                'type' => 2
-            ], $direct_payload);
-
-            try {
-                file_put_contents(
-                    WRITEPATH . 'bot_builder_send.log',
-                    date('Y-m-d H:i:s') . ' | DIRECT_TEMPLATE_BUTTONS | instance=' . $instance_id . ' | chat=' . $phone . ' | template=' . $content['_template_id'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
-                    FILE_APPEND
-                );
-            } catch(\Throwable $e) {}
-
-            return $result;
-        }
-
-        if($type === 'carousel' && !empty($content['_template_id'])) {
-            $direct_payload = [
-                'chat_id' => $phone,
-                'template' => (int)$content['_template_id']
-            ];
-
-            $result = wa_post_curl('direct_send_message', [
-                'instance_id' => $instance_id,
-                'access_token' => $access_token,
-                'type' => 5
-            ], $direct_payload);
-
-            try {
-                file_put_contents(
-                    WRITEPATH . 'bot_builder_send.log',
-                    date('Y-m-d H:i:s') . ' | DIRECT_TEMPLATE_CAROUSEL | instance=' . $instance_id . ' | chat=' . $phone . ' | template=' . $content['_template_id'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
-                    FILE_APPEND
-                );
-            } catch(\Throwable $e) {}
-
-            return $result;
-        }
-
-        // #region debug-point builder-carousel-ios
-        if($type === 'carousel') {
-            try {
-                file_put_contents(
-                    WRITEPATH . 'bot_builder_carousel_ios_debug.log',
-                    date('Y-m-d H:i:s') . ' | before_gateway | instance=' . $instance_id . ' | chat=' . $phone . ' | content=' . json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n",
-                    FILE_APPEND
-                );
-            } catch(\Throwable $e) {}
-        }
-        // #endregion debug-point builder-carousel-ios
-
+        // Roteia tudo via WhatsAppGatewayService — ele resolve provider e gateway
         $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+
         try {
             file_put_contents(
                 WRITEPATH . 'bot_builder_send.log',

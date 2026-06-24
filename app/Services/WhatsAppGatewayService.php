@@ -256,13 +256,36 @@ class WhatsAppGatewayService
             return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Gateway Whatsmeow sem base_url.'];
         }
 
+        $headers = ['Content-Type: application/json'];
+        if (!empty($gateway['api_key'])) $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
+
+        // Presença digitando (composing) antes de enviar
+        $presenceTime = isset($payload['presenceTime']) ? (int)$payload['presenceTime'] : 2;
+        $presenceType = isset($payload['presenceType']) ? $payload['presenceType'] : 'composing';
+        if ($presenceTime > 0) {
+            $presenceBody = [
+                'instance_id' => $instanceId,
+                'chat_id' => $chatId,
+                'presence' => $presenceType,
+                'duration' => $presenceTime,
+            ];
+            $chP = curl_init($baseUrl . '/send/presence');
+            curl_setopt_array($chP, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($presenceBody),
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => 5,
+            ]);
+            curl_exec($chP);
+            curl_close($chP);
+        }
+
+        // Texto: /send/text
         $endpoint = '/send/text';
         if (in_array($type, ['image', 'audio', 'video', 'document'])) {
             $endpoint = '/send/media';
         }
-
-        $headers = ['Content-Type: application/json'];
-        if (!empty($gateway['api_key'])) $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
 
         $body = [
             'instance_id' => $instanceId,
