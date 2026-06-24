@@ -28,10 +28,18 @@ type SendRequest struct {
 	} `json:"payload"`
 }
 
+type PresenceRequest struct {
+	InstanceID string `json:"instance_id"`
+	ChatID     string `json:"chat_id"`
+	Presence   string `json:"presence"`
+	Duration   int    `json:"duration,omitempty"`
+}
+
 type SendResponse struct {
 	Status    string `json:"status"`
 	Provider  string `json:"provider"`
 	MessageID string `json:"message_id,omitempty"`
+	Warning   string `json:"warning,omitempty"`
 	Error     string `json:"error,omitempty"`
 }
 
@@ -88,4 +96,73 @@ func (s *Sender) SendText(ctx context.Context, req SendRequest) SendResponse {
 		Provider:  "whatsmeow",
 		MessageID: resp.ID,
 	}
+}
+
+func (s *Sender) SendPresence(ctx context.Context, req PresenceRequest) SendResponse {
+	inst := s.sm.GetInstance(req.InstanceID)
+	if inst == nil {
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: "instance not found"}
+	}
+
+	client := inst.Client()
+	if client == nil || !client.IsConnected() {
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"}
+	}
+
+	jid, err := types.ParseJID(req.ChatID)
+	if err != nil {
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
+	}
+
+	var chatPresence types.ChatPresence
+	var mediaType types.ChatPresenceMedia
+
+	switch req.Presence {
+	case "composing":
+		chatPresence = types.ChatPresenceComposing
+		mediaType = types.ChatPresenceMediaText
+	case "recording":
+		chatPresence = types.ChatPresenceComposing
+		mediaType = types.ChatPresenceMediaAudio
+	case "paused":
+		chatPresence = types.ChatPresencePaused
+		mediaType = types.ChatPresenceMediaText
+	case "available":
+		sendCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		if err := client.SendPresence(sendCtx, types.PresenceAvailable); err != nil {
+			return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+		}
+		return SendResponse{Status: "success", Provider: "whatsmeow"}
+	default:
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("unknown presence: %s", req.Presence)}
+	}
+
+	sendCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if err := client.SendChatPresence(sendCtx, jid, chatPresence, mediaType); err != nil {
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendChatPresence failed")
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+	}
+
+	logging.Log.Debug().
+		Str("instance", req.InstanceID).
+		Str("to", req.ChatID).
+		Str("presence", req.Presence).
+		Msg("Presence sent")
+
+	if req.Duration > 0 && (req.Presence == "composing" || req.Presence == "recording") {
+		time.Sleep(time.Duration(req.Duration) * time.Second)
+		stopCtx, stopCancel := context.WithTimeout(ctx, 5*time.Second)
+		defer stopCancel()
+		_ = client.SendChatPresence(stopCtx, jid, types.ChatPresencePaused, types.ChatPresenceMediaText)
+		return SendResponse{
+			Status:   "success",
+			Provider: "whatsmeow",
+			Warning:  fmt.Sprintf("presence %s active for %ds", req.Presence, req.Duration),
+		}
+	}
+
+	return SendResponse{Status: "success", Provider: "whatsmeow"}
 }

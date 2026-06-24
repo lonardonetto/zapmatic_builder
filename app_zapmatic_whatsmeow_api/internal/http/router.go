@@ -43,6 +43,7 @@ func (r *Router) registerRoutes() {
 	r.mux.HandleFunc("/profile", r.corsMiddleware(r.authGuard(r.handleProfile)))
 	r.mux.HandleFunc("/logout", r.corsMiddleware(r.authGuard(r.handleLogout)))
 	r.mux.HandleFunc("/send/text", r.corsMiddleware(r.authGuard(r.handleSendText)))
+	r.mux.HandleFunc("/send/presence", r.corsMiddleware(r.authGuard(r.handleSendPresence)))
 	r.mux.HandleFunc("/send/", r.corsMiddleware(r.authGuard(r.handleSend)))
 }
 
@@ -348,6 +349,31 @@ func (r *Router) handleSendText(w http.ResponseWriter, req *http.Request) {
 	}
 
 	resp := r.sender.SendText(req.Context(), sendReq)
+	status := http.StatusOK
+	if resp.Status == "error" {
+		status = http.StatusInternalServerError
+	}
+	r.writeJSON(w, status, resp)
+}
+
+func (r *Router) handleSendPresence(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+
+	var pr sender.PresenceRequest
+	if err := json.NewDecoder(req.Body).Decode(&pr); err != nil {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON: " + err.Error()})
+		return
+	}
+
+	if pr.InstanceID == "" || pr.ChatID == "" || pr.Presence == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id, chat_id and presence are required"})
+		return
+	}
+
+	resp := r.sender.SendPresence(req.Context(), pr)
 	status := http.StatusOK
 	if resp.Status == "error" {
 		status = http.StatusInternalServerError
