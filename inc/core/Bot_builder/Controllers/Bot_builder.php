@@ -2809,9 +2809,16 @@ private function find_reply_trigger($text, $instance_id) {
     }
 
     private function call_openai($api_key, $prompt, $model, $temperature, $max_tokens) {
+        // Se o modelo veio como 'gemini' (fallback), usa o modelo padrão da OpenAI
+        $openaiModel = $model;
+        if (in_array($model, ['gemini', 'gemini-pro', 'auto'])) {
+            $defaultModel = $this->model->db->table('sp_options')
+                ->where('name', 'openai_default_model')->get()->getRow();
+            $openaiModel = $defaultModel ? $defaultModel->value : 'gpt-3.5-turbo-16k';
+        }
         $url = "https://api.openai.com/v1/chat/completions";
         $data = [
-            'model' => $model,
+            'model' => $openaiModel,
             'messages' => [['role' => 'user', 'content' => $prompt]],
             'temperature' => $temperature,
             'max_tokens' => $max_tokens
