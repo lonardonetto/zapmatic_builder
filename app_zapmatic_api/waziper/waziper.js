@@ -4703,6 +4703,28 @@ const WAZIPER = {
 					return res.json({ status: 'error', message: 'Mensagem vazia no Bot Builder' });
 				}
 
+				// Roteia contas Whatsmeow (login_type=3) para o gateway Go
+				if (parseInt(account.login_type, 10) === 3) {
+					try {
+						const gateway = await Common.db_query(`SELECT * FROM sp_whatsapp_gateways WHERE instance_id = '${instance_id}' AND status = 1 LIMIT 1`);
+						const baseUrl = (gateway && gateway.length > 0 && gateway[0].base_url) ? gateway[0].base_url : 'http://127.0.0.1:8090';
+						const waApiUrl = `${baseUrl.replace(/\/+$/, '')}/send/text?instance_id=${instance_id}`;
+						const waResp = await axios.post(waApiUrl, {
+							instance_id: instance_id,
+							chat_id: chat_id,
+							type: 'text',
+							payload: { text: String(payload.text || payload.caption || '') }
+						}, { timeout: 30000 });
+						if (waResp.data && waResp.data.status === 'success') {
+							return res.json({ status: 'success', message: 'Mensagem Whatsmeow enviada via gateway Go', data: waResp.data });
+						} else {
+							return res.json({ status: 'error', message: waResp.data?.error || 'Falha no envio via gateway Go' });
+						}
+					} catch (waErr) {
+						return res.json({ status: 'error', message: 'Gateway Go offline: ' + (waErr.message || '') });
+					}
+				}
+
 				const result = await new Promise((resolve) => {
 					let resolved = false;
 					const finish = (payloadResult) => {
@@ -5073,6 +5095,35 @@ const WAZIPER = {
 
 		var account = await Common.db_get("sp_accounts", [{ token: instance_id }, { team_id: item?.team_id }]);
 		console.log("[DEBUG] process_send_message account found:", account ? account.id : "null", "type:", account ? account.login_type : "N/A");
+
+		// Roteia contas Whatsmeow (login_type=3) para o gateway Go
+		if (account && parseInt(account.login_type, 10) === 3) {
+			try {
+				const gateway = await Common.db_query(`SELECT * FROM sp_whatsapp_gateways WHERE instance_id = '${instance_id}' AND status = 1 LIMIT 1`);
+				const baseUrl = (gateway && gateway.length > 0 && gateway[0].base_url) ? gateway[0].base_url : 'http://127.0.0.1:8090';
+				const waApiUrl = `${baseUrl.replace(/\/+$/, '')}/send/text`;
+				const textPayload = String(data.text || data.caption || item.caption || '');
+				const waResp = await axios.post(waApiUrl, {
+					instance_id: instance_id,
+					chat_id: chat_id,
+					type: 'text',
+					payload: { text: textPayload }
+				}, { timeout: 30000 });
+				if (waResp.data && waResp.data.status === 'success') {
+					if (typeof callback === 'function') callback({ status: 1, type: type, phone_number: phone_number, stats: true, message: 'Enviado via gateway Go' });
+					WAZIPER.stats(instance_id, type, item, 1);
+				} else {
+					if (typeof callback === 'function') callback({ status: 0, type: type, phone_number: phone_number, stats: true, message: waResp.data?.error || 'Falha no envio via gateway Go' });
+					WAZIPER.stats(instance_id, type, item, 0);
+				}
+				return;
+			} catch (waErr) {
+				console.error('[WHATSMEOW] Erro ao enviar via gateway Go:', waErr.message);
+				if (typeof callback === 'function') callback({ status: 0, type: type, phone_number: phone_number, stats: true, message: 'Gateway Go offline: ' + (waErr.message || '') });
+				WAZIPER.stats(instance_id, type, item, 0);
+				return;
+			}
+		}
 
 		if (account && account.login_type == 1) {
 
