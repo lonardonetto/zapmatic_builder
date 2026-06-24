@@ -1572,51 +1572,40 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         if ($status && !empty($status->state) && $status->state === 'connected') {
             $team_id = get_team("id");
 
-            // Busca profile completo no Go — faz polling ativo no /profile
-            // O push_name pode levar até 2 min para ser populado (history sync)
+            // Busca profile completo no Go — chamada única
             $profileName = "";
             $profilePhone = "";
             $profileJid = $status->jid ?? "";
             $profileAvatar = "";
 
-            $pollStart = time();
-            $pollTimeout = 90; // segundos máximos de espera
-            $interval = 3000000; // 3s entre tentativas
-
-            do {
-                if (time() - $pollStart > $pollTimeout) break;
-
-                $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
-                curl_setopt_array($chProfile, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT => 15,
-                ]);
-                $profileResp = curl_exec($chProfile);
-                curl_close($chProfile);
-                if ($profileResp) {
-                    $profileData = json_decode($profileResp);
-                    if ($profileData && !empty($profileData->push_name)) {
-                        $profileName = $profileData->push_name;
-                        $profileAvatar = $profileData->avatar_url ?? $profileAvatar;
-                        $profilePhone = $profileData->phone ?? $profilePhone;
-                        $profileJid = $profileData->jid ?? $profileJid;
-                        break;
-                    }
-                    if ($profileData && !empty($profileData->avatar_url)) {
-                        $profileAvatar = $profileData->avatar_url;
-                    }
-                    if ($profileData && !empty($profileData->phone)) {
-                        $profilePhone = $profileData->phone;
-                    }
-                    if ($profileData && !empty($profileData->jid)) {
-                        $profileJid = $profileData->jid;
-                    }
+            $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
+            curl_setopt_array($chProfile, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 15,
+            ]);
+            $profileResp = curl_exec($chProfile);
+            curl_close($chProfile);
+            if ($profileResp) {
+                $profileData = json_decode($profileResp);
+                if ($profileData && !empty($profileData->push_name)) {
+                    $profileName = $profileData->push_name;
                 }
-
-                if (empty($profileName)) {
-                    usleep($interval);
+                if ($profileData && !empty($profileData->phone)) {
+                    $profilePhone = $profileData->phone;
                 }
-            } while (empty($profileName));
+                if ($profileData && !empty($profileData->jid)) {
+                    $profileJid = $profileData->jid;
+                }
+                if ($profileData && !empty($profileData->avatar_url)) {
+                    $profileAvatar = $profileData->avatar_url;
+                }
+            }
+
+            // Se ainda não tem push_name, retorna pending — JS continua polling
+            if (empty($profileName)) {
+                echo json_encode(["status" => "pending", "message" => "Aguardando push name"]);
+                exit;
+            }
 
             // Limpa JID: remove sufixo de dispositivo (:XX@s.whatsapp.net -> @s.whatsapp.net)
             $cleanJid = preg_replace('/:\d+@/', '@', $profileJid);
@@ -1682,6 +1671,57 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
 
         echo json_encode(["status" => "error", "message" => "Aguardando scan do QR"]);
+        exit;
+    }
+
+    public function refresh_whatsmeow_profile($instance_id)
+    {
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
+            echo json_encode(["status" => "error", "message" => "Not a whatsmeow instance"]);
+            exit;
+        }
+
+        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+        $ch = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $resp = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($err || !$resp) {
+            echo json_encode(["status" => "error", "message" => "Gateway offline"]);
+            exit;
+        }
+
+        $data = json_decode($resp);
+        if (!$data || empty($data->push_name)) {
+            echo json_encode(["status" => "pending", "message" => "Push name not yet available"]);
+            exit;
+        }
+
+        $profileName = $data->push_name;
+        $profileAvatar = $data->avatar_url ?? "";
+        $cleanJid = preg_replace('/:\d+@/', '@', ($data->jid ?? $instance_id));
+        $team_id = get_team("id");
+
+        $account = db_get("*", self::TB_ACCOUNTS, ["token" => $instance_id, "team_id" => $team_id]);
+        if ($account) {
+            $update = ["name" => $profileName, "pid" => $cleanJid];
+            if (!empty($profileAvatar)) $update["avatar"] = $profileAvatar;
+            db_update(self::TB_ACCOUNTS, $update, ["id" => $account->id]);
+        }
+
+        echo json_encode([
+            "status" => "success",
+            "name" => $profileName,
+            "avatar" => $profileAvatar,
+            "pid" => $cleanJid,
+        ]);
         exit;
     }
 

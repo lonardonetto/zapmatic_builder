@@ -35,6 +35,7 @@ type Instance struct {
 	JID         string        `json:"jid,omitempty"`
 	Phone       string        `json:"phone,omitempty"`
 	LastQR      string        `json:"last_qr,omitempty"`
+	PushName    string        `json:"push_name,omitempty"`
 	client      *whatsmeow.Client
 	cancel      context.CancelFunc
 	connectedAt time.Time
@@ -42,6 +43,16 @@ type Instance struct {
 
 func (inst *Instance) Client() *whatsmeow.Client {
 	return inst.client
+}
+
+func (inst *Instance) DisplayName() string {
+	if inst.PushName != "" {
+		return inst.PushName
+	}
+	if inst.client != nil && inst.client.Store != nil {
+		return inst.client.Store.PushName
+	}
+	return ""
 }
 
 type instanceMapping struct {
@@ -60,12 +71,13 @@ type Manager struct {
 }
 
 type StatusInfo struct {
-	ID      string `json:"id"`
-	State   string `json:"state"`
-	JID     string `json:"jid,omitempty"`
-	Phone   string `json:"phone,omitempty"`
-	Online  bool   `json:"online"`
-	Uptime  string `json:"uptime,omitempty"`
+	ID       string `json:"id"`
+	State    string `json:"state"`
+	JID      string `json:"jid,omitempty"`
+	Phone    string `json:"phone,omitempty"`
+	PushName string `json:"push_name,omitempty"`
+	Online   bool   `json:"online"`
+	Uptime   string `json:"uptime,omitempty"`
 }
 
 func NewManager(storeDir, webhookURL string) *Manager {
@@ -147,6 +159,7 @@ func (m *Manager) ListInstances() []StatusInfo {
 			State:  stateToString(inst.State),
 			JID:    inst.JID,
 			Phone:  inst.Phone,
+			PushName: inst.DisplayName(),
 			Online: inst.State == StateConnected,
 		}
 		if !inst.connectedAt.IsZero() {
@@ -163,11 +176,12 @@ func (m *Manager) GetStatus(instanceID string) *StatusInfo {
 		return nil
 	}
 	info := &StatusInfo{
-		ID:     inst.ID,
-		State:  stateToString(inst.State),
-		JID:    inst.JID,
-		Phone:  inst.Phone,
-		Online: inst.State == StateConnected,
+		ID:       inst.ID,
+		State:    stateToString(inst.State),
+		JID:      inst.JID,
+		Phone:    inst.Phone,
+		PushName: inst.DisplayName(),
+		Online:   inst.State == StateConnected,
 	}
 	if !inst.connectedAt.IsZero() {
 		info.Uptime = time.Since(inst.connectedAt).Round(time.Second).String()
@@ -403,6 +417,31 @@ func (m *Manager) handleEvent(instanceID string, evt interface{}) {
 		}
 		m.mu.Unlock()
 		logging.Log.Info().Str("instance", instanceID).Str("jid", inst.JID).Msg("Connected")
+
+		// Goroutine de background: aguarda push_name ser populado (history sync)
+		go func(instID string, client *whatsmeow.Client) {
+			for i := 0; i < 120; i++ {
+				time.Sleep(1000 * time.Millisecond)
+				m.mu.Lock()
+				instPtr, ok := m.instances[instID]
+				if !ok || instPtr.State != StateConnected {
+					m.mu.Unlock()
+					return
+				}
+				pn := ""
+				if client != nil && client.Store != nil {
+					pn = client.Store.PushName
+				}
+				if pn != "" && pn != instPtr.PushName {
+					instPtr.PushName = pn
+					m.mu.Unlock()
+					logging.Log.Info().Str("instance", instID).Str("push_name", pn).Int("waited_s", i+1).Msg("Push name captured in background")
+					return
+				}
+				m.mu.Unlock()
+			}
+			logging.Log.Warn().Str("instance", instID).Msg("Push name not available after 120s background poll")
+		}(instanceID, inst.client)
 
 	case *events.Disconnected:
 		m.mu.Lock()
