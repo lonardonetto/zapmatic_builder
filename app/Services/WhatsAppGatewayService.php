@@ -219,19 +219,54 @@ class WhatsAppGatewayService
     private static function sendViaBaileys($instanceId, string $chatId, string $type, array $payload): array
     {
         $access_token = self::resolveAccessToken($instanceId);
+        if (!$access_token) {
+            return ['status' => 'error', 'provider' => 'baileys', 'message' => 'Access token not found'];
+        }
 
+        $params = [
+            'instance_id' => $instanceId,
+            'access_token' => $access_token,
+        ];
+
+        // Botões, lista, carrossel, poll usam direct_send_message com type numérico
+        $typeMap = ['buttons' => 2, 'list' => 3, 'carousel' => 5, 'poll' => 6];
+        if (!empty($payload['_template_id']) && isset($typeMap[$type])) {
+            $params['type'] = $typeMap[$type];
+            $body = [
+                'chat_id' => $chatId,
+                'type' => $typeMap[$type],
+                'template' => (int)$payload['_template_id'],
+            ];
+            $response = wa_post_curl('direct_send_message', $params, $body);
+            $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
+            return is_array($decoded)
+                ? $decoded + ['provider' => 'baileys']
+                : ['status' => 'success', 'provider' => 'baileys', 'raw' => $response];
+        }
+
+        // Áudio usa direct_send_message type=1
+        if ($type === 'audio' && !empty($payload['url'])) {
+            $params['type'] = 1;
+            $body = [
+                'chat_id' => $chatId,
+                'type' => 1,
+                'caption' => $payload['caption'] ?? '',
+                'media_url' => $payload['url'],
+            ];
+            $response = wa_post_curl('direct_send_message', $params, $body);
+            $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
+            return is_array($decoded)
+                ? $decoded + ['provider' => 'baileys']
+                : ['status' => 'success', 'provider' => 'baileys', 'raw' => $response];
+        }
+
+        // Texto e outros usam bot_builder_send
         $messageType = $type === 'text' ? 'text' : $type;
         $body = [
             'chat_id' => $chatId,
             'message_type' => $messageType,
             'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ];
-
-        $params = ['instance_id' => $instanceId];
-        if ($access_token) {
-            $params['access_token'] = $access_token;
-        }
-
         $response = wa_post_curl('bot_builder_send', $params, $body);
         $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
 
