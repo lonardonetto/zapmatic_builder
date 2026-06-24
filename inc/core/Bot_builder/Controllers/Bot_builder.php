@@ -727,102 +727,6 @@ class Bot_builder extends \CodeIgniter\Controller
         return $this->response->setJSON(['status' => 'success', 'redirect' => base_url('bot-builder/'.$bot_id.'/editor')]);
     }
 
-    /**
-     * Promove um bloco Botões (modo quick) para Template Nativo reutilizável.
-     */
-    public function promote_to_native()
-    {
-        $blockId = (string) $this->request->getPost('block_id');
-        $text = (string) $this->request->getPost('text');
-        $title = (string) $this->request->getPost('title');
-        $image = (string) $this->request->getPost('image');
-        $optionsRaw = (string) $this->request->getPost('options');
-        $existingIds = (string) $this->request->getPost('ids');
-
-        if (!$blockId || !$optionsRaw) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Parâmetros obrigatórios: block_id, options']);
-        }
-
-        $teamId = get_team('id');
-
-        $labels = array_map('trim', explode(',', $optionsRaw));
-        $templateButtons = [];
-        foreach ($labels as $idx => $label) {
-            if ($label === '') continue;
-            $templateButtons[] = [
-                'index' => $idx,
-                'quickReplyButton' => [
-                    'displayText' => $label,
-                    'id' => 'opt_' . $idx
-                ]
-            ];
-        }
-
-        if (empty($templateButtons)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Nenhum botão válido encontrado']);
-        }
-
-        $payload = [
-            'templateButtons' => $templateButtons,
-            'footer' => '',
-            'title' => $title,
-            'text' => $text,
-            'caption' => $text,
-            'image' => $image ? ['url' => $image] : null,
-            'local_variables' => [],
-            'meta_official' => [
-                'enabled' => false,
-                'base_name' => '',
-                'category' => 'MARKETING',
-                'languages' => '',
-                'header_format' => 'TEXT',
-                'body_example' => ''
-            ]
-        ];
-
-        $name = substr(preg_replace('/[^a-zA-Z0-9_À-ÿ ]/', '', trim($text)), 0, 40) ?: 'Botao Builder';
-        $name = 'BB_' . $name;
-
-        $ids = $existingIds ?: ('bb_promoted_' . uniqid());
-
-        // Upsert: update only if existing ids were provided (meaning user chose to update)
-        $existing = null;
-        if ($existingIds) {
-            $existing = db_get('id, ids, name', TB_WHATSAPP_TEMPLATE, ['ids' => $ids, 'team_id' => $teamId]);
-        }
-        if ($existing) {
-            db_update(TB_WHATSAPP_TEMPLATE, [
-                'data' => json_encode($payload),
-                'name' => $existing->name,
-                'changed' => time()
-            ], ['id' => $existing->id]);
-            $name = $existing->name;
-        } else {
-            // Check name conflict and disambiguate
-            $nameConflict = db_get('id', TB_WHATSAPP_TEMPLATE, ['team_id' => $teamId, 'name' => $name, 'type' => 2]);
-            if ($nameConflict) {
-                $name .= '_' . substr($blockId, 0, 6);
-            }
-            $data = [
-                'ids' => $ids,
-                'team_id' => $teamId,
-                'type' => 2,
-                'name' => $name,
-                'data' => json_encode($payload),
-                'changed' => time(),
-                'created' => time(),
-            ];
-            db_insert(TB_WHATSAPP_TEMPLATE, $data);
-        }
-
-        return $this->response->setJSON([
-            'status' => 'success',
-            'ids' => $ids,
-            'name' => $name,
-            'message' => $existing ? 'Template nativo atualizado com sucesso!' : 'Template nativo criado! Agora pode ser usado em outros fluxos.'
-        ]);
-    }
-
     // ===================== RUNTIME EXECUTOR =====================
 
     public function webhook()
@@ -1097,17 +1001,7 @@ class Bot_builder extends \CodeIgniter\Controller
                 }
                 $varName = $data->variable ?? 'input';
                 $context[$varName] = $input;
-                $context['last_message'] = $input;
                 $next_id = $this->find_next_node($edges, $current_block_id);
-            } elseif ($prev_type === 'ai_reply' && (($data->mode ?? 'once') === 'continuous')) {
-                $context['last_message'] = $input;
-                $prompt = $this->replace_vars($data->prompt ?? '{{last_message}}', $context);
-                $reply = $this->call_ai_service($prompt, $context, $data, $data->provider ?? 'auto', $team_id);
-                $context[$data->variable ?? 'ai_reply'] = $reply;
-                $context['ai_history'] = array_slice(array_merge($context['ai_history'] ?? [], [['user' => $input, 'assistant' => $reply]]), -6);
-                $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $reply]);
-                $this->save_state($session->id, $current_block_id, $context);
-                return;
             } elseif (in_array($prev_type, ['buttons', 'list', 'pic_choice', 'cards'])) {
                 $context['last_selection'] = $input;
                 if(!empty($data->variable)) $context[$data->variable] = $input;
@@ -1307,10 +1201,17 @@ class Bot_builder extends \CodeIgniter\Controller
                     }
                     $msg = $this->replace_vars($bData->text ?? '', $context);
                     $btns = $this->parse_buttons($bData->options ?? '');
-                    $templateButtons = $this->build_template_buttons_from_parsed($btns);
-                    $btnTitle = $bData->title ?? '';
-                    $btnImage = $bData->image ?? '';
-                    $runtime_template_id = $this->save_quick_buttons_runtime_template($team_id, $current_block->id, $msg, $templateButtons, $btnTitle, $btnImage);
+                    $templateButtons = [];
+                    foreach($btns as $idx => $btn) {
+                        $templateButtons[] = [
+                            'index' => $idx,
+                            'quickReplyButton' => [
+                                'displayText' => $btn->label,
+                                'id' => $btn->id
+                            ]
+                        ];
+                    }
+                    $runtime_template_id = $this->save_quick_buttons_runtime_template($team_id, $current_block->id, $msg, $templateButtons);
                     if($runtime_template_id) {
                         $this->send_whatsapp($instance_id, $session->phone, 'buttons', [
                             '_template_id' => (int)$runtime_template_id
@@ -1508,17 +1409,13 @@ class Bot_builder extends \CodeIgniter\Controller
                     break;
 
                 case 'ai_reply':
-                    $prompt = $this->replace_vars($bData->prompt ?? '{{last_message}}', $context);
-                    $reply = $this->call_ai_service($prompt, $context, $bData, $bData->provider ?? 'auto', $team_id);
-                    $context[$bData->variable ?? 'ai_reply'] = $reply;
-                    if(($bData->mode ?? 'once') === 'continuous') {
-                        $context['ai_history'] = array_slice(array_merge($context['ai_history'] ?? [], [['user' => $prompt, 'assistant' => $reply]]), -6);
-                    }
+                    $prompt = $this->replace_vars($bData->prompt ?? '', $context);
+                    $model = $bData->model ?? 'gemini';
+                    $temperature = floatval($bData->temperature ?? 0.7);
+                    $max_tokens = intval($bData->max_tokens ?? 500);
+                    $reply = $this->call_ai_service($prompt, $context, $model, $temperature, $max_tokens, $team_id);
+                    $context['ai_reply'] = $reply;
                     $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $reply]);
-                    if(($bData->mode ?? 'once') === 'continuous') {
-                        $this->save_state($session->id, $current_block->id, $context);
-                        return;
-                    }
                     $next_id = $this->find_next_node($edges, $current_block->id);
                     break;
 
@@ -1737,17 +1634,120 @@ class Bot_builder extends \CodeIgniter\Controller
                     break;
 
                 case 'intg_openai':
+                    $apiKey   = $bData->api_key ?? '';
+                    $model    = $bData->model ?? 'gpt-4o-mini';
+                    $prompt   = $this->replace_vars($bData->prompt ?? '', $context);
+                    $sysPr    = $this->replace_vars($bData->system_prompt ?? '', $context);
+                    $temp     = floatval($bData->temperature ?? 0.7);
+                    $maxTok   = intval($bData->max_tokens ?? 500);
+                    $varName  = $bData->variable ?? 'openai_reply';
+                    try {
+                        $payload = json_encode([
+                            'model'    => $model,
+                            'messages' => array_filter([
+                                $sysPr ? ['role' => 'system', 'content' => $sysPr] : null,
+                                ['role' => 'user', 'content' => $prompt]
+                            ]),
+                            'temperature' => $temp,
+                            'max_tokens'  => $maxTok
+                        ]);
+                        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_POST           => true,
+                            CURLOPT_POSTFIELDS     => $payload,
+                            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', "Authorization: Bearer $apiKey"],
+                            CURLOPT_TIMEOUT        => 60,
+                        ]);
+                        $resp = json_decode(curl_exec($ch), true);
+                        curl_close($ch);
+                        $context[$varName] = $resp['choices'][0]['message']['content'] ?? 'No response';
+                    } catch(\Throwable $e) {
+                        $context[$varName] = 'Error: ' . $e->getMessage();
+                    }
+                    $next_id = $this->find_next_node($edges, $current_block->id);
+                    break;
+
                 case 'intg_anthropic':
+                    $apiKey  = $bData->api_key ?? '';
+                    $model   = $bData->model ?? 'claude-3-5-sonnet-20241022';
+                    $prompt  = $this->replace_vars($bData->prompt ?? '', $context);
+                    $sysPr   = $this->replace_vars($bData->system_prompt ?? '', $context);
+                    $temp    = floatval($bData->temperature ?? 0.7);
+                    $maxTok  = intval($bData->max_tokens ?? 1024);
+                    $varName = $bData->variable ?? 'claude_reply';
+                    try {
+                        $payload = json_encode([
+                            'model'      => $model,
+                            'system'     => $sysPr ?: 'You are a helpful assistant.',
+                            'messages'   => [['role' => 'user', 'content' => $prompt]],
+                            'temperature'=> $temp,
+                            'max_tokens' => $maxTok
+                        ]);
+                        $ch = curl_init('https://api.anthropic.com/v1/messages');
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_POST           => true,
+                            CURLOPT_POSTFIELDS     => $payload,
+                            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', "x-api-key: $apiKey", 'anthropic-version: 2023-06-01'],
+                            CURLOPT_TIMEOUT        => 60,
+                        ]);
+                        $resp = json_decode(curl_exec($ch), true);
+                        curl_close($ch);
+                        $context[$varName] = $resp['content'][0]['text'] ?? 'No response';
+                    } catch(\Throwable $e) {
+                        $context[$varName] = 'Error: ' . $e->getMessage();
+                    }
+                    $next_id = $this->find_next_node($edges, $current_block->id);
+                    break;
+
                 case 'intg_mistral':
                 case 'intg_groq':
                 case 'intg_deepseek':
                 case 'intg_perplexity':
                 case 'intg_together':
                 case 'intg_openrouter':
-                    $provider = str_replace('intg_', '', $current_block->type);
-                    $prompt = $this->replace_vars($bData->prompt ?? '{{last_message}}', $context);
-                    $varName = $bData->variable ?? ($provider . '_reply');
-                    $context[$varName] = $this->call_ai_service($prompt, $context, $bData, $provider, $team_id);
+                    $apiKey  = $bData->api_key ?? '';
+                    $model   = $bData->model ?? '';
+                    $prompt  = $this->replace_vars($bData->prompt ?? '', $context);
+                    $sysPr   = $this->replace_vars($bData->system_prompt ?? '', $context);
+                    $temp    = floatval($bData->temperature ?? 0.7);
+                    $maxTok  = intval($bData->max_tokens ?? 500);
+                    $varName = $bData->variable ?? ($current_block->type . '_reply');
+                    // Map integration type to API endpoint
+                    $apiEndpoints = [
+                        'intg_mistral'    => 'https://api.mistral.ai/v1/chat/completions',
+                        'intg_groq'       => 'https://api.groq.com/openai/v1/chat/completions',
+                        'intg_deepseek'   => 'https://api.deepseek.com/v1/chat/completions',
+                        'intg_perplexity' => 'https://api.perplexity.ai/chat/completions',
+                        'intg_together'   => 'https://api.together.xyz/v1/chat/completions',
+                        'intg_openrouter' => 'https://openrouter.ai/api/v1/chat/completions',
+                    ];
+                    $endpoint = $apiEndpoints[$current_block->type] ?? '';
+                    try {
+                        $payload = json_encode([
+                            'model'    => $model,
+                            'messages' => array_filter([
+                                $sysPr ? ['role' => 'system', 'content' => $sysPr] : null,
+                                ['role' => 'user', 'content' => $prompt]
+                            ]),
+                            'temperature' => $temp,
+                            'max_tokens'  => $maxTok
+                        ]);
+                        $ch = curl_init($endpoint);
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_POST           => true,
+                            CURLOPT_POSTFIELDS     => $payload,
+                            CURLOPT_HTTPHEADER     => ['Content-Type: application/json', "Authorization: Bearer $apiKey"],
+                            CURLOPT_TIMEOUT        => 60,
+                        ]);
+                        $resp = json_decode(curl_exec($ch), true);
+                        curl_close($ch);
+                        $context[$varName] = $resp['choices'][0]['message']['content'] ?? 'No response';
+                    } catch(\Throwable $e) {
+                        $context[$varName] = 'Error: ' . $e->getMessage();
+                    }
                     $next_id = $this->find_next_node($edges, $current_block->id);
                     break;
 
@@ -2525,7 +2525,7 @@ private function find_reply_trigger($text, $instance_id) {
                 $text = str_replace("{{".$k."}}", $v, $text);
             }
         }
-        return preg_replace('/{{\s*[^}]+\s*}}/', '', $text);
+        return $text;
     }
 
     private function get_native_template_payload($team_id, $ids, $type) {
@@ -2611,22 +2611,6 @@ private function find_reply_trigger($text, $instance_id) {
                     'id' => $q['id'] ?? ($q['displayText'] ?? 'bb_btn_' . ($index + 1)),
                     'label' => $q['displayText'] ?? ($q['id'] ?? 'Opção ' . ($index + 1)),
                     'value' => $q['id'] ?? ($q['displayText'] ?? 'bb_btn_' . ($index + 1))
-                ];
-            } elseif(isset($btn['urlButton'])) {
-                $u = $btn['urlButton'];
-                $label = $u['displayText'] ?? 'Link ' . ($index + 1);
-                $buttons[] = [
-                    'id' => 'btn_url_' . $index,
-                    'label' => $label,
-                    'value' => $label
-                ];
-            } elseif(isset($btn['callButton'])) {
-                $c = $btn['callButton'];
-                $label = $c['displayText'] ?? 'Ligar ' . ($index + 1);
-                $buttons[] = [
-                    'id' => 'btn_phone_' . $index,
-                    'label' => $label,
-                    'value' => $label
                 ];
             }
         }
@@ -2752,83 +2736,15 @@ private function find_reply_trigger($text, $instance_id) {
         foreach($arr as $idx => $txt) {
             $txt = trim($txt);
             if(!$txt) continue;
-
-            // Support extended format: label|type|url|phone|copy_code
-            // type can be: text, url, phone, copy
-            // Legacy plain text is treated as type=text
-            $parts = explode('|', $txt);
-            $parts = array_map('trim', $parts);
-            $label = $parts[0] ?? $txt;
-            $type = $parts[1] ?? 'text';
-            $url = $parts[2] ?? '';
-            $phone = $parts[3] ?? '';
-            $copy_code = $parts[4] ?? '';
-
-            if (!in_array($type, ['text','url','phone','copy'], true)) {
-                $type = 'text';
-            }
-
-            // For text buttons, use label as ID for routing
-            $id = ($type === 'text') ? $label : ('btn_' . $type . '_' . $idx);
-
+            // ★ Use label text as the buttonId so WhatsApp returns it in selectedButtonId
+            // This ensures the button reply can always be matched back to the edge condition_value
             $btns[] = (object)[
-                'id' => $id,
-                'label' => $label,
-                'value' => $label,
-                'type' => $type,
-                'url' => $url,
-                'phone' => $phone,
-                'copy_code' => $copy_code,
+                'id' => $txt,          // Use label as ID for reliable routing
+                'label' => $txt,
+                'value' => $txt
             ];
         }
         return $btns;
-    }
-
-    private function build_template_buttons_from_parsed($btns) {
-        $templateButtons = [];
-        foreach($btns as $idx => $btn) {
-            switch($btn->type) {
-                case 'url':
-                    $templateButtons[] = [
-                        'index' => $idx,
-                        'urlButton' => [
-                            'displayText' => $btn->label,
-                            'url' => $btn->url ?: 'https://example.com',
-                        ]
-                    ];
-                    break;
-                case 'phone':
-                    $templateButtons[] = [
-                        'index' => $idx,
-                        'callButton' => [
-                            'displayText' => $btn->label,
-                            'phoneNumber' => $btn->phone ?: '+5511999999999',
-                        ]
-                    ];
-                    break;
-                case 'copy':
-                    $copyUrl = 'https://www.whatsapp.com/otp/code/?otp_type=COPY_CODE&code=' . urlencode($btn->copy_code ?: $btn->label);
-                    $templateButtons[] = [
-                        'index' => $idx,
-                        'urlButton' => [
-                            'displayText' => $btn->label,
-                            'url' => $copyUrl,
-                            'disabled' => false
-                        ]
-                    ];
-                    break;
-                default: // text
-                    $templateButtons[] = [
-                        'index' => $idx,
-                        'quickReplyButton' => [
-                            'displayText' => $btn->label,
-                            'id' => $btn->id
-                        ]
-                    ];
-                    break;
-            }
-        }
-        return $templateButtons;
     }
 
     private function evaluate_condition($val, $op, $expected) {
@@ -2848,110 +2764,27 @@ private function find_reply_trigger($text, $instance_id) {
         }
     }
 
-    private function extract_knowledge_files($files): string {
-        $files = is_string($files) ? json_decode($files, true) : $files;
-        if(!is_array($files)) return '';
+    private function call_ai_service($prompt, $context, $model = 'gemini', $temperature = 0.7, $max_tokens = 500, $team_id = null) {
+        if (!$team_id) $team_id = get_team('id') ?? null;
+        if (!$team_id) return "Serviço de IA indisponível.";
 
-        $chunks = [];
-        foreach(array_slice($files, 0, 5) as $file) {
-            $url = $file['url'] ?? '';
-            $name = $file['name'] ?? basename(parse_url($url, PHP_URL_PATH) ?: 'arquivo');
-            $path = $this->knowledge_file_path($url);
-            if(!$path || !is_file($path)) continue;
-            $text = $this->extract_knowledge_file_text($path);
-            if($text !== '') {
-                $chunks[] = "Arquivo: {$name}\n" . mb_substr($text, 0, 4000);
-            }
-        }
-        return mb_substr(implode("\n\n---\n\n", $chunks), 0, 12000);
-    }
+        $settings = $this->model->db->table('sp_options')
+            ->where('team_id', $team_id)
+            ->whereIn('name', ['gemini_api_key', 'openai_api_key'])
+            ->get()->getResult();
 
-    private function knowledge_file_path(string $url): string {
-        $path = parse_url($url, PHP_URL_PATH) ?: $url;
-        $needle = '/writable/uploads/';
-        $pos = strpos($path, $needle);
-        if($pos === false) return '';
-        $file = basename(substr($path, $pos + strlen($needle)));
-        return WRITEPATH . 'uploads/' . $file;
-    }
+        $keys = [];
+        foreach($settings as $s) $keys[$s->name] = $s->value;
 
-    private function extract_knowledge_file_text(string $path): string {
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if(in_array($ext, ['txt', 'csv'])) {
-            return trim((string)@file_get_contents($path));
+        if($model === 'gemini' && !empty($keys['gemini_api_key'])) {
+            return $this->call_gemini($keys['gemini_api_key'], $prompt, $temperature, $max_tokens);
         }
-        if($ext === 'xlsx') return $this->extract_xlsx_text($path);
-        if($ext === 'xls') return 'Planilha XLS enviada. Converta para XLSX ou CSV para leitura automática.';
-        if($ext === 'pdf') return $this->extract_pdf_text($path);
-        return '';
-    }
 
-    private function extract_xlsx_text(string $path): string {
-        if(!class_exists('ZipArchive')) return '';
-        $zip = new \ZipArchive();
-        if($zip->open($path) !== true) return '';
-        $shared = [];
-        $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
-        if($sharedXml !== false) {
-            $xml = @simplexml_load_string($sharedXml);
-            if($xml) foreach($xml->si as $si) $shared[] = trim((string)$si->t);
+        if(!empty($keys['openai_api_key'])) {
+            return $this->call_openai($keys['openai_api_key'], $prompt, $model, $temperature, $max_tokens);
         }
-        $out = [];
-        for($i = 1; $i <= 10; $i++) {
-            $sheet = $zip->getFromName("xl/worksheets/sheet{$i}.xml");
-            if($sheet === false) continue;
-            $xml = @simplexml_load_string($sheet);
-            if(!$xml) continue;
-            foreach($xml->sheetData->row as $row) {
-                $cells = [];
-                foreach($row->c as $cell) {
-                    $v = trim((string)$cell->v);
-                    if((string)$cell['t'] === 's') $v = $shared[(int)$v] ?? $v;
-                    if($v !== '') $cells[] = $v;
-                }
-                if($cells) $out[] = implode(' | ', $cells);
-            }
-        }
-        $zip->close();
-        return trim(implode("\n", $out));
-    }
 
-    private function extract_pdf_text(string $path): string {
-        $raw = (string)@file_get_contents($path);
-        if($raw === '') return '';
-        preg_match_all('/\(([^()]{3,})\)/', $raw, $matches);
-        $text = implode(' ', $matches[1] ?? []);
-        $text = stripcslashes($text);
-        $text = preg_replace('/\s+/', ' ', $text);
-        return trim($text) ?: 'PDF enviado, mas o texto não pôde ser extraído automaticamente.';
-    }
-
-    private function call_ai_service($prompt, $context, $config = null, $provider = 'auto', $team_id = null) {
-        $team_id = $team_id ?: (get_team('id') ?? null);
-        if(!$team_id) return "Serviço de IA indisponível.";
-
-        $config = is_object($config) ? (array)$config : (array)$config;
-        $config['system_prompt'] = $this->replace_vars($config['system_prompt'] ?? 'Você é um assistente útil.', $context);
-        if(!empty($config['knowledge_base'])) {
-            $config['system_prompt'] .= "\n\nBase de conhecimento da empresa:\n" . $this->replace_vars($config['knowledge_base'], $context);
-        }
-        $fileKnowledge = $this->extract_knowledge_files($config['knowledge_files'] ?? '[]');
-        if($fileKnowledge !== '') {
-            $config['system_prompt'] .= "\n\nConteúdo dos anexos da base de conhecimento:\n" . $fileKnowledge;
-        }
-        $visibleContext = array_diff_key($context, array_flip(['ai_history']));
-        if(!empty($visibleContext)) {
-            $config['system_prompt'] .= "\n\nVariáveis atuais do fluxo:\n" . json_encode($visibleContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        }
-        if(!empty($context['ai_history']) && is_array($context['ai_history'])) {
-            $history = array_map(fn($item) => 'Cliente: ' . ($item['user'] ?? '') . "\nAssistente: " . ($item['assistant'] ?? ''), $context['ai_history']);
-            $config['system_prompt'] .= "\n\nHistórico recente da conversa:\n" . implode("\n---\n", $history);
-        }
-        $config['model'] = $config['model'] ?? '';
-        $config['temperature'] = $config['temperature'] ?? 0.7;
-        $config['max_tokens'] = $config['max_tokens'] ?? 500;
-
-        return \App\Services\AIService::reply($provider ?: ($config['provider'] ?? 'auto'), $config, $prompt, $team_id);
+        return "Resposta da IA: " . $prompt . " (configure a chave da API)";
     }
 
     private function call_gemini($api_key, $prompt, $temperature, $max_tokens) {
@@ -3138,9 +2971,111 @@ private function find_reply_trigger($text, $instance_id) {
             return false;
         }
 
-        // Roteia tudo via WhatsAppGatewayService — ele resolve provider e gateway
-        $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+        // Redireciona contas Whatsmeow para gateway Go (independente)
+        static $whatsmeowGatewayChecked = [];
+        if (!isset($whatsmeowGatewayChecked[$instance_id])) {
+            $acc = $this->model->db->table('sp_accounts')->where('token', $instance_id)->get()->getRow();
+            $whatsmeowGatewayChecked[$instance_id] = $acc && (int)($acc->login_type ?? 0) === 3;
+        }
+        if ($whatsmeowGatewayChecked[$instance_id]) {
+            return \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+        }
 
+        $params = [
+            'instance_id' => $instance_id,
+            'access_token' => $access_token,
+        ];
+
+        if($type === 'audio' && !empty($content['url'])) {
+            $direct_payload = [
+                'chat_id' => $phone,
+                'type' => 1,
+                'caption' => '',
+                'media_url' => $content['url']
+            ];
+
+            $result = wa_post_curl('direct_send_message', [
+                'instance_id' => $instance_id,
+                'access_token' => $access_token,
+                'type' => 1
+            ], $direct_payload);
+
+            try {
+                file_put_contents(
+                    WRITEPATH . 'bot_builder_send.log',
+                    date('Y-m-d H:i:s') . ' | DIRECT_AUDIO | instance=' . $instance_id . ' | chat=' . $phone . ' | media=' . $content['url'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
+                    FILE_APPEND
+                );
+            } catch(\Throwable $e) {}
+
+            return $result;
+        }
+
+        if($type === 'buttons' && !empty($content['_template_id'])) {
+            $direct_payload = [
+                'chat_id' => $phone,
+                'template' => (int)$content['_template_id']
+            ];
+
+            $result = wa_post_curl('direct_send_message', [
+                'instance_id' => $instance_id,
+                'access_token' => $access_token,
+                'type' => 2
+            ], $direct_payload);
+
+            try {
+                file_put_contents(
+                    WRITEPATH . 'bot_builder_send.log',
+                    date('Y-m-d H:i:s') . ' | DIRECT_TEMPLATE_BUTTONS | instance=' . $instance_id . ' | chat=' . $phone . ' | template=' . $content['_template_id'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
+                    FILE_APPEND
+                );
+            } catch(\Throwable $e) {}
+
+            return $result;
+        }
+
+        if($type === 'carousel' && !empty($content['_template_id'])) {
+            $direct_payload = [
+                'chat_id' => $phone,
+                'template' => (int)$content['_template_id']
+            ];
+
+            $result = wa_post_curl('direct_send_message', [
+                'instance_id' => $instance_id,
+                'access_token' => $access_token,
+                'type' => 5
+            ], $direct_payload);
+
+            try {
+                file_put_contents(
+                    WRITEPATH . 'bot_builder_send.log',
+                    date('Y-m-d H:i:s') . ' | DIRECT_TEMPLATE_CAROUSEL | instance=' . $instance_id . ' | chat=' . $phone . ' | template=' . $content['_template_id'] . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
+                    FILE_APPEND
+                );
+            } catch(\Throwable $e) {}
+
+            return $result;
+        }
+
+        $payload = [
+            'chat_id' => $phone,
+            'message_type' => $type,
+            'payload' => json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ];
+
+        // #region debug-point builder-carousel-ios
+        if($type === 'carousel') {
+            try {
+                file_put_contents(
+                    WRITEPATH . 'bot_builder_carousel_ios_debug.log',
+                    date('Y-m-d H:i:s') . ' | before_post | instance=' . $instance_id . ' | chat=' . $phone . ' | content=' . json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n",
+                    FILE_APPEND
+                );
+            } catch(\Throwable $e) {}
+        }
+        // #endregion debug-point builder-carousel-ios
+
+        $result = wa_post_curl('bot_builder_send', $params, $payload);
         try {
             file_put_contents(
                 WRITEPATH . 'bot_builder_send.log',
