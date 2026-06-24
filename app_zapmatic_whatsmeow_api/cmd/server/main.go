@@ -14,7 +14,7 @@ import (
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/config"
 	zaphttp "github.com/lonardonetto/zapmatic-whatsmeow/internal/http"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
-	"github.com/lonardonetto/zapmatic-whatsmeow/internal/session"
+	"github.com/lonardonetto/zapmatic-whatsmeow/internal/runtime"
 )
 
 func main() {
@@ -33,12 +33,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sm := session.NewManager(cfg.StoreDir, cfg.WebhookURL)
-	if err := sm.Init(ctx); err != nil {
-		logging.Log.Fatal().Err(err).Msg("Failed to initialize session manager")
+	rt := runtime.New(cfg.StoreDir, cfg.WebhookURL)
+	if err := rt.Init(ctx); err != nil {
+		logging.Log.Fatal().Err(err).Msg("Failed to initialize runtime")
 	}
 
-	router := zaphttp.NewRouter(sm, cfg.APIKey)
+	router := zaphttp.NewRouter(rt, cfg.APIKey)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Port),
@@ -57,6 +57,6 @@ func main() {
 
 	<-quit
 	logging.Log.Info().Msg("Shutting down server...")
-	sm.Shutdown()
+	rt.Shutdown()
 	cancel()
 }

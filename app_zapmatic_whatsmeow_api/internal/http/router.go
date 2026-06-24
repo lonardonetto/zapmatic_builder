@@ -9,22 +9,23 @@ import (
 
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/capabilities"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
+	"github.com/lonardonetto/zapmatic-whatsmeow/internal/runtime"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/sender"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/session"
 )
 
 type Router struct {
 	mux    *http.ServeMux
-	sm     *session.Manager
+	rt     *runtime.Runtime
 	sender *sender.Sender
 	apiKey string
 }
 
-func NewRouter(sm *session.Manager, apiKey string) *Router {
+func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r := &Router{
 		mux:    http.NewServeMux(),
-		sm:     sm,
-		sender: sender.New(sm),
+		rt:     rt,
+		sender: sender.New(rt.Session()),
 		apiKey: apiKey,
 	}
 	r.registerRoutes()
@@ -110,7 +111,7 @@ func (r *Router) handleHealth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	instances := r.sm.ListInstances()
+	instances := r.rt.Session().ListInstances()
 	connected := 0
 	for _, inst := range instances {
 		if inst.Online {
@@ -145,7 +146,7 @@ func (r *Router) handleStatus(w http.ResponseWriter, req *http.Request) {
 
 	instanceID := r.instanceFromRequest(req)
 	if instanceID == "" {
-		instances := r.sm.ListInstances()
+		instances := r.rt.Session().ListInstances()
 		r.writeJSON(w, http.StatusOK, map[string]interface{}{
 			"status":    "success",
 			"instances": instances,
@@ -153,7 +154,7 @@ func (r *Router) handleStatus(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	status := r.sm.GetStatus(instanceID)
+	status := r.rt.Session().GetStatus(instanceID)
 	if status == nil {
 		r.writeJSON(w, http.StatusNotFound, map[string]string{
 			"status": "error", "message": "Instance not found",
@@ -178,16 +179,16 @@ func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := r.sm.StartInstance(context.Background(), instanceID); err != nil {
+	if err := r.rt.Session().StartInstance(context.Background(), instanceID); err != nil {
 		r.writeJSON(w, http.StatusConflict, map[string]string{
 			"status": "error", "message": err.Error(),
 		})
 		return
 	}
 
-	qrCode, err := r.sm.WaitQR(instanceID, 25*time.Second)
+	qrCode, err := r.rt.Session().WaitQR(instanceID, 25*time.Second)
 	if err != nil {
-		status := r.sm.GetStatus(instanceID)
+		status := r.rt.Session().GetStatus(instanceID)
 		r.writeJSON(w, http.StatusOK, map[string]interface{}{
 			"status":      "success",
 			"instance_id": instanceID,
@@ -216,7 +217,7 @@ func (r *Router) handleProfile(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	inst := r.sm.GetInstance(instanceID)
+	inst := r.rt.Session().GetInstance(instanceID)
 	if inst == nil {
 		r.writeJSON(w, http.StatusNotFound, map[string]string{"status": "error", "message": "Instance not found"})
 		return
@@ -310,14 +311,14 @@ func (r *Router) handleLogout(w http.ResponseWriter, req *http.Request) {
 	fullLogout := strings.ToLower(req.URL.Query().Get("type")) == "full"
 
 	if fullLogout {
-		if err := r.sm.Logout(instanceID); err != nil {
+		if err := r.rt.Session().Logout(instanceID); err != nil {
 			r.writeJSON(w, http.StatusNotFound, map[string]string{
 				"status": "error", "message": err.Error(),
 			})
 			return
 		}
 	} else {
-		if err := r.sm.Disconnect(instanceID); err != nil {
+		if err := r.rt.Session().Disconnect(instanceID); err != nil {
 			r.writeJSON(w, http.StatusNotFound, map[string]string{
 				"status": "error", "message": err.Error(),
 			})
