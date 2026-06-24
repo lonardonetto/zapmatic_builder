@@ -1572,15 +1572,19 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         if ($status && !empty($status->state) && $status->state === 'connected') {
             $team_id = get_team("id");
 
-            // Busca profile completo no Go — até 3 tentativas (push_name pode demorar a chegar)
+            // Busca profile completo no Go — faz polling ativo no /profile
+            // O push_name pode levar até 2 min para ser populado (history sync)
             $profileName = "";
             $profilePhone = "";
             $profileJid = $status->jid ?? "";
             $profileAvatar = "";
 
-            $retries = [0, 2000000, 5000000]; // 0s, 2s, 5s
-            foreach ($retries as $delay) {
-                if ($delay > 0) usleep($delay);
+            $pollStart = time();
+            $pollTimeout = 90; // segundos máximos de espera
+            $interval = 3000000; // 3s entre tentativas
+
+            do {
+                if (time() - $pollStart > $pollTimeout) break;
 
                 $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
                 curl_setopt_array($chProfile, [
@@ -1593,6 +1597,13 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                     $profileData = json_decode($profileResp);
                     if ($profileData && !empty($profileData->push_name)) {
                         $profileName = $profileData->push_name;
+                        $profileAvatar = $profileData->avatar_url ?? $profileAvatar;
+                        $profilePhone = $profileData->phone ?? $profilePhone;
+                        $profileJid = $profileData->jid ?? $profileJid;
+                        break;
+                    }
+                    if ($profileData && !empty($profileData->avatar_url)) {
+                        $profileAvatar = $profileData->avatar_url;
                     }
                     if ($profileData && !empty($profileData->phone)) {
                         $profilePhone = $profileData->phone;
@@ -1600,12 +1611,12 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                     if ($profileData && !empty($profileData->jid)) {
                         $profileJid = $profileData->jid;
                     }
-                    if ($profileData && !empty($profileData->avatar_url)) {
-                        $profileAvatar = $profileData->avatar_url;
-                    }
                 }
-                if (!empty($profileName) && $profileName !== $instance_id) break;
-            }
+
+                if (empty($profileName)) {
+                    usleep($interval);
+                }
+            } while (empty($profileName));
 
             // Limpa JID: remove sufixo de dispositivo (:XX@s.whatsapp.net -> @s.whatsapp.net)
             $cleanJid = preg_replace('/:\d+@/', '@', $profileJid);
