@@ -103,6 +103,60 @@ if(!function_exists('wa_post_curl')){
 	}
 }
 
+if(!function_exists('wa_send_via_whatsmeow')){
+	function wa_send_via_whatsmeow($instance_id, $chat_id, $text, $presence_type = 'composing', $presence_time = 2)
+	{
+		$gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+		if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
+			return ['status' => 'error', 'message' => 'Not a whatsmeow instance'];
+		}
+		$baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+		// Envia presença digitando
+		if ($presence_time > 0) {
+			$ch = curl_init();
+			curl_setopt_array($ch, [
+				CURLOPT_URL => $baseUrl . '/send/presence',
+				CURLOPT_POST => true,
+				CURLOPT_POSTFIELDS => json_encode([
+					'instance_id' => $instance_id,
+					'chat_id' => $chat_id,
+					'presence' => $presence_type,
+					'duration' => (int)$presence_time,
+				]),
+				CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_TIMEOUT => 5,
+			]);
+			curl_exec($ch);
+			curl_close($ch);
+		}
+
+		// Envia texto
+		$ch = curl_init();
+		curl_setopt_array($ch, [
+			CURLOPT_URL => $baseUrl . '/send/text',
+			CURLOPT_POST => true,
+			CURLOPT_POSTFIELDS => json_encode([
+				'instance_id' => $instance_id,
+				'chat_id' => $chat_id,
+				'type' => 'text',
+				'payload' => ['text' => $text],
+			]),
+			CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT => 30,
+		]);
+		$resp = curl_exec($ch);
+		$err = curl_error($ch);
+		curl_close($ch);
+
+		if ($err) return ['status' => 'error', 'message' => 'Gateway Go offline: ' . $err];
+		$data = json_decode($resp, true);
+		return $data ?: ['status' => 'error', 'message' => 'Resposta inválida do gateway'];
+	}
+}
+
 if(!function_exists('wa_meta_normalize_recipient')){
     function wa_meta_normalize_recipient($to)
     {
