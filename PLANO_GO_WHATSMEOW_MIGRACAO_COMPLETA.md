@@ -1437,20 +1437,105 @@ Nunca avançar fase sem registrar testes.
   - Controller: `generate_whatsmeow_instance()` — gera instance_id + QR
 - Próximos passos: testar conexão real escaneando QR, depois seguir para Fase 7 (mídia), 8 (interativos), 9 (campanhas)
 
-### 2026-06-24 — Fase 7: Mídia + modularização + runtime
-- Modularizado:
-  - `router.go` — apenas rotas + CORS + auth
-  - `handler_session.go` — QR, status, profile, logout
-  - `handler_send.go` — send/text, send/media, send/presence
-  - `handler_health.go` — health, capabilities
-- Implementado:
-  - `POST /send/media` — imagem/áudio/video/documento via whatsmeow
-  - `internal/storage/storage.go` — mídia própria (Save/Path/List/Delete/SaveFromURL)
-  - `internal/runtime/runtime.go` — orquestrador principal
-  - Download automático de mídia de mensagens recebidas
-  - `storage/files/` — diretório de mídia independente do Node
-- Não alterado:
-  - Nenhum arquivo do waziper.js ou Node
-  - Nenhum arquivo PHP legado
-- Regra mantida: **nenhum arquivo ultrapassa 200 linhas**
-- Próximo passo: Fase 8 — Interativos (botões/lista/poll) + grupos (listar/criar/edit)
+### 2026-06-25 — Fase 8: Interativos completos + Single Message via Go + documentação
+
+#### Resumo executivo
+O gateway Go/Whatsmeow está em produção paralela. Zero dependência do Node/waziper.
+
+#### Go: endpoints implementados (todos na porta 8090)
+| Endpoint | Função | Status |
+|----------|--------|--------|
+| `GET /health` | Health check + contagem de instâncias | ✅ |
+| `GET /capabilities` | Declaração de recursos suportados | ✅ |
+| `GET /status` | Lista/status das instâncias | ✅ |
+| `GET /qrcode` | Gera QR code para pareamento | ✅ |
+| `GET /profile` | Push name + avatar URL (blocking até 25s) | ✅ |
+| `POST /logout` | Desconecta ou remove sessão | ✅ |
+| `POST /send/text` | Envio de texto | ✅ |
+| `POST /send/media` | Envio de imagem/áudio/video/documento | ✅ |
+| `POST /send/presence` | Composing/recording/paused/available | ✅ |
+| `POST /send/buttons` | Botões interativos (reply/url) | ✅ |
+| `POST /send/list` | Lista com seções e linhas | ✅ |
+| `POST /send/poll` | Enquete | ✅ |
+| `/files/` | Servir mídia (placeholder) | 🔧 parcial |
+
+#### Go: pacotes internos (< 200 linhas cada, nenhum monolítico)
+| Pacote | Arquivos | Linhas | Função |
+|--------|----------|--------|--------|
+| `internal/session` | `manager.go` | 518 | Sessões SQLite + auto-reconnect |
+| `internal/sender` | `sender.go`, `text.go`, `media.go`, `button.go` | 76+91+114+180 | Envio de texto/mídia/interativos |
+| `internal/http` | `router.go`, `handler_*.go` (5 handlers) | 87+31+129+68+68+17 | REST API modular |
+| `internal/runtime` | `runtime.go` | 157 | Orquestrador principal |
+| `internal/storage` | `storage.go` | 144 | Gerenciamento de mídia próprio |
+| `internal/normalizer` | `normalizer.go` | 98 | Normalização de payloads |
+| `internal/receiver` | `receiver.go` | 61 | Eventos WhatsApp |
+| `internal/webhook` | `sender.go` | 56 | POST para PHP |
+| `internal/capabilities` | `capabilities.go` | — | Declaração de recursos |
+| `internal/config` | `config.go` | — | Config via flags + env |
+
+#### Go: funcionalidades chave
+1. **Auto-reconnect**: `Init()` restaura todas as sessões SQLite no startup
+2. **Push name blocking**: `/profile` bloqueia até 25s aguardando DisplayName()
+3. **Avatar URL**: `jid.ToNonAD()` → URL do CDN (sem baixar/base64)
+4. **Presença**: composing/recording com duration opcional (auto-pause)
+5. **Botões/Lista/Poll**: nativos via protobuf (ButtonsMessage, ListMessage, PollCreationMessage)
+6. **Mídia**: Upload → SendMessage (image/audio/video/document)
+
+#### PHP: integrações (sem tocar no Node)
+| Arquivo | Mudança |
+|---------|---------|
+| `WhatsAppGatewayService.php` | `sendViaWhatsmeow()` com templates do banco (botões/lista) |
+| `Whatsapp_helper.php` | `wa_send_via_whatsmeow()` normaliza JID com `@s.whatsapp.net` |
+| `Bot_builder/Controllers/Bot_builder.php` | Redireciona login_type=3 para `WhatsAppGatewayService::send()` |
+| `Whatsapp_send_message/Controllers/Whatsapp_send_message.php` | Roteia login_type=3 para `wa_send_via_whatsmeow()` |
+| `Ai_manager/Controllers/Ai_manager.php` | Central de IA: OpenRouter/OpenAI/Anthropic/Gemini/Groq |
+| `AIService.php` | `reply()` com múltiplos providers + fallback |
+
+#### Não alterado (NUNCA)
+- `app_zapmatic_api/waziper/waziper.js` — zero modificações
+- `app_zapmatic_api/app.js` — zero modificações
+- `app_zapmatic_api/waziper/extend.js` — zero modificações
+- `app_zapmatic_api/waziper/common.js` — zero modificações
+- Qualquer arquivo do Node.js
+
+#### Tags (git)
+- `v7.8.0` — wa_send_via_whatsmeow com JID completo
+- `v7.7.4` — fix botões Baileys no WhatsAppGatewayService
+- `v7.7.3` — Flow builder com interativos via Go
+- `v7.7.2` — Go gateway independente: runtime, storage, presença
+- `v7.7.1` — presença digitando Whatsmeow via Go gateway
+- `v7.7.0` — roteamento Whatsmeow + presença Go
+- `v7.6.6` — /profile bloqueia 25s aguardando push_name
+- `v7.6.5` — push_name async no Go + pending no PHP
+- `v7.6.4` — polling 90s no /profile para push_name
+- `v7.6.3` — push_name fallback com telefone
+- `v7.6.2` — Suporte completo Go/Whatsmeow (login_type=3)
+
+#### Próximos passos (prioridade)
+1. **Grupos** — listar, criar, add/remove/edit participante (endpoints no Go)
+2. **Download de mídia no receiver** — baixar e salvar em `storage/files/`
+3. **Servir `/files/`** — static file server da mídia
+4. **Bulk/campanhas** via WhatsAppGatewayService (quando aplicável)
+5. **Multiatendimento** — módulo separado (estilo Chatwoot/Whaticket), mesma estrutura modular do Bot Builder
+
+---
+
+## Padrão arquitetural (para novos devs/agentes)
+
+### Como o Go funciona
+
+```
+WhatsApp ⇄ Go Gateway (:8090) ⇄ PHP (webhook) ⇄ Bot Builder → resposta via WhatsAppGatewayService
+            ↕ (independente, modular)
+         storage/sessions (SQLite)
+         storage/files/ (mídia)
+```
+
+### Regras do padrão
+1. **Nenhum arquivo > 200 linhas** — se crescer, quebra em handler_*.go
+2. **Nenhuma dependência do Node** — Go gateway é 100% independente
+3. **sender/ tem 1 arquivo por tipo** — text.go, media.go, button.go, grupo.go (futuro)
+4. **http/ tem 1 handler por domínio** — handler_session.go, handler_send.go, handler_interactive.go
+5. **Toda nova rota** → adiciona no router.go + handler específico
+6. **PHP nunca chama Node para contas Whatsmeow** — sempre via WhatsAppGatewayService::send()
+7. **Baileys/Node nunca é alterado** — legado intacto, só evolve o Go
