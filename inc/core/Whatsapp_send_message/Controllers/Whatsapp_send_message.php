@@ -211,24 +211,43 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         if (!empty($account)) {
             // Verifica se é Cloud API (login_type = 1), Baileys (login_type = 2) ou Whatsmeow (login_type = 3)
             if ($account->login_type == 3) {
-                // Roteia via WhatsAppGatewayService (suporta texto, botões, lista, carrossel, enquete)
-                $typeMap = [1 => 'text', 2 => 'buttons', 3 => 'list', 4 => 'poll', 5 => 'carousel'];
-                $wType = $typeMap[$type] ?? 'text';
-                $wPayload = ['text' => spintax($caption)];
-                
-                // Se tem template (botões/lista/carrossel/enquete), inclui _template_id
-                if ($template != 0) {
-                    $wPayload['_template_id'] = $template;
-                }
-                if (!empty($media)) {
-                    $wPayload['url'] = $media;
-                }
+                switch ($type) {
+                    case 1: // Texto
+                        if (!empty($media)) {
+                            $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'image', ['url' => $media, 'caption' => spintax($caption)]);
+                            $result['status'] == 'success' ? ms(["status" => "success", "message" => "Media sent via Whatsmeow"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
+                        }
+                        $text = spintax($caption);
+                        $result = wa_send_via_whatsmeow($account->token, $send_to, $text, 'composing', 2);
+                        $result['status'] == 'success' ? ms(["status" => "success", "message" => "Message sent via Whatsmeow"]) : ms(["status" => "error", "message" => $result['message'] ?? "Cannot send via Whatsmeow"]);
+                        break;
 
-                $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, $wType, $wPayload);
-                if ($result['status'] == 'success') {
-                    ms(["status" => "success", "message" => "Sent via Whatsmeow Go"]);
-                } else {
-                    ms(["status" => "error", "message" => $result['message'] ?? "Cannot send via Whatsmeow"]);
+                    case 2: // Botões
+                        if ($template == 0) ms(["status" => "error", "message" => "Select a button message"]);
+                        $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'buttons', ['_template_id' => $template]);
+                        $result['status'] == 'success' ? ms(["status" => "success", "message" => "Buttons sent via Whatsmeow Go"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
+                        break;
+
+                    case 3: // Lista
+                        if ($template == 0) ms(["status" => "error", "message" => "Select a list message"]);
+                        $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'list', ['_template_id' => $template]);
+                        $result['status'] == 'success' ? ms(["status" => "success", "message" => "List sent via Whatsmeow Go"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
+                        break;
+
+                    case 4: // Enquete
+                        if ($template == 0) ms(["status" => "error", "message" => "Select a poll message"]);
+                        $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'poll', ['_template_id' => $template]);
+                        $result['status'] == 'success' ? ms(["status" => "success", "message" => "Poll sent via Whatsmeow Go"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
+                        break;
+
+                    case 5: // Carrossel
+                        if ($template == 0) ms(["status" => "error", "message" => "Select a carousel message"]);
+                        $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'carousel', ['_template_id' => $template]);
+                        $result['status'] == 'success' ? ms(["status" => "success", "message" => "Carousel sent via Whatsmeow Go"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
+                        break;
+
+                    default:
+                        ms(["status" => "error", "message" => "Whatsmeow: unsupported type"]);
                 }
             } elseif ($account->login_type == 1) {
                 // Cloud API - Usa a API do Meta
