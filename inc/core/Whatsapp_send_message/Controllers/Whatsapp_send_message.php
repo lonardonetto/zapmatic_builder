@@ -211,13 +211,22 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         if (!empty($account)) {
             // Verifica se é Cloud API (login_type = 1), Baileys (login_type = 2) ou Whatsmeow (login_type = 3)
             if ($account->login_type == 3) {
-                $text = spintax($caption);
-                if (!empty($media)) {
-                    $text = !empty($caption) ? $caption : '';
+                // Roteia via WhatsAppGatewayService (suporta texto, botões, lista, carrossel, enquete)
+                $typeMap = [1 => 'text', 2 => 'buttons', 3 => 'list', 4 => 'poll', 5 => 'carousel'];
+                $wType = $typeMap[$type] ?? 'text';
+                $wPayload = ['text' => spintax($caption)];
+                
+                // Se tem template (botões/lista/carrossel/enquete), inclui _template_id
+                if ($template != 0) {
+                    $wPayload['_template_id'] = $template;
                 }
-                $result = wa_send_via_whatsmeow($account->token, $send_to, $text, 'composing', 2);
+                if (!empty($media)) {
+                    $wPayload['url'] = $media;
+                }
+
+                $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, $wType, $wPayload);
                 if ($result['status'] == 'success') {
-                    ms(["status" => "success", "message" => "Message sent via Whatsmeow"]);
+                    ms(["status" => "success", "message" => "Sent via Whatsmeow Go"]);
                 } else {
                     ms(["status" => "error", "message" => $result['message'] ?? "Cannot send via Whatsmeow"]);
                 }
