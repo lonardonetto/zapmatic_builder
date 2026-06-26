@@ -62,9 +62,22 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		buttonsMsg.FooterText = proto.String(req.Footer)
 	}
 
+	// Baileys-style: envolve em viewOnceMessageV2Extension + MessageContextInfo
+	finalMsg := &waE2E.Message{
+		ViewOnceMessageV2Extension: &waE2E.FutureProofMessage{
+			Message: &waE2E.Message{
+				MessageContextInfo: &waE2E.MessageContextInfo{
+					DeviceListMetadataVersion: proto.Int32(2),
+					DeviceListMetadata:        &waE2E.DeviceListMetadata{},
+				},
+				ButtonsMessage: buttonsMsg,
+			},
+		},
+	}
+
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{ButtonsMessage: buttonsMsg})
+	resp, err := client.SendMessage(sendCtx, jid, finalMsg)
 	if err != nil {
 		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendButtons failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
@@ -72,24 +85,15 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
-// SendInteractiveButtons usa NativeFlowMessage (interactive) para até 10 botões
+// SendInteractiveButtons usa ButtonsMessage sempre (whatsmeow reconhece nativamente)
 func (s *Sender) SendInteractiveButtons(ctx context.Context, client *whatsmeow.Client, jid types.JID, req InteractiveRequest) SendResponse {
-	// Escolhe entre botões (nativos) ou lista (mais de 5)
 	buttons := req.Buttons
 	if len(buttons) > 10 { buttons = buttons[:10] }
-
-	// Se tem mais de 5 botões, usa lista como fallback
+	// Acima de 5, lista é mais adequado
 	if len(buttons) > 5 {
-		// Converte botões para lista com 1 seção
-		sections := []Section{{
-			Title: req.Body,
-			Rows:  make([]Row, 0, len(buttons)),
-		}}
+		sections := []Section{{Title: req.Body, Rows: make([]Row, 0, len(buttons))}}
 		for _, b := range buttons {
-			sections[0].Rows = append(sections[0].Rows, Row{
-				ID:    b.ID,
-				Title: b.Text,
-			})
+			sections[0].Rows = append(sections[0].Rows, Row{ID: b.ID, Title: b.Text})
 		}
 		listReq := req
 		listReq.Sections = sections
@@ -98,49 +102,30 @@ func (s *Sender) SendInteractiveButtons(ctx context.Context, client *whatsmeow.C
 		return s.SendList(ctx, listReq)
 	}
 
-	// Native flow buttons (InteractiveMessage) — suporta até 10
-	type nativeBtn struct {
-		Name      string `json:"name"`
-		BtnParams string `json:"buttonParamsJson"`
-	}
-	nativeBtns := make([]nativeBtn, 0, len(buttons))
-	for _, b := range buttons {
-		params := fmt.Sprintf(`{"id":"%s","display_text":"%s"}`, b.ID, b.Text)
-		nativeBtns = append(nativeBtns, nativeBtn{
-			Name:      "quick_reply",
-			BtnParams: params,
+	// ButtonsMessage — suportado nativamente pelo whatsmeow send pipeline
+	btns := make([]*waE2E.ButtonsMessage_Button, 0, len(buttons))
+	for i, b := range buttons {
+		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
+		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
+		btns = append(btns, &waE2E.ButtonsMessage_Button{
+			ButtonID: proto.String(id),
+			ButtonText: &waE2E.ButtonsMessage_Button_ButtonText{DisplayText: proto.String(text)},
+			Type: waE2E.ButtonsMessage_Button_RESPONSE.Enum(),
 		})
 	}
-
-	// Prepara o InteractiveMessage com NativeFlowMessage
-	nativeFlow := &waE2E.InteractiveMessage_NativeFlowMessage{
-		Buttons: make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, len(nativeBtns)),
+	body := req.Body; if body == "" { body = "Escolha uma opção:" }
+	buttonsMsg := &waE2E.ButtonsMessage{
+		ContentText: proto.String(body), Buttons: btns, HeaderType: waE2E.ButtonsMessage_EMPTY.Enum(),
 	}
-	for i, nb := range nativeBtns {
-		nativeFlow.Buttons[i] = &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-			Name:            proto.String(nb.Name),
-			ButtonParamsJSON: proto.String(nb.BtnParams),
-		}
+	if req.Title != "" {
+		buttonsMsg.Header = &waE2E.ButtonsMessage_Text{Text: req.Title}
+		buttonsMsg.HeaderType = waE2E.ButtonsMessage_TEXT.Enum()
 	}
-
-	intMsg := &waE2E.InteractiveMessage{
-		Header: &waE2E.InteractiveMessage_Header{
-			Title: proto.String(req.Title),
-		},
-		Body: &waE2E.InteractiveMessage_Body{
-			Text: proto.String(req.Body),
-		},
-		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
-			NativeFlowMessage: nativeFlow,
-		},
-	}
-	if req.Footer != "" {
-		intMsg.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)}
-	}
+	if req.Footer != "" { buttonsMsg.FooterText = proto.String(req.Footer) }
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{InteractiveMessage: intMsg})
+	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{ButtonsMessage: buttonsMsg})
 	if err != nil {
 		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendInteractiveButtons failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
