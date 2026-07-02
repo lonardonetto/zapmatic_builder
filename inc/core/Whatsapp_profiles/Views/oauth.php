@@ -194,7 +194,7 @@
                                     </a>
                                     <a href="<?php _ec(base_url('whatsapp_profiles/oauth')) ?>" class="btn btn-light btn-sm rounded-pill px-3"><i class="fas fa-arrow-left me-1"></i><?php _e('Voltar para a Central') ?></a>
                                 </div>
-                                <div class="text-gray-600"><?php _e("Escaneie o QR Code no seu aplicativo WhatsApp")?></div>
+                                <div class="text-gray-600"><?php _e("Escaneie o QR Code ou autentique com biometria (passkey) no seu aplicativo WhatsApp")?></div>
                             </div>
 
                             <div class="text-center wa-qr-code" data-instance-id="<?php _ec($whatsmeow_instance_id)?>">

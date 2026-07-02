@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -29,6 +31,10 @@ func (r *Router) handleStatus(w http.ResponseWriter, req *http.Request) {
 	r.writeJSON(w, http.StatusOK, status)
 }
 
+// handleQRCode é o método UNIFICADO de pareamento.
+// Conecta o websocket e aguarda o que o WhatsApp enviar:
+//   - QR Code → retorna method:"qr", qrcode:"..."
+//   - Passkey → retorna method:"passkey", challenge:"..."
 func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
@@ -39,11 +45,16 @@ func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id is required"})
 		return
 	}
+
 	if err := r.rt.Session().StartInstance(context.Background(), instanceID); err != nil {
-		r.writeJSON(w, http.StatusConflict, map[string]string{"status": "error", "message": err.Error()})
-		return
+		// Se já está em andamento, não é erro - apenas continua
+		if err.Error() != "instance already connected" {
+			r.writeJSON(w, http.StatusConflict, map[string]string{"status": "error", "message": err.Error()})
+			return
+		}
 	}
-	qrCode, err := r.rt.Session().WaitQR(instanceID, 25*time.Second)
+
+	result, err := r.rt.Session().WaitConnection(instanceID, 25*time.Second)
 	if err != nil {
 		r.writeJSON(w, http.StatusOK, map[string]interface{}{
 			"status": "success", "instance_id": instanceID, "message": err.Error(),
@@ -51,8 +62,122 @@ func (r *Router) handleQRCode(w http.ResponseWriter, req *http.Request) {
 		})
 		return
 	}
+
+	// Já conectado (sessão existente reconectada)
+	if result.State == "connected" {
+		r.writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status": "success", "instance_id": instanceID, "state": "connected",
+		})
+		return
+	}
+
+	// QR Code
+	if result.Method == "qr" {
+		r.writeJSON(w, http.StatusOK, map[string]string{
+			"status": "success", "instance_id": instanceID,
+			"method": "qr", "qrcode": result.QRCode,
+		})
+		return
+	}
+
+	// Passkey Challenge
+	if result.Method == "passkey" && result.State == "passkey_ready" {
+		r.writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status": "success", "instance_id": instanceID,
+			"method": "passkey",
+			"challenge": result.Challenge,
+			"rp_id":     result.RpID,
+			"timeout":   result.Timeout,
+		})
+		return
+	}
+
+	// Fallback
+	r.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status": "success", "instance_id": instanceID,
+		"method": result.Method, "state": result.State,
+	})
+}
+
+// handlePasskeyResponse recebe a resposta WebAuthn do navegador.
+// Chamado quando o método de pareamento é passkey.
+func (r *Router) handlePasskeyResponse(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "Failed to read body"})
+		return
+	}
+	defer req.Body.Close()
+
+	var payload struct {
+		InstanceID string          `json:"instance_id"`
+		Response   json.RawMessage `json:"response"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "Invalid JSON"})
+		return
+	}
+	if payload.InstanceID == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id is required"})
+		return
+	}
+
+	if err := r.rt.Session().SendPasskeyResponse(payload.InstanceID, payload.Response); err != nil {
+		r.writeJSON(w, http.StatusInternalServerError, map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+
+	// Aguarda o código de confirmação
+	code, skipUX, err := r.rt.Session().WaitPasskeyCode(payload.InstanceID, 25*time.Second)
+	if err != nil {
+		r.writeJSON(w, http.StatusOK, map[string]interface{}{
+			"status": "success", "instance_id": payload.InstanceID, "message": err.Error(),
+		})
+		return
+	}
+
+	r.writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status": "success", "instance_id": payload.InstanceID,
+		"state": "passkey_code_ready",
+		"code":  code,
+		"skip_handoff_ux": skipUX,
+	})
+}
+
+// handlePasskeyConfirm finaliza o pareamento passkey.
+func (r *Router) handlePasskeyConfirm(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+
+	var payload struct {
+		InstanceID string `json:"instance_id"`
+	}
+	body, err := io.ReadAll(req.Body)
+	if err == nil {
+		json.Unmarshal(body, &payload)
+	}
+	if payload.InstanceID == "" {
+		payload.InstanceID = req.URL.Query().Get("instance_id")
+	}
+	if payload.InstanceID == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id is required"})
+		return
+	}
+
+	if err := r.rt.Session().SendPasskeyConfirm(payload.InstanceID); err != nil {
+		r.writeJSON(w, http.StatusInternalServerError, map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+
 	r.writeJSON(w, http.StatusOK, map[string]string{
-		"status": "success", "instance_id": instanceID, "qrcode": qrCode,
+		"status": "success", "instance_id": payload.InstanceID, "message": "Passkey confirmation sent",
 	})
 }
 

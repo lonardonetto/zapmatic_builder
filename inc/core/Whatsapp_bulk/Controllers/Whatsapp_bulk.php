@@ -592,14 +592,14 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
 
             $fallback_message = function_exists('whatsapp_bulk_baileys_failure_message')
                 ? whatsapp_bulk_baileys_failure_message($is_call_campaign)
-                : 'Falha no envio pelo Baileys. Verifique se o número conectado foi banido ou desconectado, se o número receptor possui WhatsApp ativo ou se o número informado não existe.';
+                : 'Falha no envio. Verifique se o número possui WhatsApp ativo, se o número conectado está banido/desconectado, ou se o número informado não existe.';
 
             return [
                 'has_error' => true,
                 'code' => '',
-                'title' => 'Falhas registradas no Baileys',
+                'title' => 'Falhas registradas',
                 'message' => $fallback_message,
-                'tooltip' => 'Falhas registradas no Baileys - ' . $fallback_message,
+                'tooltip' => 'Falhas registradas - ' . $fallback_message,
                 'failed_count' => $failed,
             ];
         };

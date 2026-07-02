@@ -1,0 +1,14 @@
+
+# Bulk tracker
+IMPLEMENTACAO_BULK.md
+
+# Analyses
+RELATORIO_*.md
+RESUMO_EXECUTIVO_*.txt
+
+# Test binaries
+server
+
+# Session files (sensitive)
+../app_zapmatic_api/sessions/
+../app_zapmatic_api/waziper/waziper.js

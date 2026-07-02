@@ -233,10 +233,10 @@ if (!function_exists('whatsapp_bulk_baileys_failure_message')) {
     function whatsapp_bulk_baileys_failure_message(bool $is_call_campaign = false): string
     {
         if ($is_call_campaign) {
-            return 'Falha na ligação pelo Baileys. Verifique se o número conectado foi banido ou desconectado, se o número receptor possui WhatsApp ativo ou se o número informado não existe.';
+            return 'Falha na ligação. Verifique se o número possui WhatsApp ativo, se o número conectado está banido/desconectado, ou se o número informado não existe.';
         }
 
-        return 'Falha no envio pelo Baileys. Verifique se o número conectado foi banido ou desconectado, se o número receptor possui WhatsApp ativo ou se o número informado não existe.';
+        return 'Falha no envio. Verifique se o número possui WhatsApp ativo, se o número conectado está banido/desconectado, ou se o número informado não existe.';
     }
 }
 

@@ -26,19 +26,24 @@ const (
 	StateDisconnected InstanceState = iota
 	StateConnecting
 	StateQRReady
+	StatePasskeyReady
+	StatePasskeyCodeReady
 	StateConnected
 )
 
 type Instance struct {
-	ID          string        `json:"id"`
-	State       InstanceState `json:"state"`
-	JID         string        `json:"jid,omitempty"`
-	Phone       string        `json:"phone,omitempty"`
-	LastQR      string        `json:"last_qr,omitempty"`
-	PushName    string        `json:"push_name,omitempty"`
-	client      *whatsmeow.Client
-	cancel      context.CancelFunc
-	connectedAt time.Time
+	ID               string        `json:"id"`
+	State            InstanceState `json:"state"`
+	JID              string        `json:"jid,omitempty"`
+	Phone            string        `json:"phone,omitempty"`
+	LastQR           string        `json:"last_qr,omitempty"`
+	PushName         string        `json:"push_name,omitempty"`
+	LastPasskeyCode  string        `json:"last_passkey_code,omitempty"`
+	SkipHandoffUX    bool          `json:"skip_handoff_ux,omitempty"`
+	PasskeyChallenge []byte        `json:"-"`
+	client           *whatsmeow.Client
+	cancel           context.CancelFunc
+	connectedAt      time.Time
 }
 
 func (inst *Instance) Client() *whatsmeow.Client {
@@ -80,6 +85,17 @@ type StatusInfo struct {
 	Uptime   string `json:"uptime,omitempty"`
 }
 
+// ConnectionResult é o resultado unificado do processo de pareamento.
+// O WhatsApp pode enviar QR Code ou desafio Passkey — ambos retornam pelo mesmo endpoint.
+type ConnectionResult struct {
+	Method    string `json:"method"`               // "qr" | "passkey"
+	QRCode    string `json:"qrcode,omitempty"`      // URL/string do QR (method=qr)
+	Challenge string `json:"challenge,omitempty"`   // desafio WebAuthn (method=passkey)
+	RpID      string `json:"rp_id,omitempty"`       // relying party ID
+	Timeout   int    `json:"timeout,omitempty"`     // timeout do challenge
+	State     string `json:"state,omitempty"`       // "connected" se já conectou
+}
+
 func NewManager(storeDir, webhookURL string) *Manager {
 	return &Manager{
 		instances:   make(map[string]*Instance),
@@ -101,7 +117,6 @@ func (m *Manager) Init(ctx context.Context) error {
 	}
 	m.container = container
 
-	// Restaura sessões existentes via instance_map.json → JID
 	mappings := m.loadMappings()
 	devices, _ := container.GetAllDevices(ctx)
 	deviceJIDs := make(map[string]bool)
@@ -206,6 +221,7 @@ func (m *Manager) GetStatus(instanceID string) *StatusInfo {
 	return info
 }
 
+// StartInstance unificado: conecta o websocket. O WhatsApp decide se envia QR ou passkey.
 func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 	m.mu.Lock()
 
@@ -214,7 +230,8 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 		switch existing.State {
 		case StateConnected:
 			return fmt.Errorf("instance already connected")
-		case StateConnecting, StateQRReady:
+		case StateConnecting, StateQRReady, StatePasskeyReady, StatePasskeyCodeReady:
+			// Já está em um fluxo de pareamento, pode reutilizar
 			return nil
 		default:
 		}
@@ -334,35 +351,137 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 	return nil
 }
 
-func (m *Manager) WaitQR(instanceID string, timeout time.Duration) (string, error) {
+// WaitConnection aguarda o resultado do pareamento (QR ou passkey) e retorna o que vier primeiro.
+// O WhatsApp decide automaticamente qual método usar.
+func (m *Manager) WaitConnection(instanceID string, timeout time.Duration) (*ConnectionResult, error) {
 	deadline := time.After(timeout)
 	for {
 		m.mu.RLock()
 		inst, ok := m.instances[instanceID]
+		if !ok {
+			m.mu.RUnlock()
+			return nil, fmt.Errorf("instance not found")
+		}
+		state := inst.State
+		qr := inst.LastQR
+		challenge := inst.PasskeyChallenge
 		m.mu.RUnlock()
 
-		if !ok {
-			return "", fmt.Errorf("instance not found")
-		}
-
-		switch inst.State {
+		switch state {
 		case StateQRReady:
-			m.mu.Lock()
-			qr := inst.LastQR
-			m.mu.Unlock()
 			if qr != "" {
-				return qr, nil
+				return &ConnectionResult{
+					Method: "qr",
+					QRCode: qr,
+					State:  "qr_ready",
+				}, nil
+			}
+		case StatePasskeyReady:
+			if challenge != nil && len(challenge) > 0 {
+				var pubKey types.WebAuthnPublicKey
+				if err := json.Unmarshal(challenge, &pubKey); err == nil {
+					return &ConnectionResult{
+						Method:    "passkey",
+						Challenge: string(pubKey.Challenge),
+						RpID:      pubKey.RelyingPartID,
+						Timeout:   pubKey.Timeout,
+						State:     "passkey_ready",
+					}, nil
+				}
+			}
+		case StatePasskeyCodeReady:
+			m.mu.RLock()
+			code := inst.LastPasskeyCode
+			skipUX := inst.SkipHandoffUX
+			m.mu.RUnlock()
+			if code != "" {
+				return &ConnectionResult{
+					Method: "passkey",
+					State:  "passkey_code_ready",
+					Challenge: code, // reusa campo para transportar o código
+					RpID:  fmt.Sprintf("%t", skipUX),
+				}, nil
 			}
 		case StateConnected:
-			return "", fmt.Errorf("already connected")
+			return &ConnectionResult{
+				State: "connected",
+			}, nil
 		case StateDisconnected:
-			return "", fmt.Errorf("connection failed")
+			return nil, fmt.Errorf("connection failed")
 		}
 
 		select {
 		case <-time.After(500 * time.Millisecond):
 		case <-deadline:
-			return "", fmt.Errorf("timeout waiting for QR code")
+			return nil, fmt.Errorf("timeout waiting for connection method (QR or passkey)")
+		}
+	}
+}
+
+// SendPasskeyResponse envia a resposta WebAuthn do navegador para o WhatsApp.
+func (m *Manager) SendPasskeyResponse(instanceID string, responseJSON []byte) error {
+	m.mu.RLock()
+	inst, ok := m.instances[instanceID]
+	m.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("instance not found")
+	}
+	if inst.client == nil {
+		return fmt.Errorf("client not available")
+	}
+
+	var webauthnResp types.WebAuthnResponse
+	if err := json.Unmarshal(responseJSON, &webauthnResp); err != nil {
+		return fmt.Errorf("failed to parse WebAuthn response: %w", err)
+	}
+
+	return inst.client.SendPasskeyResponse(context.Background(), &webauthnResp)
+}
+
+// SendPasskeyConfirm envia a confirmação final após o usuário verificar o código.
+func (m *Manager) SendPasskeyConfirm(instanceID string) error {
+	m.mu.RLock()
+	inst, ok := m.instances[instanceID]
+	m.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("instance not found")
+	}
+	if inst.client == nil {
+		return fmt.Errorf("client not available")
+	}
+	return inst.client.SendPasskeyConfirmation(context.Background())
+}
+
+// WaitPasskeyCode aguarda o código de confirmação do passkey.
+func (m *Manager) WaitPasskeyCode(instanceID string, timeout time.Duration) (string, bool, error) {
+	deadline := time.After(timeout)
+	for {
+		m.mu.RLock()
+		inst, ok := m.instances[instanceID]
+		if !ok {
+			m.mu.RUnlock()
+			return "", false, fmt.Errorf("instance not found")
+		}
+		state := inst.State
+		code := inst.LastPasskeyCode
+		skipUX := inst.SkipHandoffUX
+		m.mu.RUnlock()
+
+		switch state {
+		case StatePasskeyCodeReady:
+			if code != "" {
+				return code, skipUX, nil
+			}
+		case StateConnected:
+			return "", true, nil
+		case StateDisconnected:
+			return "", false, fmt.Errorf("connection failed")
+		}
+
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-deadline:
+			return "", false, fmt.Errorf("timeout waiting for passkey code")
 		}
 	}
 }
@@ -434,7 +553,6 @@ func (m *Manager) handleEvent(instanceID string, evt interface{}) {
 		m.mu.Unlock()
 		logging.Log.Info().Str("instance", instanceID).Str("jid", inst.JID).Msg("Connected")
 
-		// Goroutine de background: aguarda push_name ser populado (history sync)
 		go func(instID string, client *whatsmeow.Client) {
 			for i := 0; i < 120; i++ {
 				time.Sleep(1000 * time.Millisecond)
@@ -481,6 +599,35 @@ func (m *Manager) handleEvent(instanceID string, evt interface{}) {
 		m.mu.Unlock()
 		logging.Log.Info().Str("instance", instanceID).Str("jid", inst.JID).Msg("Pair success")
 		m.saveMapping(instanceID, inst.JID)
+
+	// Passkey: o WhatsApp envia um desafio WebAuthn no lugar do QR
+	case *events.PairPasskeyRequest:
+		m.mu.Lock()
+		inst.State = StatePasskeyReady
+		if v.PublicKey != nil {
+			challengeJSON, err := json.Marshal(v.PublicKey)
+			if err == nil {
+				inst.PasskeyChallenge = challengeJSON
+			}
+		}
+		m.mu.Unlock()
+		logging.Log.Info().Str("instance", instanceID).Msg("Passkey challenge received (instead of QR)")
+
+	// Passkey: código de confirmação gerado
+	case *events.PairPasskeyConfirmation:
+		m.mu.Lock()
+		inst.State = StatePasskeyCodeReady
+		inst.LastPasskeyCode = v.Code
+		inst.SkipHandoffUX = v.SkipHandoffUX
+		m.mu.Unlock()
+		logging.Log.Info().Str("instance", instanceID).Str("code", v.Code).Bool("skip_ux", v.SkipHandoffUX).Msg("Passkey confirmation code received")
+
+	// Passkey: erro
+	case *events.PairPasskeyError:
+		m.mu.Lock()
+		inst.State = StateDisconnected
+		m.mu.Unlock()
+		logging.Log.Error().Err(v.Error).Bool("continuation", v.Continuation).Str("instance", instanceID).Msg("Passkey error")
 	}
 
 	m.recv.HandleEvent(instanceID, evt)
@@ -510,6 +657,10 @@ func stateToString(s InstanceState) string {
 		return "connecting"
 	case StateQRReady:
 		return "qr_ready"
+	case StatePasskeyReady:
+		return "passkey_ready"
+	case StatePasskeyCodeReady:
+		return "passkey_code_ready"
 	case StateConnected:
 		return "connected"
 	default:

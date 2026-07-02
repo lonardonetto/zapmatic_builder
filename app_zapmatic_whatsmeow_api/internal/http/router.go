@@ -29,6 +29,8 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r.mux.HandleFunc("/qrcode", r.corsMiddleware(r.authGuard(r.handleQRCode)))
 	r.mux.HandleFunc("/profile", r.corsMiddleware(r.authGuard(r.handleProfile)))
 	r.mux.HandleFunc("/logout", r.corsMiddleware(r.authGuard(r.handleLogout)))
+	r.mux.HandleFunc("/passkey/response", r.corsMiddleware(r.authGuard(r.handlePasskeyResponse)))
+	r.mux.HandleFunc("/passkey/confirm", r.corsMiddleware(r.authGuard(r.handlePasskeyConfirm)))
 	r.mux.HandleFunc("/send/text", r.corsMiddleware(r.authGuard(r.handleSendText)))
 	r.mux.HandleFunc("/send/presence", r.corsMiddleware(r.authGuard(r.handleSendPresence)))
 	r.mux.HandleFunc("/send/media", r.corsMiddleware(r.authGuard(r.handleSendMedia)))
@@ -36,6 +38,14 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r.mux.HandleFunc("/send/list", r.corsMiddleware(r.authGuard(r.handleSendList)))
 	r.mux.HandleFunc("/send/poll", r.corsMiddleware(r.authGuard(r.handleSendPoll)))
 	r.mux.HandleFunc("/files/", r.corsMiddleware(r.handleFiles))
+
+	// Bulk messaging routes
+	r.mux.HandleFunc("/bulk/campaigns", r.corsMiddleware(r.authGuard(r.handleBulkListCampaigns)))
+	r.mux.HandleFunc("/bulk/campaign/", r.corsMiddleware(r.authGuard(r.handleBulkCampaignAction)))
+	r.mux.HandleFunc("/bulk/start", r.corsMiddleware(r.authGuard(r.handleBulkStart)))
+	r.mux.HandleFunc("/bulk/stop", r.corsMiddleware(r.authGuard(r.handleBulkStop)))
+	r.mux.HandleFunc("/bulk/status", r.corsMiddleware(r.authGuard(r.handleBulkStatus)))
+	r.mux.HandleFunc("/bulk/validate", r.corsMiddleware(r.authGuard(r.handleBulkValidate)))
 	return r
 }
 

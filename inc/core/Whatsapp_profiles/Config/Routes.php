@@ -22,6 +22,8 @@ $routes->add('whatsapp_profiles/generate_instance', '\Core\Whatsapp_profiles\Con
 $routes->add('whatsapp_profiles/generate_instance/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::generate_instance/$1');
 $routes->add('whatsapp_profiles/generate_whatsmeow_instance', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::generate_whatsmeow_instance');
 $routes->add('whatsapp_profiles/get_qrcode/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::get_qrcode/$1');
+$routes->add('whatsapp_profiles/send_whatsmeow_passkey_response', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::send_whatsmeow_passkey_response');
+$routes->add('whatsapp_profiles/confirm_whatsmeow_passkey', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::confirm_whatsmeow_passkey');
 $routes->add('whatsapp_profiles/check_login/(:any)', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::check_login/$1');
 
 if (file_exists(realpath(__DIR__ . "/../Helpers"))) {

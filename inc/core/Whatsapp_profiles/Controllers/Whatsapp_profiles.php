@@ -1507,6 +1507,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
         $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
 
+	$team_id = get_team("id");
+
         $ch = curl_init($baseUrl . '/qrcode?instance_id=' . urlencode($instance_id));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -1553,6 +1555,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
 
         $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+	$team_id = get_team("id");
 
         $ch = curl_init($baseUrl . '/status?instance_id=' . urlencode($instance_id));
         curl_setopt_array($ch, [
@@ -1684,6 +1688,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
         $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
 
+	$team_id = get_team("id");
+
         $ch = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -1722,6 +1728,133 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "avatar" => $profileAvatar,
             "pid" => $cleanJid,
         ]);
+        exit;
+    }
+
+
+
+    // ======================== PASSKEY METHODS ========================
+
+    public function send_whatsmeow_passkey_response()
+    {
+        $team_id = get_team("id");
+        $instance_id = $this->request->getPost('instance_id');
+        $response_raw = $this->request->getPost('response');
+
+        if (empty($instance_id)) {
+            echo json_encode(["status" => "error", "message" => "instance_id é obrigatório"]);
+            exit;
+        }
+        if (empty($response_raw)) {
+            echo json_encode(["status" => "error", "message" => "response é obrigatório"]);
+            exit;
+        }
+
+        // Se for string, tenta decodificar JSON; se já for array, usa direto
+        $response_data = is_string($response_raw) ? json_decode($response_raw, true) : $response_raw;
+        if (!is_array($response_data)) {
+            echo json_encode(["status" => "error", "message" => "response inválido (deve ser JSON)"]);
+            exit;
+        }
+
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+        $payload = json_encode([
+            "instance_id" => $instance_id,
+            "response" => $response_data,
+        ]);
+
+	$team_id = get_team("id");
+
+        $ch = curl_init($baseUrl . '/passkey/response');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 35,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($error || !$response) {
+            echo json_encode(["status" => "error", "message" => "Gateway offline: $error"]);
+            exit;
+        }
+
+        $decoded = json_decode($response, true);
+        if (!is_array($decoded)) {
+            echo json_encode(["status" => "error", "message" => "Resposta inválida"]);
+            exit;
+        }
+
+        // Se recebeu código de confirmação, retorna pro frontend mostrar
+        if (isset($decoded['code']) && !empty($decoded['code'])) {
+            echo json_encode([
+                "status" => "success",
+                "state" => "passkey_code_ready",
+                "instance_id" => $instance_id,
+                "code" => $decoded['code'],
+                "skip_handoff_ux" => $decoded['skip_handoff_ux'] ?? false,
+            ]);
+            exit;
+        }
+
+        if (isset($decoded['state']) && $decoded['state'] === 'connected') {
+            echo json_encode(["status" => "success", "state" => "connected", "instance_id" => $instance_id]);
+            exit;
+        }
+
+        echo json_encode([
+            "status" => "pending",
+            "instance_id" => $instance_id,
+            "message" => "Aguardando resposta...",
+            "state" => $decoded['state'] ?? 'unknown',
+        ]);
+        exit;
+    }
+
+    public function confirm_whatsmeow_passkey()
+    {
+        $team_id = get_team("id");
+        $instance_id = $this->request->getPost('instance_id');
+        if (empty($instance_id)) {
+            $instance_id = $this->request->getGet('instance_id');
+        }
+        if (empty($instance_id)) {
+            echo json_encode(["status" => "error", "message" => "instance_id é obrigatório"]);
+            exit;
+        }
+
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+
+        $payload = json_encode(["instance_id" => $instance_id]);
+
+	$team_id = get_team("id");
+
+        $ch = curl_init($baseUrl . '/passkey/confirm');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        ]);
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || !$response) {
+            echo json_encode(["status" => "error", "message" => "Gateway offline: $error"]);
+            exit;
+        }
+
+        $decoded = json_decode($response, true);
+        echo json_encode($decoded ?: ["status" => "error", "message" => "Resposta inválida"]);
         exit;
     }
 

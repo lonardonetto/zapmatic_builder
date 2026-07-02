@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"crypto/rand"
 	"context"
 	"fmt"
 	"time"
@@ -62,7 +63,8 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		buttonsMsg.FooterText = proto.String(req.Footer)
 	}
 
-	// Baileys-style: envolve em viewOnceMessageV2Extension + MessageContextInfo
+	msgSecret := make([]byte, 32)
+	rand.Read(msgSecret)
 	finalMsg := &waE2E.Message{
 		ViewOnceMessageV2Extension: &waE2E.FutureProofMessage{
 			Message: &waE2E.Message{
@@ -72,6 +74,9 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 				},
 				ButtonsMessage: buttonsMsg,
 			},
+		},
+		MessageContextInfo: &waE2E.MessageContextInfo{
+			MessageSecret: msgSecret,
 		},
 	}
 

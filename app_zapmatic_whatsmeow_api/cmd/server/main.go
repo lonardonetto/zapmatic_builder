@@ -10,11 +10,13 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/lonardonetto/zapmatic-whatsmeow/internal/bulk"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/capabilities"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/config"
 	zaphttp "github.com/lonardonetto/zapmatic-whatsmeow/internal/http"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/runtime"
+	"github.com/lonardonetto/zapmatic-whatsmeow/internal/sender"
 )
 
 func main() {
@@ -38,7 +40,19 @@ func main() {
 		logging.Log.Fatal().Err(err).Msg("Failed to initialize runtime")
 	}
 
+	// Initialize MySQL for bulk system
+	mysqlCfg := bulk.DefaultDBConfig()
+	if err := bulk.InitMySQL(mysqlCfg); err != nil {
+		logging.Log.Fatal().Err(err).Msg("Failed to initialize MySQL")
+	}
+
 	router := zaphttp.NewRouter(rt, cfg.APIKey)
+
+	// Initialize and start bulk processor
+	snd := sender.New(rt.Session())
+	processor := bulk.NewProcessor(rt.Session(), snd, cfg.WebhookURL)
+	zaphttp.SetBulkProcessor(processor)
+	processor.Start()
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Port),
@@ -57,6 +71,7 @@ func main() {
 
 	<-quit
 	logging.Log.Info().Msg("Shutting down server...")
+	processor.Stop()
 	rt.Shutdown()
 	cancel()
 }
