@@ -6,47 +6,11 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/proto"
-	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 )
-
-// sendInteractive envia qualquer InteractiveMessage com header/body/footer.
-func (s *Sender) sendInteractive(
-	ctx context.Context, client *whatsmeow.Client,
-	jid types.JID, req InteractiveRequest, buttons []*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton,
-) SendResponse {
-	interactive := &waE2E.InteractiveMessage{
-		Body:   &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
-		Footer: &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)},
-		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
-			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
-				Buttons:        buttons,
-				MessageVersion: proto.Int32(1),
-			},
-		},
-	}
-	if req.Title != "" {
-		interactive.Header = &waE2E.InteractiveMessage_Header{
-			Title:              proto.String(req.Title),
-			HasMediaAttachment: proto.Bool(false),
-		}
-	}
-
-	msg := &waE2E.Message{InteractiveMessage: interactive}
-
-	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-	resp, err := client.SendMessage(sendCtx, jid, msg)
-	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("InteractiveMessage failed")
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
-	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("InteractiveMessage sent")
-	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
-}
 
 func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendResponse {
 	inst := s.sm.GetInstance(req.InstanceID)
@@ -65,18 +29,68 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	if req.Body == "" { req.Body = "Escolha uma opção:" }
 	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
+	// Build NativeFlow buttons with correct params JSON
 	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
 	for i, b := range req.Buttons {
 		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
 		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
-btnParams := fmt.Sprintf("{\"display_text\":\"%s\",\"id\":\"%s\"}", text, id)
+
+		// WhatsApp espera buttonParamsJSON no formato:
+		// {"display_text":"Texto","id":"identificador"}
+		paramsJSON := fmt.Sprintf(`{"display_text":"%s","id":"%s"}`, escapeJSON(text), escapeJSON(id))
+
 		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
 			Name:             proto.String(fmt.Sprintf("cta_copy_%d", i)),
-			ButtonParamsJSON: proto.String(btnParams),
+			ButtonParamsJSON: proto.String(paramsJSON),
 		})
 	}
 
-	return s.sendInteractive(ctx, client, jid, req, btns)
+	// Build InteractiveMessage
+	interactive := &waE2E.InteractiveMessage{
+		Body:   &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
+		Footer: &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)},
+		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
+			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+				Buttons:        btns,
+				MessageVersion: proto.Int32(1),
+			},
+		},
+	}
+
+	// Header com título
+	if req.Title != "" {
+		interactive.Header = &waE2E.InteractiveMessage_Header{
+			Title:              proto.String(req.Title),
+			HasMediaAttachment: proto.Bool(false),
+		}
+	}
+
+	msg := &waE2E.Message{InteractiveMessage: interactive}
+
+	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	resp, err := client.SendMessage(sendCtx, jid, msg)
+	if err != nil {
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("InteractiveMessage failed")
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+	}
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("InteractiveButtons sent")
+	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
+}
+
+func escapeJSON(s string) string {
+	result := ""
+	for _, ch := range s {
+		switch ch {
+		case '"': result += `\"`
+		case '\\': result += `\\`
+		case '\n': result += `\n`
+		case '\r': result += `\r`
+		case '\t': result += `\t`
+		default: result += string(ch)
+		}
+	}
+	return result
 }
 
 func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendResponse {
