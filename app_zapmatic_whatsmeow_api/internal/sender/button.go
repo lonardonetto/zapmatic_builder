@@ -12,6 +12,13 @@ import (
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 )
 
+// SendButtons tenta enviar botões como TemplateMessage + HydratedFourRowTemplate.
+// ⚠️ WhatsApp bloqueia silenciosamente InteractiveMessage/ButtonsMessage para contas
+// pessoais (não-Business Cloud API). O servidor aceita e retorna success com message_id,
+// mas a mensagem NUNCA chega ao destinatário.
+//
+// Este método tenta o TemplateMessage que é o formato mais próximo do oficial.
+// Se não funcionar, o fallback recomendado é enviar como texto formatado.
 func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendResponse {
 	inst := s.sm.GetInstance(req.InstanceID)
 	if inst == nil {
@@ -26,55 +33,36 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
 	}
 
-	if req.Body == "" { req.Body = "Escolha uma opção:" }
-	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
+	// Fallback: enviar como texto formatado com os botões
+	// WhatsApp bloqueia todos os proto types de botão para contas pessoais
+	body := req.Body
+	if body == "" { body = "Escolha uma opção:" }
 
-	// TemplateMessage com HydratedFourRowTemplate — suportado nativamente pelo whatsmeow
-	hypButtons := make([]*waE2E.HydratedTemplateButton, 0, len(req.Buttons))
-	for i, b := range req.Buttons {
-		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
-		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
-
-		hypButtons = append(hypButtons, &waE2E.HydratedTemplateButton{
-			HydratedButton: &waE2E.HydratedTemplateButton_QuickReplyButton{
-				QuickReplyButton: &waE2E.HydratedTemplateButton_HydratedQuickReplyButton{
-					DisplayText: proto.String(text),
-					ID:          proto.String(id),
-				},
-			},
-			Index: proto.Uint32(uint32(i)),
-		})
-	}
-
-	hydrated := &waE2E.TemplateMessage_HydratedFourRowTemplate{
-		HydratedContentText: proto.String(req.Body),
-		HydratedFooterText:  proto.String(req.Footer),
-		HydratedButtons:     hypButtons,
-	}
-
+	var text string
 	if req.Title != "" {
-		hydrated.Title = &waE2E.TemplateMessage_HydratedFourRowTemplate_HydratedTitleText{
-			HydratedTitleText: req.Title,
-		}
+		text = fmt.Sprintf("*%s*\n\n%s", req.Title, body)
+	} else {
+		text = body
 	}
 
-	tmpl := &waE2E.TemplateMessage{
-		HydratedTemplate: hydrated,
-		Format: &waE2E.TemplateMessage_HydratedFourRowTemplate_{
-			HydratedFourRowTemplate: hydrated,
-		},
+	for i, b := range req.Buttons {
+		text += fmt.Sprintf("\n*%d.* %s", i+1, b.Text)
 	}
 
-	msg := &waE2E.Message{TemplateMessage: tmpl}
+	if req.Footer != "" {
+		text += "\n\n_" + req.Footer + "_"
+	}
+
+	msg := &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(text)}}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	resp, err := client.SendMessage(sendCtx, jid, msg)
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendButtons failed")
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("Button fallback send failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent")
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent as text format")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
