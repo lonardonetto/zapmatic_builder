@@ -12,13 +12,10 @@ import (
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 )
 
-// SendButtons tenta enviar botões como TemplateMessage + HydratedFourRowTemplate.
-// ⚠️ WhatsApp bloqueia silenciosamente InteractiveMessage/ButtonsMessage para contas
-// pessoais (não-Business Cloud API). O servidor aceita e retorna success com message_id,
-// mas a mensagem NUNCA chega ao destinatário.
+// SendButtons sends interactive buttons via ViewOnceMessage + InteractiveMessage.
 //
-// Este método tenta o TemplateMessage que é o formato mais próximo do oficial.
-// Se não funcionar, o fallback recomendado é enviar como texto formatado.
+// The XML biz/interactive/native_flow/quality_control nodes are added by the
+// patched send.go (addInteractiveBizNodes) to match WhatsApp's expected format.
 func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendResponse {
 	inst := s.sm.GetInstance(req.InstanceID)
 	if inst == nil {
@@ -33,36 +30,47 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
 	}
 
-	// Fallback: enviar como texto formatado com os botões
-	// WhatsApp bloqueia todos os proto types de botão para contas pessoais
-	body := req.Body
-	if body == "" { body = "Escolha uma opção:" }
+	if req.Body == "" { req.Body = "Escolha:" }
+	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
-	var text string
+	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
+	for _, b := range req.Buttons {
+		params := fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, b.Text, b.ID)
+		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+			Name:             proto.String("quick_reply"),
+			ButtonParamsJSON: proto.String(params),
+		})
+	}
+
+	interactive := &waE2E.InteractiveMessage{
+		Body: &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
+		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
+			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+				Buttons:        btns,
+				MessageVersion: proto.Int32(1),
+			},
+		},
+	}
 	if req.Title != "" {
-		text = fmt.Sprintf("*%s*\n\n%s", req.Title, body)
-	} else {
-		text = body
+		interactive.Header = &waE2E.InteractiveMessage_Header{
+			Title:              proto.String(req.Title),
+			HasMediaAttachment: proto.Bool(false),
+		}
 	}
-
-	for i, b := range req.Buttons {
-		text += fmt.Sprintf("\n*%d.* %s", i+1, b.Text)
-	}
-
 	if req.Footer != "" {
-		text += "\n\n_" + req.Footer + "_"
+		interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)}
 	}
 
-	msg := &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(text)}}
+	msg := &waE2E.Message{InteractiveMessage: interactive}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	resp, err := client.SendMessage(sendCtx, jid, msg)
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("Button fallback send failed")
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("InteractiveMessage failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent as text format")
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Interactive buttons sent")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
@@ -92,11 +100,9 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 	}
 
 	btnText := req.ButtonText; if btnText == "" { btnText = "Ver opções" }
-
 	listMsg := &waE2E.ListMessage{
-		ButtonText:  proto.String(btnText), Sections: sections,
-		Description: proto.String(req.Body),
-		ListType:    waE2E.ListMessage_SINGLE_SELECT.Enum(),
+		ButtonText: proto.String(btnText), Sections: sections,
+		Description: proto.String(req.Body), ListType: waE2E.ListMessage_SINGLE_SELECT.Enum(),
 	}
 	if req.Title != "" { listMsg.Title = proto.String(req.Title) }
 	if req.Footer != "" { listMsg.FooterText = proto.String(req.Footer) }
@@ -108,7 +114,6 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendList failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("List sent")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
@@ -130,8 +135,8 @@ func (s *Sender) SendPoll(ctx context.Context, req InteractiveRequest) SendRespo
 	for _, opt := range req.Options {
 		opts = append(opts, &waE2E.PollCreationMessage_Option{OptionName: proto.String(opt.Name)})
 	}
-
 	pollName := req.Body; if req.Title != "" { pollName = req.Title }; if pollName == "" { pollName = "Enquete" }
+
 	pollMsg := &waE2E.PollCreationMessage{
 		Name: proto.String(pollName), Options: opts, PollType: waE2E.PollType_POLL.Enum(),
 		SelectableOptionsCount: proto.Uint32(uint32(len(opts))),
@@ -144,6 +149,5 @@ func (s *Sender) SendPoll(ctx context.Context, req InteractiveRequest) SendRespo
 		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendPoll failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Poll sent")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
