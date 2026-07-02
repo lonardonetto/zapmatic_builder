@@ -2,7 +2,6 @@ package sender
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"time"
 
@@ -30,58 +29,60 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	if req.Body == "" { req.Body = "Escolha uma opção:" }
 	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
-	// ButtonsMessage puro — o whatsmeow suporta nativamente (send.go linha 991)
-	btns := make([]*waE2E.ButtonsMessage_Button, 0, len(req.Buttons))
-	for i, b := range req.Buttons {
-		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
-		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
-		btns = append(btns, &waE2E.ButtonsMessage_Button{
-			ButtonID: proto.String(id),
-			ButtonText: &waE2E.ButtonsMessage_Button_ButtonText{
-				DisplayText: proto.String(text),
-			},
-			Type: waE2E.ButtonsMessage_Button_RESPONSE.Enum(),
+	// NativeFlowMessage — exatamente como o Baileys faz:
+	// name: "quick_reply" e buttonParamsJson: {"display_text":"...","id":"...","disabled":false}
+	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
+	for _, b := range req.Buttons {
+		id := b.ID
+		text := b.Text
+		paramsJSON := fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, escapeJSON(text), escapeJSON(id))
+		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+			Name:             proto.String("quick_reply"),
+			ButtonParamsJSON: proto.String(paramsJSON),
 		})
 	}
 
-	buttonsMsg := &waE2E.ButtonsMessage{
-		ContentText: proto.String(req.Body),
-		Buttons:     btns,
-		HeaderType:  waE2E.ButtonsMessage_EMPTY.Enum(),
-	}
-
-	// Adiciona header texto se tiver título
-	if req.Title != "" {
-		buttonsMsg.Header = &waE2E.ButtonsMessage_Text{Text: req.Title}
-		buttonsMsg.HeaderType = waE2E.ButtonsMessage_TEXT.Enum()
-	}
-	if req.Footer != "" {
-		buttonsMsg.FooterText = proto.String(req.Footer)
-	}
-
-	// Envia dentro de ViewOnceMessageV2 (compatível com pipeline do whatsmeow)
-	msgSecret := make([]byte, 32)
-	rand.Read(msgSecret)
-	finalMsg := &waE2E.Message{
-		ViewOnceMessageV2Extension: &waE2E.FutureProofMessage{
-			Message: &waE2E.Message{
-				ButtonsMessage: buttonsMsg,
+	interactive := &waE2E.InteractiveMessage{
+		Body:   &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
+		Footer: &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)},
+		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
+			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+				Buttons:        btns,
+				MessageVersion: proto.Int32(1),
 			},
 		},
-		MessageContextInfo: &waE2E.MessageContextInfo{
-			MessageSecret: msgSecret,
-		},
 	}
+	if req.Title != "" {
+		interactive.Header = &waE2E.InteractiveMessage_Header{
+			Title:              proto.String(req.Title),
+			HasMediaAttachment: proto.Bool(false),
+		}
+	}
+
+	msg := &waE2E.Message{InteractiveMessage: interactive}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	resp, err := client.SendMessage(sendCtx, jid, finalMsg)
+	resp, err := client.SendMessage(sendCtx, jid, msg)
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendButtons failed")
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("InteractiveMessage failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent")
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("InteractiveButtons sent")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
+}
+
+func escapeJSON(s string) string {
+	result := ""
+	for _, ch := range s {
+		switch ch {
+		case '"': result += `\"`
+		case '\\': result += `\\`
+		case '\n': result += `\n`
+		default: result += string(ch)
+		}
+	}
+	return result
 }
 
 func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendResponse {
