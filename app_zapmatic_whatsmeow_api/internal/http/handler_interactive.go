@@ -21,6 +21,7 @@ func (r *Router) handleSendButtons(w http.ResponseWriter, req *http.Request) {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id, chat_id and buttons are required"})
 		return
 	}
+	ir.ChatID = EnsureJID(ir.ChatID)
 	resp := r.sender.SendButtons(req.Context(), ir)
 	status := http.StatusOK
 	if resp.Status == "error" { status = http.StatusInternalServerError }
@@ -41,6 +42,7 @@ func (r *Router) handleSendList(w http.ResponseWriter, req *http.Request) {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id, chat_id and sections are required"})
 		return
 	}
+	ir.ChatID = EnsureJID(ir.ChatID)
 	resp := r.sender.SendList(req.Context(), ir)
 	status := http.StatusOK
 	if resp.Status == "error" { status = http.StatusInternalServerError }
@@ -61,8 +63,10 @@ func (r *Router) handleSendPoll(w http.ResponseWriter, req *http.Request) {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id, chat_id and at least 2 options are required"})
 		return
 	}
+	ir.ChatID = EnsureJID(ir.ChatID)
 	resp := r.sender.SendPoll(req.Context(), ir)
 	status := http.StatusOK
 	if resp.Status == "error" { status = http.StatusInternalServerError }
 	r.writeJSON(w, status, resp)
 }
+
