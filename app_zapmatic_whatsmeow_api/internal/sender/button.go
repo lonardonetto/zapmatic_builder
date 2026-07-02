@@ -61,7 +61,17 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)}
 	}
 
-	msg := &waE2E.Message{InteractiveMessage: interactive}
+	msg := &waE2E.Message{
+		ViewOnceMessage: &waE2E.FutureProofMessage{
+			Message: &waE2E.Message{
+				MessageContextInfo: &waE2E.MessageContextInfo{
+					DeviceListMetadata:        &waE2E.DeviceListMetadata{},
+					DeviceListMetadataVersion: proto.Int32(2),
+				},
+				InteractiveMessage: interactive,
+			},
+		},
+	}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
