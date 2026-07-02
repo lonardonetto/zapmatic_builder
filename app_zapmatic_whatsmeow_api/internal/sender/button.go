@@ -29,60 +29,53 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	if req.Body == "" { req.Body = "Escolha uma opção:" }
 	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
-	// NativeFlowMessage — exatamente como o Baileys faz:
-	// name: "quick_reply" e buttonParamsJson: {"display_text":"...","id":"...","disabled":false}
-	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
-	for _, b := range req.Buttons {
-		id := b.ID
-		text := b.Text
-		paramsJSON := fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, escapeJSON(text), escapeJSON(id))
-		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-			Name:             proto.String("quick_reply"),
-			ButtonParamsJSON: proto.String(paramsJSON),
+	// TemplateMessage com HydratedFourRowTemplate — suportado nativamente pelo whatsmeow
+	hypButtons := make([]*waE2E.HydratedTemplateButton, 0, len(req.Buttons))
+	for i, b := range req.Buttons {
+		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
+		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
+
+		hypButtons = append(hypButtons, &waE2E.HydratedTemplateButton{
+			HydratedButton: &waE2E.HydratedTemplateButton_QuickReplyButton{
+				QuickReplyButton: &waE2E.HydratedTemplateButton_HydratedQuickReplyButton{
+					DisplayText: proto.String(text),
+					ID:          proto.String(id),
+				},
+			},
+			Index: proto.Uint32(uint32(i)),
 		})
 	}
 
-	interactive := &waE2E.InteractiveMessage{
-		Body:   &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
-		Footer: &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)},
-		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
-			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
-				Buttons:        btns,
-				MessageVersion: proto.Int32(1),
-			},
-		},
+	hydrated := &waE2E.TemplateMessage_HydratedFourRowTemplate{
+		HydratedContentText: proto.String(req.Body),
+		HydratedFooterText:  proto.String(req.Footer),
+		HydratedButtons:     hypButtons,
 	}
+
 	if req.Title != "" {
-		interactive.Header = &waE2E.InteractiveMessage_Header{
-			Title:              proto.String(req.Title),
-			HasMediaAttachment: proto.Bool(false),
+		hydrated.Title = &waE2E.TemplateMessage_HydratedFourRowTemplate_HydratedTitleText{
+			HydratedTitleText: req.Title,
 		}
 	}
 
-	msg := &waE2E.Message{InteractiveMessage: interactive}
+	tmpl := &waE2E.TemplateMessage{
+		HydratedTemplate: hydrated,
+		Format: &waE2E.TemplateMessage_HydratedFourRowTemplate_{
+			HydratedFourRowTemplate: hydrated,
+		},
+	}
+
+	msg := &waE2E.Message{TemplateMessage: tmpl}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	resp, err := client.SendMessage(sendCtx, jid, msg)
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("InteractiveMessage failed")
+		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendButtons failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("InteractiveButtons sent")
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
-}
-
-func escapeJSON(s string) string {
-	result := ""
-	for _, ch := range s {
-		switch ch {
-		case '"': result += `\"`
-		case '\\': result += `\\`
-		case '\n': result += `\n`
-		default: result += string(ch)
-		}
-	}
-	return result
 }
 
 func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendResponse {
