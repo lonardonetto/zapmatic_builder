@@ -6,16 +6,14 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/proto"
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
+	waBinary "go.mau.fi/whatsmeow/binary"
 
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 )
 
-// SendButtons sends interactive buttons as a ListMessage dropdown menu.
-// InteractiveMessage/ButtonsMessage are NOT supported by whatsmeow (server
-// returns 479 or silently discards). ListMessage is the only interactive
-// format that reliably arrives on WhatsApp Web, Android and iOS.
 func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendResponse {
 	inst := s.sm.GetInstance(req.InstanceID)
 	if inst == nil {
@@ -30,40 +28,78 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
 	}
 
-	body := req.Body; if body == "" { body = "Escolha:" }
-	if len(req.Buttons) > 10 { req.Buttons = req.Buttons[:10] }
+	body := req.Body
+	if body == "" { body = "Escolha uma opção:" }
 
-	// Converte botões em ListMessage rows
-	rows := make([]*waE2E.ListMessage_Row, 0, len(req.Buttons))
+	// Text fallback (always prepared)
+	var text string
+	if req.Title != "" {
+		text = fmt.Sprintf("*%s*\n\n%s", req.Title, body)
+	} else {
+		text = body
+	}
 	for i, b := range req.Buttons {
-		id := b.ID; if id == "" { id = fmt.Sprintf("btn_%d", i+1) }
-		text := b.Text; if text == "" { text = fmt.Sprintf("Opção %d", i+1) }
-		rows = append(rows, &waE2E.ListMessage_Row{
-			RowID: proto.String(id),
-			Title: proto.String(text),
+		text += fmt.Sprintf("\n*%d.* %s", i+1, b.Text)
+	}
+	if req.Footer != "" {
+		text += "\n\n_" + req.Footer + "_"
+	}
+
+	// Try InteractiveMessage first
+	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
+	for _, b := range req.Buttons {
+		params := fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, b.Text, b.ID)
+		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+			Name:             proto.String("quick_reply"),
+			ButtonParamsJSON: proto.String(params),
 		})
 	}
-
-	btnText := "Opções"
-	if req.ButtonText != "" { btnText = req.ButtonText }
-
-	listMsg := &waE2E.ListMessage{
-		ButtonText:  proto.String(btnText),
-		Description: proto.String(body),
-		Sections:    []*waE2E.ListMessage_Section{{Title: proto.String(req.Title), Rows: rows}},
-		ListType:    waE2E.ListMessage_SINGLE_SELECT.Enum(),
+	interactive := &waE2E.InteractiveMessage{
+		Body: &waE2E.InteractiveMessage_Body{Text: proto.String(body)},
+		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
+			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+				Buttons:        btns,
+				MessageVersion: proto.Int32(1),
+			},
+		},
 	}
-	if req.Title != "" { listMsg.Title = proto.String(req.Title) }
-	if req.Footer != "" { listMsg.FooterText = proto.String(req.Footer) }
+	if req.Title != "" {
+		interactive.Header = &waE2E.InteractiveMessage_Header{Title: proto.String(req.Title), HasMediaAttachment: proto.Bool(false)}
+	}
+	if req.Footer != "" {
+		interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)}
+	}
+
+	bizNode := []waBinary.Node{{
+		Tag: "biz", Attrs: waBinary.Attrs{},
+		Content: []waBinary.Node{{
+			Tag: "interactive", Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
+			Content: []waBinary.Node{{
+				Tag: "native_flow", Attrs: waBinary.Attrs{"v": "2", "name": "quick_reply"},
+			}},
+		}},
+	}}
+	extra := whatsmeow.SendRequestExtra{AdditionalNodes: &bizNode}
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{ListMessage: listMsg})
+	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{
+		InteractiveMessage: interactive,
+	}, extra)
+
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendButtons (ListMessage) failed")
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+		logging.Log.Warn().Err(err).Str("instance", req.InstanceID).Msg("Interactive failed, sending text fallback")
+		resp2, err2 := client.SendMessage(sendCtx, jid, &waE2E.Message{
+			ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(text)},
+		})
+		if err2 != nil {
+			return SendResponse{Status: "error", Provider: "whatsmeow", Error: err2.Error()}
+		}
+		logging.Log.Info().Str("instance", req.InstanceID).Str("id", resp2.ID).Msg("Buttons sent (text fallback)")
+		return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp2.ID}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent (ListMessage format)")
+
+	logging.Log.Info().Str("instance", req.InstanceID).Str("to", req.ChatID).Str("id", resp.ID).Msg("Buttons sent (Interactive)")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
@@ -91,7 +127,6 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 		}
 		sections = append(sections, &waE2E.ListMessage_Section{Title: proto.String(sec.Title), Rows: rows})
 	}
-
 	btnText := req.ButtonText; if btnText == "" { btnText = "Ver opções" }
 	listMsg := &waE2E.ListMessage{
 		ButtonText: proto.String(btnText), Sections: sections,
@@ -104,7 +139,6 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 	defer cancel()
 	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{ListMessage: listMsg})
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendList failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
@@ -123,7 +157,6 @@ func (s *Sender) SendPoll(ctx context.Context, req InteractiveRequest) SendRespo
 	if err != nil {
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
 	}
-
 	opts := make([]*waE2E.PollCreationMessage_Option, 0, len(req.Options))
 	for _, opt := range req.Options {
 		opts = append(opts, &waE2E.PollCreationMessage_Option{OptionName: proto.String(opt.Name)})
@@ -133,12 +166,10 @@ func (s *Sender) SendPoll(ctx context.Context, req InteractiveRequest) SendRespo
 		Name: proto.String(pollName), Options: opts, PollType: waE2E.PollType_POLL.Enum(),
 		SelectableOptionsCount: proto.Uint32(uint32(len(opts))),
 	}
-
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	resp, err := client.SendMessage(sendCtx, jid, &waE2E.Message{PollCreationMessage: pollMsg})
 	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", req.InstanceID).Msg("SendPoll failed")
 		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
 	}
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
