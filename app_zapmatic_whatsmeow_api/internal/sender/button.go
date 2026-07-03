@@ -2,6 +2,7 @@ package sender
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"time"
 
@@ -52,12 +53,14 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	}
 	if req.Title != "" { interactive.Header = &waE2E.InteractiveMessage_Header{Title: proto.String(req.Title), HasMediaAttachment: proto.Bool(false)} }
 	if req.Footer != "" { interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)} }
+	interactive.ContextInfo = &waE2E.ContextInfo{Expiration: proto.Uint32(0)}
 
+	msgSecret := make([]byte, 32)
+	rand.Read(msgSecret)
 	msg := &waE2E.Message{
 		InteractiveMessage: interactive,
 		MessageContextInfo: &waE2E.MessageContextInfo{
-			DeviceListMetadata:        &waE2E.DeviceListMetadata{},
-			DeviceListMetadataVersion: proto.Int32(2),
+			MessageSecret: msgSecret,
 		},
 	}
 	bizNode := []waBinary.Node{{Tag: "biz", Content: []waBinary.Node{{Tag: "interactive", Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"}, Content: []waBinary.Node{{Tag: "native_flow", Attrs: waBinary.Attrs{"v": "2", "name": "quick_reply"}}}}}}}
