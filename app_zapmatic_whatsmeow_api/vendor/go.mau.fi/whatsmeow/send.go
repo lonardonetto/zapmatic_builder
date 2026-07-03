@@ -963,6 +963,8 @@ func getMediaTypeFromMessage(msg *waE2E.Message) string {
 		return "vcard"
 	case msg.ContactsArrayMessage != nil:
 		return "contact_array"
+	case msg.InteractiveMessage != nil:
+		return "interactive"
 	case msg.ListMessage != nil:
 		return "list"
 	case msg.ListResponseMessage != nil:
@@ -988,6 +990,8 @@ func getButtonTypeFromMessage(msg *waE2E.Message) string {
 		return getButtonTypeFromMessage(msg.ViewOnceMessageV2.Message)
 	case msg.EphemeralMessage != nil:
 		return getButtonTypeFromMessage(msg.EphemeralMessage.Message)
+	case msg.InteractiveMessage != nil:
+		return "interactive"
 	case msg.ButtonsMessage != nil:
 		return "buttons"
 	case msg.ButtonsResponseMessage != nil:
@@ -1011,6 +1015,8 @@ func getButtonAttributes(msg *waE2E.Message) waBinary.Attrs {
 		return getButtonAttributes(msg.ViewOnceMessageV2.Message)
 	case msg.EphemeralMessage != nil:
 		return getButtonAttributes(msg.EphemeralMessage.Message)
+	case msg.InteractiveMessage != nil:
+		return waBinary.Attrs{"type": "native_flow", "v": "1"}
 	case msg.TemplateMessage != nil:
 		return waBinary.Attrs{}
 	case msg.ListMessage != nil:
@@ -1142,13 +1148,27 @@ func (cli *Client) getMessageContent(
 	}
 
 	if buttonType := getButtonTypeFromMessage(message); buttonType != "" {
-		content = append(content, waBinary.Node{
-			Tag: "biz",
-			Content: []waBinary.Node{{
-				Tag:   buttonType,
-				Attrs: getButtonAttributes(message),
-			}},
-		})
+		if buttonType == "interactive" {
+			content = append(content, waBinary.Node{
+				Tag: "biz",
+				Content: []waBinary.Node{{
+					Tag:   "interactive",
+					Attrs: getButtonAttributes(message),
+					Content: []waBinary.Node{{
+						Tag: "native_flow",
+						Attrs: waBinary.Attrs{"v": "2", "name": "quick_reply"},
+					}},
+				}},
+			})
+		} else {
+			content = append(content, waBinary.Node{
+				Tag: "biz",
+				Content: []waBinary.Node{{
+					Tag:   buttonType,
+					Attrs: getButtonAttributes(message),
+				}},
+			})
+		}
 	}
 	return content
 }
