@@ -17,65 +17,87 @@ import (
 
 func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendResponse {
 	inst := s.sm.GetInstance(req.InstanceID)
-	if inst == nil {
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: "instance not found"}
-	}
+	if inst == nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "instance not found"} }
 	client := inst.Client()
-	if client == nil || !client.IsConnected() {
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"}
-	}
+	if client == nil || !client.IsConnected() { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"} }
 	jid, err := types.ParseJID(req.ChatID)
-	if err != nil {
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)}
-	}
+	if err != nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)} }
 	if req.Body == "" { req.Body = "Escolha:" }
-	if len(req.Buttons) > 10 { req.Buttons = req.Buttons[:10] }
+	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
-	// Text fallback (preparado para todas as contas)
-	var text string
-	if req.Title != "" { text = fmt.Sprintf("*%s*\n\n%s", req.Title, req.Body) } else { text = req.Body }
-	for i, b := range req.Buttons { text += fmt.Sprintf("\n*%d.* %s", i+1, b.Text) }
-	if req.Footer != "" { text += "\n\n_" + req.Footer + "_" }
+	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
 
-	// Tentar InteractiveMessage (funciona para contas pessoais, erro 405 em business)
 	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
 	for _, b := range req.Buttons {
 		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-			Name:             proto.String("quick_reply"),
+			Name: proto.String("quick_reply"),
 			ButtonParamsJSON: proto.String(fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, b.Text, b.ID)),
 		})
 	}
+
 	interactive := &waE2E.InteractiveMessage{
-		Body: &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
+		Header: &waE2E.InteractiveMessage_Header{HasMediaAttachment: proto.Bool(false)},
+		Body:   &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)},
 		InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
-			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{Buttons: btns, MessageVersion: proto.Int32(1)},
+			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+				Buttons: btns, MessageVersion: proto.Int32(1),
+			},
 		},
+		ContextInfo: &waE2E.ContextInfo{Expiration: proto.Uint32(0)},
 	}
-	if req.Title != "" { interactive.Header = &waE2E.InteractiveMessage_Header{Title: proto.String(req.Title), HasMediaAttachment: proto.Bool(false)} }
+	if req.Title != "" { interactive.Header.Title = proto.String(req.Title) }
 	if req.Footer != "" { interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)} }
-	interactive.ContextInfo = &waE2E.ContextInfo{Expiration: proto.Uint32(0)}
 
 	msgSecret := make([]byte, 32)
 	rand.Read(msgSecret)
+
 	msg := &waE2E.Message{
 		InteractiveMessage: interactive,
 		MessageContextInfo: &waE2E.MessageContextInfo{
 			MessageSecret: msgSecret,
 		},
 	}
-	bizNode := []waBinary.Node{{Tag: "biz", Content: []waBinary.Node{{Tag: "interactive", Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"}, Content: []waBinary.Node{{Tag: "native_flow", Attrs: waBinary.Attrs{"v": "2", "name": "quick_reply"}}}}}}}
+
+	// EXACT Baileys biz node (messages-send.js line 1338-1367)
+	// v:'9', name:'mixed', quality_control, actual_actors, host_storage, privacy_mode_ts
+	bizNode := []waBinary.Node{{
+		Tag: "biz",
+		Attrs: waBinary.Attrs{
+			"actual_actors":  "2",
+			"host_storage":   "2",
+			"privacy_mode_ts": fmt.Sprintf("%d", time.Now().Unix()),
+		},
+		Content: []waBinary.Node{
+			{
+				Tag:   "interactive",
+				Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
+				Content: []waBinary.Node{{
+					Tag:   "native_flow",
+					Attrs: waBinary.Attrs{"v": "9", "name": "mixed"},
+				}},
+			},
+			{
+				Tag:   "quality_control",
+				Attrs: waBinary.Attrs{"source_type": "third_party"},
+			},
+		},
+	}}
 	extra := whatsmeow.SendRequestExtra{AdditionalNodes: &bizNode}
 
-	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
+	logging.Log.Info().Str("instance", req.InstanceID).Msg("Interactive + Baileys exact biz node")
+
 	resp, err := client.SendMessage(sendCtx, jid, msg, extra)
 	if err != nil {
-		logging.Log.Warn().Err(err).Str("instance", req.InstanceID).Msg("Interactive 405, text fallback")
-		resp2, _ := client.SendMessage(sendCtx, jid, &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(text)}})
-		if resp2.ID == "" { return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()} }
-		return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp2.ID}
+		logging.Log.Warn().Err(err).Str("instance", req.InstanceID).Msg("Failed, text fallback")
+		var tf string
+		if req.Title != "" { tf = fmt.Sprintf("*%s*\n\n%s", req.Title, req.Body) } else { tf = req.Body }
+		for i, b := range req.Buttons { tf += fmt.Sprintf("\n*%d.* %s", i+1, b.Text) }
+		if req.Footer != "" { tf += "\n\n_" + req.Footer + "_" }
+		client.SendMessage(sendCtx, jid, &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(tf)}})
+		return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: "fallback"}
 	}
-	logging.Log.Info().Str("instance", req.InstanceID).Str("id", resp.ID).Msg("Interactive buttons sent")
+	logging.Log.Info().Str("instance", req.InstanceID).Str("id", resp.ID).Msg("Interactive sent (Baileys exact)")
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
@@ -88,9 +110,7 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 	sections := make([]*waE2E.ListMessage_Section, 0)
 	for _, sec := range req.Sections {
 		rows := make([]*waE2E.ListMessage_Row, 0)
-		for _, row := range sec.Rows {
-			rows = append(rows, &waE2E.ListMessage_Row{Title: proto.String(row.Title), RowID: proto.String(row.ID)})
-		}
+		for _, row := range sec.Rows { rows = append(rows, &waE2E.ListMessage_Row{Title: proto.String(row.Title), RowID: proto.String(row.ID)}) }
 		sections = append(sections, &waE2E.ListMessage_Section{Title: proto.String(sec.Title), Rows: rows})
 	}
 	btnText := req.ButtonText; if btnText == "" { btnText = "Ver opções" }

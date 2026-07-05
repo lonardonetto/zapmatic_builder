@@ -288,22 +288,32 @@ class WhatsAppGatewayService
             $body['payload'] = $payload;
         } elseif ($type === 'buttons' || $type === 'carousel') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
-            if (!$templateId) {
+            $isInline = !empty($payload['buttons']);
+            if (!$templateId && !$isInline) {
                 return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
             }
-            $db = \Config\Database::connect();
-            $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
-            if (!$tpl) {
-                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
-            }
-            $tData = json_decode($tpl['data'], true) ?: [];
-            $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
-            $body['title'] = $tData['title'] ?? '';
-            $body['footer'] = $tData['footer'] ?? '';
-
             $endpoint = '/send/buttons';
+            if ($isInline) {
+                $body['body'] = $payload['body'] ?? $payload['text'] ?? 'Escolha';
+                $body['title'] = $payload['title'] ?? '';
+                $body['footer'] = $payload['footer'] ?? '';
+            } else {
+                $db = \Config\Database::connect();
+                $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+                if (!$tpl) {
+                    return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+                }
+                $tData = json_decode($tpl['data'], true) ?: [];
+                $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
+                $body['title'] = $tData['title'] ?? '';
+                $body['footer'] = $tData['footer'] ?? '';
+            }
             $buttons = [];
-            $source = $tData['interactiveButtons'] ?? $tData['templateButtons'] ?? $tData['buttons'] ?? [];
+            if ($isInline) {
+                $source = $payload['buttons'] ?? [];
+            } else {
+                $source = $tData['interactiveButtons'] ?? $tData['templateButtons'] ?? $tData['buttons'] ?? [];
+            }
             foreach ($source as $i => $btn) {
                 $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
                 $qr = $b['quickReplyButton'] ?? [];
@@ -318,7 +328,8 @@ class WhatsAppGatewayService
             }
         } elseif ($type === 'list') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
-            if (!$templateId) {
+            $isInline = !empty($payload['buttons']);
+            if (!$templateId && !$isInline) {
                 return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
             }
             $db = \Config\Database::connect();
@@ -350,7 +361,10 @@ class WhatsAppGatewayService
             $body['payload'] = $payload;
         }
 
-        $ch = curl_init($baseUrl . $endpoint);
+        $finalUrl = $baseUrl . $endpoint;
+        $payload2 = json_encode($body);
+        file_put_contents('/tmp/single_button_debug.log', date('Y-m-d H:i:s') . " URL=$finalUrl body=$payload2\n", FILE_APPEND);
+        $ch = curl_init($finalUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -365,6 +379,7 @@ class WhatsAppGatewayService
 
         if ($error) return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => $error];
 
+        file_put_contents('/tmp/single_button_debug.log', date('Y-m-d H:i:s') . " RESP http=$httpCode resp=" . substr($response ?: '', 0, 300) . " error=" . ($error ?: '') . "\n", FILE_APPEND);
         $decoded = json_decode($response, true);
         if (is_array($decoded)) {
             return $decoded + ['provider' => 'whatsmeow'];

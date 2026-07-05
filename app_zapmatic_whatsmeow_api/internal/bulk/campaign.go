@@ -34,7 +34,7 @@ type Campaign struct {
 	IDs              string         `json:"ids"`
 	TeamID           int            `json:"team_id"`
 	Accounts         []int          `json:"accounts"`
-	NextAccount      int            `json:"next_account"`
+	NextAccount      sql.NullInt64  `json:"next_account"`
 	ContactID        int            `json:"contact_id"`
 	Type             CampaignType   `json:"type"`
 	Template         int            `json:"template"`
@@ -90,7 +90,18 @@ func scanCampaign(s scanner) (*Campaign, error) {
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal([]byte(accountsJSON), &c.Accounts)
+	var rawAccounts []interface{}
+	json.Unmarshal([]byte(accountsJSON), &rawAccounts)
+	for _, val := range rawAccounts {
+		switch v := val.(type) {
+		case string:
+			if i, err := strconv.Atoi(v); err == nil {
+				c.Accounts = append(c.Accounts, i)
+			}
+		case float64:
+			c.Accounts = append(c.Accounts, int(v))
+		}
+	}
 	if scheduleTimeJSON.Valid {
 		json.Unmarshal([]byte(scheduleTimeJSON.String), &c.ScheduleTime)
 	}
@@ -185,7 +196,7 @@ func UnlockCampaign(id int) error {
 	return updateCampaignField(id, "run", "0")
 }
 
-func UpdateCampaignResult(id int, success bool, nextTime int64, nextAccount int) error {
+func UpdateCampaignResult(id int, success bool, nextTime int64, nextAccount sql.NullInt64) error {
 	if mysqlDB == nil {
 		return fmt.Errorf("MySQL not initialized")
 	}

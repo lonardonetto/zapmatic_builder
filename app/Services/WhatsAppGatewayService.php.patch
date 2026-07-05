@@ -1,0 +1,48 @@
+--- a/app/Services/WhatsAppGatewayService.php
++++ b/app/Services/WhatsAppGatewayService.php
+@@ -287,11 +287,17 @@ class WhatsAppGatewayService
+             $body['payload'] = $payload;
+         } elseif ($type === 'buttons' || $type === 'carousel') {
+             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
+-            if (!$templateId) {
++            
++            // Permite envio inline sem template (single message)
++            if (!$templateId && empty($payload['buttons']) && empty($payload['inline'])) {
+                 return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
+             }
++            
++            if ($templateId) {
++                // Carrega template do banco
+             $db = \Config\Database::connect();
+             $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+             if (!$tpl) {
+                 return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+             }
+             $tData = json_decode($tpl['data'], true) ?: [];
+             $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
+             $body['title'] = $tData['title'] ?? '';
+             $body['footer'] = $tData['footer'] ?? '';
+-
+-            $endpoint = '/send/buttons';
++            }
++            
++            $endpoint = '/send/buttons';
++            if (!$templateId && !empty($payload['buttons'])) {
++                $body['body'] = $payload['body'] ?? $payload['text'] ?? 'Escolha';
++                $body['title'] = $payload['title'] ?? '';
++                $body['footer'] = $payload['footer'] ?? '';
++                $buttons = $payload['buttons'] ?? [];
++            } else {
+             $buttons = [];
+             $source = $tData['interactiveButtons'] ?? $tData['templateButtons'] ?? $tData['buttons'] ?? [];
+             foreach ($source as $i => $btn) {
+                $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
+                $qr = $b['quickReplyButton'] ?? [];
+                $id = $qr['id'] ?? $b['id'] ?? "btn_$i";
+                $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção " . ($i+1);
+                $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+            }
++            }
+             $body['buttons'] = $buttons;
+
+             if ($type === 'carousel') {

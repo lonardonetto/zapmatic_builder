@@ -1,6 +1,7 @@
 package bulk
 
 import (
+	"database/sql"
 	"context"
 	"fmt"
 	"math/rand"
@@ -171,7 +172,7 @@ func (p *Processor) processCampaign(c *Campaign) {
 		nextTime := time.Now().Unix() + int64(CalculateDelay(c.MinDelay, c.MaxDelay))
 		_, _ = mysqlDB.Exec(
 			"UPDATE sp_whatsapp_schedules SET sent=sent+1, time_post=?, next_account=?, run=0 WHERE id=?",
-			nextTime, c.NextAccount+1, c.ID,
+			nextTime, sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true}, c.ID,
 		)
 		p.cleanupCampaign(c.ID)
 		return
@@ -259,15 +260,6 @@ func (p *Processor) resolveBestInstance(c *Campaign) string {
 		}
 	}
 
-	// Fallback: any DB-registered instance that is connected
-	for id := range dbTokens {
-		for _, s := range p.sm.ListInstances() {
-			if s.ID == id && s.State == "connected" {
-				return id
-			}
-		}
-	}
-
 	return ""
 }
 
@@ -309,8 +301,8 @@ func (p *Processor) sendPoll(c *Campaign, instanceID, chatID string, params map[
 func (p *Processor) getOrCreateRotator(c *Campaign) *AccountRotator {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if rot, ok := p.rotators[c.ID]; ok { rot.SetIndex(c.NextAccount); return rot }
-	rot := NewAccountRotatorWithIndex(c.Accounts, c.NextAccount)
+	if rot, ok := p.rotators[c.ID]; ok { rot.SetIndex(int(c.NextAccount.Int64)); return rot }
+	rot := NewAccountRotatorWithIndex(c.Accounts, int(c.NextAccount.Int64))
 	p.rotators[c.ID] = rot
 	return rot
 }
@@ -346,11 +338,11 @@ func (p *Processor) cleanupCampaign(cid int) {
 }
 
 func recordSuccess(c *Campaign, phoneID int, phone, msgID string, accID int) {
-	UpdateCampaignResult(c.ID, true, time.Now().Unix()+int64(CalculateDelay(c.MinDelay, c.MaxDelay)), c.NextAccount+1)
+	UpdateCampaignResult(c.ID, true, time.Now().Unix()+int64(CalculateDelay(c.MinDelay, c.MaxDelay)), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
 }
 
 func recordFailure(c *Campaign, phoneID int, phone, errMsg string, accID int) {
-	UpdateCampaignResult(c.ID, false, time.Now().Unix()+int64(rand.Intn(10)+5), c.NextAccount+1)
+	UpdateCampaignResult(c.ID, false, time.Now().Unix()+int64(rand.Intn(10)+5), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
 }
 
 func phoneFromJID(jid string) string {
