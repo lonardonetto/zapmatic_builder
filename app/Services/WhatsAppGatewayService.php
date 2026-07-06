@@ -374,23 +374,34 @@ class WhatsAppGatewayService
 
         } elseif ($type === 'list') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
-            $isInline = !empty($payload['buttons']);
+            $isInline = !empty($payload['sections']);
             if (!$templateId && !$isInline) {
                 return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ausente'];
             }
-            $db = \Config\Database::connect();
-            $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
-            if (!$tpl) {
-                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
-            }
-            $tData = json_decode($tpl['data'], true) ?: [];
             $endpoint = '/send/list';
-            $body['body'] = $tData['text'] ?? 'Selecione';
-            $body['title'] = $tData['title'] ?? '';
-            $body['footer'] = $tData['footer'] ?? '';
-            $body['button_text'] = $tData['buttonText'] ?? 'Opções';
+            
+            if ($isInline) {
+                $body['body'] = $payload['body'] ?? $payload['text'] ?? 'Selecione';
+                $body['title'] = $payload['title'] ?? '';
+                $body['footer'] = $payload['footer'] ?? '';
+                $body['button_text'] = $payload['buttonText'] ?? $payload['button_text'] ?? 'Opções';
+                $sourceSections = $payload['sections'];
+            } else {
+                $db = \Config\Database::connect();
+                $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+                if (!$tpl) {
+                    return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+                }
+                $tData = json_decode($tpl['data'], true) ?: [];
+                $body['body'] = $tData['text'] ?? 'Selecione';
+                $body['title'] = $tData['title'] ?? '';
+                $body['footer'] = $tData['footer'] ?? '';
+                $body['button_text'] = $tData['buttonText'] ?? 'Opções';
+                $sourceSections = $tData['sections'] ?? [];
+            }
+            
             $sections = [];
-            foreach ($tData['sections'] ?? [] as $sec) {
+            foreach ($sourceSections as $sec) {
                 $rows = [];
                 foreach ($sec['rows'] ?? [] as $r) {
                     $rows[] = [
