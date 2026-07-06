@@ -1350,6 +1350,7 @@ public function save_bot_settings()
                         $payload = $this->get_native_template_payload($team_id, $bData->template_ids, 1);
                         if(!empty($payload)) {
                             $payload = $this->replace_vars_recursive($this->normalize_native_list_payload($payload), $context);
+                            file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | ACTUAL SEND_WHATSAPP LIST CALLED | payload: ' . json_encode($payload) . "\n", FILE_APPEND);
                             $this->send_whatsapp($instance_id, $session->phone, 'list', $payload);
                             $this->save_state($session->id, $current_block->id, $context);
                             return;
@@ -1451,6 +1452,7 @@ public function save_bot_settings()
                                 'cards_count' => count($payload['cards'] ?? []),
                                 'first_card' => $payload['cards'][0] ?? null
                             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+                            file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | ACTUAL SEND_WHATSAPP CAROUSEL CALLED | payload: ' . json_encode($payload) . "\n", FILE_APPEND);
                             $this->send_whatsapp($instance_id, $session->phone, 'carousel', $payload);
                             $this->save_state($session->id, $current_block->id, $context);
                             return;
