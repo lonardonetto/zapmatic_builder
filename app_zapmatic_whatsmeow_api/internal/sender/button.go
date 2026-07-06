@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -191,5 +193,117 @@ func (s *Sender) SendPoll(ctx context.Context, req InteractiveRequest) SendRespo
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	resp, _ := client.SendMessage(sendCtx, jid, &waE2E.Message{PollCreationMessage: &waE2E.PollCreationMessage{Name: proto.String(pollName), Options: opts, PollType: waE2E.PollType_POLL.Enum(), SelectableOptionsCount: proto.Uint32(uint32(len(opts)))}})
+	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
+}
+
+func (s *Sender) SendCarousel(ctx context.Context, req InteractiveRequest) SendResponse {
+	inst := s.sm.GetInstance(req.InstanceID)
+	if inst == nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "instance not found"} }
+	client := inst.Client()
+	if client == nil || !client.IsConnected() { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"} }
+	jid, err := types.ParseJID(req.ChatID)
+	if err != nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)} }
+
+	slides := make([]*waE2E.InteractiveMessage, 0, len(req.Cards))
+	
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+
+	for _, card := range req.Cards {
+		btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(card.Buttons))
+		for _, b := range card.Buttons {
+			btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
+				Name: proto.String("quick_reply"),
+				ButtonParamsJSON: proto.String(fmt.Sprintf(`{"display_text":"%s","id":"%s"}`, b.Text, b.ID)),
+			})
+		}
+		
+		header := &waE2E.InteractiveMessage_Header{
+			Title: proto.String(card.Title),
+			HasMediaAttachment: proto.Bool(false),
+		}
+		
+		if card.Image != nil && card.Image.URL != "" {
+			httpReq, _ := http.NewRequestWithContext(ctx, "GET", card.Image.URL, nil)
+			httpReq.Header.Set("User-Agent", "Zapmatic-Whatsmeow/1.0")
+			if httpResp, err := httpClient.Do(httpReq); err == nil {
+				if mediaBytes, err := io.ReadAll(httpResp.Body); err == nil && len(mediaBytes) > 0 {
+					mimeType := httpResp.Header.Get("Content-Type")
+					if mimeType == "" { mimeType = "image/jpeg" }
+					if uploaded, err := client.Upload(ctx, mediaBytes, whatsmeow.MediaImage); err == nil {
+						header.HasMediaAttachment = proto.Bool(true)
+						header.Media = &waE2E.InteractiveMessage_Header_ImageMessage{
+							ImageMessage: &waE2E.ImageMessage{
+								URL:           proto.String(uploaded.URL),
+								DirectPath:    proto.String(uploaded.DirectPath),
+								Mimetype:      proto.String(mimeType),
+								FileSHA256:    uploaded.FileSHA256,
+								FileEncSHA256: uploaded.FileEncSHA256,
+								FileLength:    proto.Uint64(uploaded.FileLength),
+								MediaKey:      uploaded.MediaKey,
+							},
+						}
+					}
+				}
+				httpResp.Body.Close()
+			}
+		}
+		
+		slide := &waE2E.InteractiveMessage{
+			Header: header,
+			Body: &waE2E.InteractiveMessage_Body{Text: proto.String(card.Body)},
+			InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
+				NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
+					Buttons: btns,
+				},
+			},
+		}
+		if card.Footer != "" { slide.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(card.Footer)} }
+		slides = append(slides, slide)
+	}
+
+	interactive := &waE2E.InteractiveMessage{
+		Header: &waE2E.InteractiveMessage_Header{
+			HasMediaAttachment: proto.Bool(false),
+		},
+		InteractiveMessage: &waE2E.InteractiveMessage_CarouselMessage_{
+			CarouselMessage: &waE2E.InteractiveMessage_CarouselMessage{
+				Cards: slides,
+				MessageVersion: proto.Int32(1),
+			},
+		},
+	}
+	if req.Body != "" { interactive.Body = &waE2E.InteractiveMessage_Body{Text: proto.String(req.Body)} }
+	if req.Footer != "" { interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)} }
+
+	bizNode := []waBinary.Node{{
+		Tag: "biz",
+		Attrs: waBinary.Attrs{
+			"actual_actors":   "2",
+			"host_storage":    "2",
+			"privacy_mode_ts": fmt.Sprintf("%d", time.Now().Unix()),
+		},
+	}}
+	extra := whatsmeow.SendRequestExtra{AdditionalNodes: &bizNode}
+
+	msgSecret := make([]byte, 32)
+	rand.Read(msgSecret)
+
+	msg := &waE2E.Message{
+		InteractiveMessage: interactive,
+		MessageContextInfo: &waE2E.MessageContextInfo{
+			MessageSecret: msgSecret,
+		},
+	}
+	
+	sendCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	logging.Log.Info().Str("instance", req.InstanceID).Msg("Sending Carousel with Baileys biz node")
+	
+	resp, err := client.SendMessage(sendCtx, jid, msg, extra)
+	if err != nil {
+		logging.Log.Warn().Err(err).Str("instance", req.InstanceID).Msg("Carousel failed")
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+	}
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }

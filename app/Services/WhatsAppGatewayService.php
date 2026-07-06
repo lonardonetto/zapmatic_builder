@@ -286,7 +286,56 @@ class WhatsAppGatewayService
         if (in_array($type, ['image', 'audio', 'video', 'document'])) {
             $endpoint = '/send/media';
             $body['payload'] = $payload;
-        } elseif ($type === 'buttons' || $type === 'carousel') {
+        } elseif ($type === 'carousel') {
+            $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
+            if (!$templateId && empty($payload['cards'])) {
+                return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'ID do template ou cards ausente'];
+            }
+            $endpoint = '/send/carousel';
+            if (!empty($payload['cards'])) {
+                $body['body'] = $payload['body'] ?? $payload['text'] ?? 'Escolha';
+                $body['title'] = $payload['title'] ?? '';
+                $body['footer'] = $payload['footer'] ?? '';
+                $sourceCards = $payload['cards'];
+            } else {
+                $db = \Config\Database::connect();
+                $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+                if (!$tpl) {
+                    return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
+                }
+                $tData = json_decode($tpl['data'], true) ?: [];
+                $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
+                $body['title'] = $tData['title'] ?? '';
+                $body['footer'] = $tData['footer'] ?? '';
+                $sourceCards = $tData['cards'] ?? [];
+            }
+            $cards = [];
+            foreach ($sourceCards as $i => $card) {
+                $imgUrl = '';
+                if (is_string($card['media'] ?? null)) $imgUrl = $card['media'];
+                elseif (isset($card['media']['url'])) $imgUrl = $card['media']['url'];
+                elseif (is_string($card['image'] ?? null)) $imgUrl = $card['image'];
+                elseif (isset($card['image']['url'])) $imgUrl = $card['image']['url'];
+
+                $btns = [];
+                foreach ($card['buttons'] ?? [] as $j => $btn) {
+                    $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
+                    $qr = $b['quickReplyButton'] ?? [];
+                    $id = $qr['id'] ?? $b['id'] ?? "btn_{$i}_{$j}";
+                    $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção";
+                    $btns[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+                }
+
+                $cards[] = [
+                    'title' => substr($card['title'] ?? "Card " . ($i+1), 0, 60),
+                    'body' => substr($card['body'] ?? $card['description'] ?? ' ', 0, 1024),
+                    'footer' => substr($card['footer'] ?? ' ', 0, 60),
+                    'image' => $imgUrl ? ['url' => $imgUrl] : null,
+                    'buttons' => array_slice($btns, 0, 3)
+                ];
+            }
+            $body['cards'] = array_slice($cards, 0, 10);
+        } elseif ($type === 'buttons') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
             $isInline = !empty($payload['buttons']);
             if (!$templateId && !$isInline) {
@@ -323,9 +372,6 @@ class WhatsAppGatewayService
             }
             $body['buttons'] = $buttons;
 
-            if ($type === 'carousel') {
-                $body['type'] = 'carousel';
-            }
         } elseif ($type === 'list') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
             $isInline = !empty($payload['buttons']);

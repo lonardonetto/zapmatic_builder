@@ -70,3 +70,24 @@ func (r *Router) handleSendPoll(w http.ResponseWriter, req *http.Request) {
 	r.writeJSON(w, status, resp)
 }
 
+
+func (r *Router) handleSendCarousel(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+	var ir sender.InteractiveRequest
+	if err := json.NewDecoder(req.Body).Decode(&ir); err != nil {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON: " + err.Error()})
+		return
+	}
+	if ir.InstanceID == "" || ir.ChatID == "" || len(ir.Cards) == 0 {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id, chat_id and cards are required"})
+		return
+	}
+	ir.ChatID = EnsureJID(ir.ChatID)
+	resp := r.sender.SendCarousel(req.Context(), ir)
+	status := http.StatusOK
+	if resp.Status == "error" { status = http.StatusInternalServerError }
+	r.writeJSON(w, status, resp)
+}

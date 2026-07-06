@@ -36,6 +36,7 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r.mux.HandleFunc("/send/media", r.corsMiddleware(r.authGuard(r.handleSendMedia)))
 	r.mux.HandleFunc("/send/buttons", r.corsMiddleware(r.authGuard(r.handleSendButtons)))
 	r.mux.HandleFunc("/send/list", r.corsMiddleware(r.authGuard(r.handleSendList)))
+	r.mux.HandleFunc("/send/carousel", r.corsMiddleware(r.authGuard(r.handleSendCarousel)))
 	r.mux.HandleFunc("/send/poll", r.corsMiddleware(r.authGuard(r.handleSendPoll)))
 	r.mux.HandleFunc("/files/", r.corsMiddleware(r.handleFiles))
 

@@ -30,6 +30,20 @@ type InteractiveRequest struct {
 	Sections     []Section    `json:"sections,omitempty"`
 	Options      []PollOption `json:"options,omitempty"`
 	ButtonText   string       `json:"button_text,omitempty"`
+	Cards        []Card       `json:"cards,omitempty"`
+}
+
+type Card struct {
+	Title   string   `json:"title"`
+	Body    string   `json:"body"`
+	Footer  string   `json:"footer,omitempty"`
+	Image   *ImagePayload `json:"image,omitempty"`
+	Video   *ImagePayload `json:"video,omitempty"`
+	Buttons []Button `json:"buttons,omitempty"`
+}
+
+type ImagePayload struct {
+	URL string `json:"url"`
 }
 
 type Button struct {
