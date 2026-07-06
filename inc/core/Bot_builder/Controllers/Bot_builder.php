@@ -2569,7 +2569,7 @@ private function find_reply_trigger($text, $instance_id) {
     private function save_quick_buttons_runtime_template($team_id, $block_id, $text, $templateButtons, $title = '', $image = '') {
         if(empty($templateButtons) || !is_array($templateButtons)) return false;
 
-        $ids = 'bb_quick_buttons_' . $block_id;
+        $ids = substr('bb_quick_buttons_' . $block_id, 0, 32);
         $now = time();
         $imageUrl = $image ?: '';
         $data = [
