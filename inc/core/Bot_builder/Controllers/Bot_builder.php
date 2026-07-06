@@ -1172,11 +1172,50 @@ public function save_bot_settings()
                     }
                 }
 
+                // Strategy 2.5: Extract index from runtime button ID and match to port (btn_X)
+                if(!$next_id && $btn_id_lower) {
+                    if (preg_match('/_(\d+)$/', $btn_id_lower, $matches)) {
+                        $port_name = "btn_" . $matches[1];
+                        foreach($btn_edges as $e) {
+                            if($e->condition_value === $port_name) {
+                                $next_id = $e->to_block_id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Strategy 2.6: Match button label index to port (btn_X)
+                if (!$next_id && isset($btn_labels)) {
+                    $matched_index = -1;
+                    foreach($btn_labels as $idx => $label) {
+                        if(strtolower(trim($label)) === $input_lower) {
+                            $matched_index = $idx;
+                            break;
+                        }
+                    }
+                    if ($matched_index >= 0) {
+                        $port_name = "btn_" . $matched_index;
+                        foreach($btn_edges as $e) {
+                            if($e->condition_value === $port_name) {
+                                $next_id = $e->to_block_id;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 // Strategy 4: Numeric index matching (user replied "1", "2", etc.)
                 if(!$next_id && is_numeric(trim($input))) {
                     $idx = intval(trim($input)) - 1;
-                    if($idx >= 0 && $idx < count($btn_labels) && isset($btn_edges[$idx])) {
-                        $next_id = $btn_edges[$idx]->to_block_id;
+                    if($idx >= 0 && $idx < count($btn_labels)) {
+                        $port_name = "btn_" . $idx;
+                        foreach($btn_edges as $e) {
+                            if($e->condition_value === $port_name) {
+                                $next_id = $e->to_block_id;
+                                break;
+                            }
+                        }
                     }
                 }
 
