@@ -106,20 +106,76 @@ func (s *Sender) SendList(ctx context.Context, req InteractiveRequest) SendRespo
 	if inst == nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "instance not found"} }
 	client := inst.Client()
 	if client == nil || !client.IsConnected() { return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"} }
-	jid, _ := types.ParseJID(req.ChatID)
+	jid, err := types.ParseJID(req.ChatID)
+	if err != nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)} }
+	
 	sections := make([]*waE2E.ListMessage_Section, 0)
 	for _, sec := range req.Sections {
 		rows := make([]*waE2E.ListMessage_Row, 0)
-		for _, row := range sec.Rows { rows = append(rows, &waE2E.ListMessage_Row{Title: proto.String(row.Title), RowID: proto.String(row.ID)}) }
+		for _, row := range sec.Rows { 
+			rows = append(rows, &waE2E.ListMessage_Row{Title: proto.String(row.Title), RowID: proto.String(row.ID)}) 
+		}
 		sections = append(sections, &waE2E.ListMessage_Section{Title: proto.String(sec.Title), Rows: rows})
 	}
+	
 	btnText := req.ButtonText; if btnText == "" { btnText = "Ver opções" }
-	listMsg := &waE2E.ListMessage{ButtonText: proto.String(btnText), Sections: sections, Description: proto.String(req.Body), ListType: waE2E.ListMessage_SINGLE_SELECT.Enum()}
+	listMsg := &waE2E.ListMessage{
+		ButtonText: proto.String(btnText), 
+		Sections: sections, 
+		Description: proto.String(req.Body), 
+		ListType: waE2E.ListMessage_SINGLE_SELECT.Enum(),
+	}
 	if req.Title != "" { listMsg.Title = proto.String(req.Title) }
 	if req.Footer != "" { listMsg.FooterText = proto.String(req.Footer) }
+	
+	// Apply Baileys ViewOnceMessageV2Extension patch for lists
+	msg := &waE2E.Message{
+		ViewOnceMessageV2Extension: &waE2E.FutureProofMessage{
+			Message: &waE2E.Message{
+				MessageContextInfo: &waE2E.MessageContextInfo{
+					DeviceListMetadataVersion: proto.Int32(2),
+					DeviceListMetadata:        &waE2E.DeviceListMetadata{},
+				},
+				ListMessage: listMsg,
+			},
+		},
+	}
+	
+	// EXACT Baileys biz node for lists (messages-send.js)
+	bizNode := []waBinary.Node{{
+		Tag: "biz",
+		Attrs: waBinary.Attrs{
+			"actual_actors":   "2",
+			"host_storage":    "2",
+			"privacy_mode_ts": fmt.Sprintf("%d", time.Now().Unix()),
+		},
+		Content: []waBinary.Node{
+			{
+				Tag: "list",
+				Attrs: waBinary.Attrs{
+					"v":    "2",
+					"type": "product_list",
+				},
+			},
+			{
+				Tag:   "quality_control",
+				Attrs: waBinary.Attrs{"source_type": "third_party"},
+			},
+		},
+	}}
+	
+	extra := whatsmeow.SendRequestExtra{AdditionalNodes: &bizNode}
+
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	resp, _ := client.SendMessage(sendCtx, jid, &waE2E.Message{ListMessage: listMsg})
+	
+	logging.Log.Info().Str("instance", req.InstanceID).Msg("ListMessage sent using Baileys ViewOnce patch + biz node")
+	
+	resp, err := client.SendMessage(sendCtx, jid, msg, extra)
+	if err != nil {
+		logging.Log.Warn().Err(err).Str("instance", req.InstanceID).Msg("ListMessage failed")
+		return SendResponse{Status: "error", Provider: "whatsmeow", Error: err.Error()}
+	}
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
 }
 
