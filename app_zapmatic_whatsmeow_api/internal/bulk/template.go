@@ -67,7 +67,8 @@ type TemplateCard struct {
 	Title   string           `json:"title"`
 	Body    string           `json:"body"`
 	Footer  string           `json:"footer"`
-	Media   map[string]string `json:"media,omitempty"`
+	Media   interface{}      `json:"media,omitempty"`
+	Image   interface{}      `json:"image,omitempty"`
 	Buttons []TemplateButton `json:"buttons,omitempty"`
 }
 
@@ -122,6 +123,22 @@ func (tl *TemplateLoader) ApplySpintax(tpl *TemplateData, params map[string]stri
 	for i, o := range tpl.Options {
 		tpl.Options[i] = BuildMessage(o, params, waName, instanceID, pushName, phone)
 	}
+	for i, c := range tpl.Cards {
+		tpl.Cards[i].Title = BuildMessage(c.Title, params, waName, instanceID, pushName, phone)
+		tpl.Cards[i].Body = BuildMessage(c.Body, params, waName, instanceID, pushName, phone)
+		tpl.Cards[i].Footer = BuildMessage(c.Footer, params, waName, instanceID, pushName, phone)
+		for j, b := range c.Buttons {
+			if b.QuickReply != nil {
+				tpl.Cards[i].Buttons[j].QuickReply.DisplayText = BuildMessage(b.QuickReply.DisplayText, params, waName, instanceID, pushName, phone)
+			}
+			if b.URLButton != nil {
+				tpl.Cards[i].Buttons[j].URLButton.DisplayText = BuildMessage(b.URLButton.DisplayText, params, waName, instanceID, pushName, phone)
+			}
+			if b.CallButton != nil {
+				tpl.Cards[i].Buttons[j].CallButton.DisplayText = BuildMessage(b.CallButton.DisplayText, params, waName, instanceID, pushName, phone)
+			}
+		}
+	}
 }
 
 // ToButtonsRequest converte template button para sender.InteractiveRequest.
@@ -142,6 +159,62 @@ func (tl *TemplateLoader) ToButtonsRequest(tpl *TemplateData, instanceID, chatID
 				Type: "reply",
 			})
 		}
+	}
+	return req
+}
+
+// ToCarouselRequest converte template carousel para sender.InteractiveRequest.
+func (tl *TemplateLoader) ToCarouselRequest(tpl *TemplateData, instanceID, chatID string) sender.InteractiveRequest {
+	req := sender.InteractiveRequest{
+		InstanceID: instanceID,
+		ChatID:     chatID,
+		Type:       "carousel",
+		Title:      tpl.Title,
+		Body:       tpl.Text,
+		Footer:     tpl.Footer,
+	}
+	for i, c := range tpl.Cards {
+		card := sender.Card{
+			Title:  c.Title,
+			Body:   c.Body,
+			Footer: c.Footer,
+		}
+		imgUrl := ""
+		if mStr, ok := c.Media.(string); ok {
+			imgUrl = mStr
+		} else if mObj, ok := c.Media.(map[string]interface{}); ok {
+			if u, ok2 := mObj["url"].(string); ok2 { imgUrl = u }
+		}
+		if imgUrl == "" {
+			if iStr, ok := c.Image.(string); ok {
+				imgUrl = iStr
+			} else if iObj, ok := c.Image.(map[string]interface{}); ok {
+				if u, ok2 := iObj["url"].(string); ok2 { imgUrl = u }
+			}
+		}
+		if imgUrl != "" {
+			card.Image = &sender.ImagePayload{URL: imgUrl}
+		}
+		for j, b := range c.Buttons {
+			if b.QuickReply != nil {
+				id := b.QuickReply.ID
+				if id == "" {
+					id = fmt.Sprintf("btn_%d_%d", i, j)
+				}
+				card.Buttons = append(card.Buttons, sender.Button{
+					ID:   id,
+					Text: b.QuickReply.DisplayText,
+					Type: "reply",
+				})
+			}
+		}
+		if len(card.Buttons) > 3 {
+			card.Buttons = card.Buttons[:3]
+		}
+		req.Cards = append(req.Cards, card)
+	}
+	if len(req.Cards) > 10 {
+		req.Cards = req.Cards[:10]
 	}
 	return req
 }

@@ -201,8 +201,10 @@ func (p *Processor) processCampaign(c *Campaign) {
 	switch c.Type {
 	case CampaignText:
 		msgResult = p.sendText(c, instanceID, chatID, params, pushName)
-	case CampaignButton, CampaignCarousel:
+	case CampaignButton:
 		msgResult = p.sendButton(c, instanceID, chatID, params, pushName)
+	case CampaignCarousel:
+		msgResult = p.sendCarousel(c, instanceID, chatID, params, pushName)
 	case CampaignList:
 		msgResult = p.sendList(c, instanceID, chatID, params, pushName)
 	case CampaignPoll:
@@ -296,6 +298,13 @@ func (p *Processor) sendPoll(c *Campaign, instanceID, chatID string, params map[
 	if err != nil { return sender.SendResponse{Status: "error", Error: err.Error()} }
 	p.template.ApplySpintax(tpl, params, pushName, instanceID, pushName, phoneFromJID(chatID))
 	return p.snd.SendPoll(context.Background(), p.template.ToPollRequest(tpl, instanceID, chatID))
+}
+
+func (p *Processor) sendCarousel(c *Campaign, instanceID, chatID string, params map[string]string, pushName string) sender.SendResponse {
+	tpl, err := p.template.LoadTemplate(c.Template)
+	if err != nil { return sender.SendResponse{Status: "error", Error: err.Error()} }
+	p.template.ApplySpintax(tpl, params, pushName, instanceID, pushName, phoneFromJID(chatID))
+	return p.snd.SendCarousel(context.Background(), p.template.ToCarouselRequest(tpl, instanceID, chatID))
 }
 
 func (p *Processor) getOrCreateRotator(c *Campaign) *AccountRotator {
