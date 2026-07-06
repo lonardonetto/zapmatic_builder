@@ -79,7 +79,7 @@ func TestGetCampaignByIDIntegration(t *testing.T) {
 			continue
 		}
 		t.Logf("✅ Campaign %d: %q Type=%d Accounts=%v Next=%d Status=%d",
-			c.ID, c.Name, c.Type, c.Accounts, c.NextAccount, c.Status)
+			c.ID, c.Name, c.Type, c.Accounts, c.NextAccount.Int64, c.Status)
 	}
 }
 

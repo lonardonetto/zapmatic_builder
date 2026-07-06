@@ -55,7 +55,7 @@ func TestContactRotatorE2E(t *testing.T) {
 	}
 
 	if len(c.Accounts) > 0 {
-		rot := NewAccountRotatorWithIndex(c.Accounts, c.NextAccount)
+		rot := NewAccountRotatorWithIndex(c.Accounts, int(c.NextAccount.Int64))
 		if rot.HasMore() {
 			nextAcc := rot.Next()
 			t.Logf("   ✅ Rotator next account: %d (index after: %d)", nextAcc, rot.Index())
