@@ -467,7 +467,85 @@ class Bot_builder extends \CodeIgniter\Controller
 
     // ===================== BOT SETTINGS (Keywords & Toggle) =====================
 
-    public function save_bot_settings()
+    
+    public function promote_to_native()
+    {
+        $team_id = get_team("id");
+        if (!$team_id) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Sessão inválida']);
+        }
+
+        $block_id = post('block_id');
+        $text = post('text') ?: 'Escolha:';
+        $title = post('title') ?: '';
+        $image = post('image') ?: '';
+        $optionsStr = post('options') ?: '';
+        $existing_ids = post('ids');
+
+        $labels = array_values(array_filter(array_map('trim', explode(',', $optionsStr))));
+        if (empty($labels)) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Nenhum botão válido.']);
+        }
+
+        $templateButtons = [];
+        foreach ($labels as $idx => $label) {
+            $templateButtons[] = [
+                'index' => $idx,
+                'quickReplyButton' => [
+                    'displayText' => mb_substr($label, 0, 20),
+                    'id' => 'btn_' . $block_id . '_' . $idx
+                ]
+            ];
+        }
+
+        $data = [
+            'templateButtons' => $templateButtons,
+            'footer' => '',
+            'title' => $title,
+            'text' => $text,
+            'caption' => $text,
+            'image' => $image ? ['url' => $image] : null,
+            'local_variables' => [],
+            'meta_official' => [
+                'enabled' => false,
+                'base_name' => '',
+                'category' => 'MARKETING',
+                'languages' => '',
+                'header_format' => 'TEXT',
+                'body_example' => ''
+            ]
+        ];
+
+        $table = $this->model->db->table(TB_WHATSAPP_TEMPLATE);
+
+        // Se já existe e é promovido, atualiza
+        if ($existing_ids && strpos($existing_ids, 'bb_promoted_') === 0) {
+            $existing = $table->where('team_id', $team_id)->where('ids', $existing_ids)->where('type', 2)->get()->getRow();
+            if ($existing) {
+                $table->where('id', $existing->id)->update([
+                    'data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'changed' => time()
+                ]);
+                return $this->response->setJSON(['status' => 'success', 'ids' => $existing_ids]);
+            }
+        }
+
+        // Senão, insere novo
+        $new_ids = 'bb_promoted_' . substr(md5(uniqid()), 0, 16);
+        $row = [
+            'team_id' => $team_id,
+            'ids' => $new_ids,
+            'name' => 'Template Nativo (Bloco ' . substr($block_id, 0, 8) . ')',
+            'type' => 2,
+            'data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'changed' => time(),
+            'created' => time()
+        ];
+
+        $table->insert($row);
+        return $this->response->setJSON(['status' => 'success', 'ids' => $new_ids]);
+    }
+public function save_bot_settings()
     {
         $bot_id = post('bot_id');
         if(!$bot_id) {
