@@ -893,6 +893,16 @@ public function save_bot_settings()
                 $sender_jid = $message['_wa_id'] . '@s.whatsapp.net';
             }
             $clean_phone = explode('@', $sender_jid)[0];
+            $formatted_phone = $clean_phone;
+            if (strlen($clean_phone) >= 12 && substr($clean_phone, 0, 2) === '55') {
+                $ddd = substr($clean_phone, 2, 2);
+                $num = substr($clean_phone, 4);
+                if (strlen($num) === 8) {
+                    $formatted_phone = "+55 ($ddd) " . substr($num, 0, 4) . "-" . substr($num, 4);
+                } else {
+                    $formatted_phone = "+55 ($ddd) " . substr($num, 0, 5) . "-" . substr($num, 5);
+                }
+            }
 
             file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Sender: {$clean_phone} | Name: {$push_name} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
 
@@ -942,6 +952,7 @@ public function save_bot_settings()
                 }
                 if (empty($ctx_array['wa_phone'])) {
                     $ctx_array['wa_phone'] = $clean_phone;
+                    $ctx_array['wa_phone_formatted'] = $formatted_phone;
                     $updated_ctx = true;
                 }
                 
@@ -976,7 +987,8 @@ public function save_bot_settings()
             } else {
                 $init_ctx = json_encode([
                     'wa_name' => $push_name,
-                    'wa_phone' => $clean_phone
+                    'wa_phone' => $clean_phone,
+                    'wa_phone_formatted' => $formatted_phone
                 ]);
 
                 // 1. Try keyword trigger first
@@ -1316,7 +1328,7 @@ public function save_bot_settings()
                 $current_block_id = $next_id;
                 $current_block = $findBlock($current_block_id);
             } else {
-                return;
+                $current_block = null;
             }
         }
 
@@ -2467,6 +2479,10 @@ public function save_bot_settings()
             } else {
                 $current_block = null;
             }
+        }
+
+        if (!$current_block) {
+            $this->model->update_session($session->id, ['is_completed' => 1]);
         }
 
         $this->save_state($session->id, $current_block_id, $context);

@@ -56,7 +56,7 @@ function startSimulation() {
     M.clearActiveNode();
     var nextSimState = { 
         currentNode: null, 
-        context: { wa_name: "Simulador", wa_phone: "5511999999999" }, 
+        context: { wa_name: "Simulador", wa_phone: "5511999999999", wa_phone_formatted: "+55 (11) 99999-9999" }, 
         waiting: false, 
         history: [], 
         traversedEdges: [] 
