@@ -884,7 +884,10 @@ public function save_bot_settings()
             // ★ Also extract the raw button ID for fallback matching
             $button_id = $this->extract_button_id($message);
 
-            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Reply: {$reply_phone} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
+            // ★ Extract the pushName (wa_name)
+            $push_name = trim($message['pushName'] ?? $message['profile']['name'] ?? '');
+
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Reply: {$reply_phone} | Name: {$push_name} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
 
             // ==================== WOOCOMMERCE SHOP BOT HOOK ====================
             if ($account && isset($account->team_id)) {
@@ -923,6 +926,16 @@ public function save_bot_settings()
             }
 
             if ($session) {
+                // Update context with push_name if it doesn't exist
+                if (!empty($push_name)) {
+                    $ctx_array = json_decode($session->context ?? '{}', true);
+                    if (empty($ctx_array['wa_name'])) {
+                        $ctx_array['wa_name'] = $push_name;
+                        $session->context = json_encode($ctx_array);
+                        $this->model->update_session($session->id, ['context' => $session->context]);
+                    }
+                }
+
                 $session->reply_phone = $reply_phone;
                 // ★ Check stop keyword BEFORE processing the flow
                 $stop_matched = $this->model->check_stop_keyword($text, $session->bot_id);
@@ -947,18 +960,20 @@ public function save_bot_settings()
                 $this->run_flow($session, $text, $type, $instance_id_for_send, false, $button_id);
                 $handled_count++;
             } else {
+                $init_ctx = json_encode(['wa_name' => $push_name]);
+
                 // 1. Try keyword trigger first
                 $bot = $this->model->find_bot_by_trigger($text, $instance_id_for_lookup, $phone);
                 if ($bot) {
                     file_put_contents($logFile, date('Y-m-d H:i:s') . " | ✅ Keyword matched! Bot #{$bot->id} ({$bot->name}) | Start: {$bot->start_block_id}\n", FILE_APPEND);
-                    $session_id = $this->model->create_session($bot->id, $phone, $instance_id_for_lookup);
+                    $session_id = $this->model->create_session($bot->id, $phone, $instance_id_for_lookup, $init_ctx);
                     $session = (object)[
                         'id' => $session_id,
                         'bot_id' => $bot->id,
                         'phone' => $reply_phone,
                         'reply_phone' => $reply_phone,
                         'canonical_phone' => $phone,
-                        'context' => '{}',
+                        'context' => $init_ctx,
                         'current_block_id' => $bot->start_block_id
                     ];
                     $this->run_flow($session, $text, $type, $instance_id_for_send, true);
@@ -971,13 +986,13 @@ public function save_bot_settings()
                 // 2. Try Command triggers (blocks of type 'command' across all bots)
                 $command_match = $this->find_command_trigger($text, $instance_id_for_lookup);
                 if ($command_match) {
-                    $session_id = $this->model->create_session($command_match['bot_id'], $phone, $instance_id_for_lookup);
+                    $session_id = $this->model->create_session($command_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
                     $session = (object)[
                         'id' => $session_id,
                         'bot_id' => $command_match['bot_id'],
                         'phone' => $reply_phone,
                         'reply_phone' => $reply_phone,
-                        'context' => '{}',
+                        'context' => $init_ctx,
                         'current_block_id' => $command_match['block_id']
                     ];
                     $this->run_flow($session, $text, $type, $instance_id_for_send, true);
@@ -988,14 +1003,14 @@ public function save_bot_settings()
                 // 3. Try Reply triggers (blocks of type 'reply' across all bots)
                 $reply_match = $this->find_reply_trigger($text, $instance_id_for_lookup);
                 if ($reply_match) {
-                    $session_id = $this->model->create_session($reply_match['bot_id'], $phone, $instance_id_for_lookup);
+                    $session_id = $this->model->create_session($reply_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
                     $this->model->update_session($session_id, ['current_block_id' => $reply_match['block_id']]);
                     $session = (object)[
                         'id' => $session_id,
                         'bot_id' => $reply_match['bot_id'],
                         'phone' => $reply_phone,
                         'reply_phone' => $reply_phone,
-                        'context' => '{}',
+                        'context' => $init_ctx,
                         'current_block_id' => $reply_match['block_id']
                     ];
                     $this->run_flow($session, $text, $type, $instance_id_for_send, true);
@@ -1008,7 +1023,7 @@ public function save_bot_settings()
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
                         if ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
-                            $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup);
+                            $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup, $init_ctx);
                             $this->model->db->table('sp_bb_sessions')
                                 ->where('id', $session_id)
                                 ->update(['autorespond_last_at' => date('Y-m-d H:i:s')]);
@@ -1018,7 +1033,7 @@ public function save_bot_settings()
                                 'phone' => $reply_phone,
                                 'reply_phone' => $reply_phone,
                                 'canonical_phone' => $phone,
-                                'context' => '{}',
+                                'context' => $init_ctx,
                                 'current_block_id' => $auto_bot->start_block_id
                             ];
                             $this->run_flow($session, $text, $type, $instance_id_for_send, true);
@@ -1651,13 +1666,14 @@ public function save_bot_settings()
                             // Store parent session info for return
                             $context['_parent_session'] = $session->id;
                             $context['_parent_block'] = $current_block->id;
+                            $child_context_json = json_encode($context);
                             // Create child session
-                            $child_session_id = $this->model->create_session($target_bot_id, $session->phone);
+                            $child_session_id = $this->model->create_session($target_bot_id, $session->phone, null, $child_context_json);
                             $child_session = (object)[
                                 'id' => $child_session_id,
                                 'bot_id' => $target_bot_id,
                                 'phone' => $session->phone,
-                                'context' => json_encode($context),
+                                'context' => $child_context_json,
                                 'current_block_id' => null
                             ];
                             $this->run_flow($child_session, '', 'text', $instance_id, true);

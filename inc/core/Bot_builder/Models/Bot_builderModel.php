@@ -357,7 +357,7 @@ class Bot_builderModel
         return $bot ? $bot->team_id : null;
     }
 
-    public function create_session($bot_id, $phone, $instance_id = null) {
+    public function create_session($bot_id, $phone, $instance_id = null, $initial_context = '{}') {
         // End existing sessions for this phone on this instance
         $q = $this->db->table('sp_bb_sessions')
             ->where('phone', $phone)
@@ -369,7 +369,7 @@ class Bot_builderModel
             'bot_id' => $bot_id,
             'phone' => $phone,
             'instance_id' => $instance_id,
-            'context' => '{}',
+            'context' => $initial_context,
             'is_completed' => 0,
             'created_at' => date('Y-m-d H:i:s')
         ]);
