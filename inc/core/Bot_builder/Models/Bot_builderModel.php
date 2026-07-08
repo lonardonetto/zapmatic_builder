@@ -466,7 +466,7 @@ class Bot_builderModel
      * 'individual' = only respond in private/individual chats
      * 'groups' = only respond in group chats
      */
-    private function chat_type_matches($bot, $chat_id) {
+    public function chat_type_matches($bot, $chat_id) {
         if(!$chat_id) return true; // No chat_id provided, allow all
         $chat_type = $bot->chat_type ?? 'all';
         if($chat_type === 'all') return true;

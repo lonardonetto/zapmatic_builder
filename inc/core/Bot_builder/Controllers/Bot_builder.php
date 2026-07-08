@@ -1001,7 +1001,7 @@ public function save_bot_settings()
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | No keyword match for '{$text}' with lookup ID: {$instance_id_for_lookup}\n", FILE_APPEND);
 
                 // 2. Try Command triggers (blocks of type 'command' across all bots)
-                $command_match = $this->find_command_trigger($text, $instance_id_for_lookup);
+                $command_match = $this->find_command_trigger($text, $instance_id_for_lookup, $phone);
                 if ($command_match) {
                     $session_id = $this->model->create_session($command_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
                     $session = (object)[
@@ -1018,7 +1018,7 @@ public function save_bot_settings()
                 }
 
                 // 3. Try Reply triggers (blocks of type 'reply' across all bots)
-                $reply_match = $this->find_reply_trigger($text, $instance_id_for_lookup);
+                $reply_match = $this->find_reply_trigger($text, $instance_id_for_lookup, $phone);
                 if ($reply_match) {
                     $session_id = $this->model->create_session($reply_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
                     $this->model->update_session($session_id, ['current_block_id' => $reply_match['block_id']]);
@@ -1036,7 +1036,7 @@ public function save_bot_settings()
 
                 // 4. Autorespond — responder qualquer palavra
                 if ($handled_count === 0) {
-                    $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup);
+                    $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup, $phone);
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
                         if ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
@@ -2478,7 +2478,7 @@ public function save_bot_settings()
  * Find a Command block trigger across all published bots linked to this instance
  * Command blocks act as entry points when user sends a specific command (e.g., /help)
  */
-private function find_command_trigger($text, $instance_id) {
+private function find_command_trigger($text, $instance_id, $chat_id = null) {
     $text = trim($text);
     if(empty($text)) return null;
 
@@ -2495,6 +2495,7 @@ private function find_command_trigger($text, $instance_id) {
 
     foreach($bots as $bot) {
         if(isset($bot->bot_enabled) && $bot->bot_enabled == 0) continue;
+        if(!$this->model->chat_type_matches($bot, $chat_id)) continue;
         $blocks = $this->model->get_blocks($bot->id);
         foreach($blocks as $block) {
             if($block->type !== 'command') continue;
@@ -2512,7 +2513,7 @@ private function find_command_trigger($text, $instance_id) {
  * Find a Reply block trigger across all published bots linked to this instance
  * Reply blocks act as entry points when user message matches a pattern
  */
-private function find_reply_trigger($text, $instance_id) {
+private function find_reply_trigger($text, $instance_id, $chat_id = null) {
     $text = trim($text);
     if(empty($text)) return null;
 
@@ -2529,6 +2530,7 @@ private function find_reply_trigger($text, $instance_id) {
 
     foreach($bots as $bot) {
         if(isset($bot->bot_enabled) && $bot->bot_enabled == 0) continue;
+        if(!$this->model->chat_type_matches($bot, $chat_id)) continue;
         $blocks = $this->model->get_blocks($bot->id);
         foreach($blocks as $block) {
             if($block->type !== 'reply') continue;
@@ -2560,9 +2562,9 @@ private function find_reply_trigger($text, $instance_id) {
     return null;
 }
 
-private function find_autorespond_bot($instance_id)
+private function find_autorespond_bot($instance_id, $chat_id = null)
 {
-    return $this->model->db->table('sp_bot_builders as b')
+    $bots = $this->model->db->table('sp_bot_builders as b')
         ->select('b.*')
         ->join('sp_bb_integrations as i', 'i.bot_id = b.id')
         ->where('i.instance_id', $instance_id)
@@ -2571,7 +2573,12 @@ private function find_autorespond_bot($instance_id)
         ->where('b.bot_enabled', 1)
         ->where('b.autorespond', 1)
         ->orderBy('b.id', 'ASC')
-        ->get()->getRow() ?: null;
+        ->get()->getResult();
+
+    foreach($bots as $bot) {
+        if($this->model->chat_type_matches($bot, $chat_id)) return $bot;
+    }
+    return null;
 }
 
 private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
