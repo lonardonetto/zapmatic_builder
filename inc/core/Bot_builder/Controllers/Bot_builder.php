@@ -926,14 +926,22 @@ public function save_bot_settings()
             }
 
             if ($session) {
-                // Update context with push_name if it doesn't exist
-                if (!empty($push_name)) {
-                    $ctx_array = json_decode($session->context ?? '{}', true);
-                    if (empty($ctx_array['wa_name'])) {
-                        $ctx_array['wa_name'] = $push_name;
-                        $session->context = json_encode($ctx_array);
-                        $this->model->update_session($session->id, ['context' => $session->context]);
-                    }
+                // Update context with push_name and clean_phone if they don't exist
+                $ctx_array = json_decode($session->context ?? '{}', true);
+                $updated_ctx = false;
+                if (!empty($push_name) && empty($ctx_array['wa_name'])) {
+                    $ctx_array['wa_name'] = $push_name;
+                    $updated_ctx = true;
+                }
+                $clean_phone = explode('@', $phone)[0];
+                if (empty($ctx_array['wa_phone'])) {
+                    $ctx_array['wa_phone'] = $clean_phone;
+                    $updated_ctx = true;
+                }
+                
+                if ($updated_ctx) {
+                    $session->context = json_encode($ctx_array);
+                    $this->model->update_session($session->id, ['context' => $session->context]);
                 }
 
                 $session->reply_phone = $reply_phone;
@@ -960,7 +968,11 @@ public function save_bot_settings()
                 $this->run_flow($session, $text, $type, $instance_id_for_send, false, $button_id);
                 $handled_count++;
             } else {
-                $init_ctx = json_encode(['wa_name' => $push_name]);
+                $clean_phone = explode('@', $phone)[0];
+                $init_ctx = json_encode([
+                    'wa_name' => $push_name,
+                    'wa_phone' => $clean_phone
+                ]);
 
                 // 1. Try keyword trigger first
                 $bot = $this->model->find_bot_by_trigger($text, $instance_id_for_lookup, $phone);
