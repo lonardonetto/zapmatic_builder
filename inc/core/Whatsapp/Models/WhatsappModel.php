@@ -157,7 +157,7 @@ class WhatsappModel extends Model
                                 {   
                                 $config_path = $module_path . "/Config.php";
                                 $config_item = include $config_path;
-                                if (!empty($config_item['id']) && $config_item['id'] === 'whatsapp_chatbot') {
+                                if (!empty($config_item['id']) && in_array($config_item['id'], ['whatsapp_chatbot', 'whatsapp_autoresponder'])) {
                                     continue;
                                 }
                                 include_once $model_file;
