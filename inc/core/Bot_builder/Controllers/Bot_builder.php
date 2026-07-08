@@ -887,7 +887,14 @@ public function save_bot_settings()
             // ★ Extract the pushName (wa_name)
             $push_name = trim($message['pushName'] ?? $message['profile']['name'] ?? '');
 
-            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Reply: {$reply_phone} | Name: {$push_name} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
+            // ★ Extract the actual sender's phone number (wa_phone)
+            $sender_jid = !empty($message['key']['participant']) ? $message['key']['participant'] : ($message['key']['remoteJid'] ?? '');
+            if (!empty($message['_wa_id'])) {
+                $sender_jid = $message['_wa_id'] . '@s.whatsapp.net';
+            }
+            $clean_phone = explode('@', $sender_jid)[0];
+
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Sender: {$clean_phone} | Name: {$push_name} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
 
             // ==================== WOOCOMMERCE SHOP BOT HOOK ====================
             if ($account && isset($account->team_id)) {
@@ -933,7 +940,6 @@ public function save_bot_settings()
                     $ctx_array['wa_name'] = $push_name;
                     $updated_ctx = true;
                 }
-                $clean_phone = explode('@', $phone)[0];
                 if (empty($ctx_array['wa_phone'])) {
                     $ctx_array['wa_phone'] = $clean_phone;
                     $updated_ctx = true;
@@ -968,7 +974,6 @@ public function save_bot_settings()
                 $this->run_flow($session, $text, $type, $instance_id_for_send, false, $button_id);
                 $handled_count++;
             } else {
-                $clean_phone = explode('@', $phone)[0];
                 $init_ctx = json_encode([
                     'wa_name' => $push_name,
                     'wa_phone' => $clean_phone
