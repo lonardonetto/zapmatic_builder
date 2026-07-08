@@ -571,6 +571,12 @@ public function save_bot_settings()
         if($this->request->getPost('chat_type') !== null) {
             $update['chat_type'] = $this->request->getPost('chat_type');
         }
+        if($this->request->getPost('autorespond') !== null) {
+            $update['autorespond'] = $this->request->getPost('autorespond') == '1' ? 1 : 0;
+        }
+        if($this->request->getPost('autorespond_delay') !== null) {
+            $update['autorespond_delay'] = max(1, intval($this->request->getPost('autorespond_delay')));
+        }
 
         if(!empty($update)) {
             $this->model->db->table('sp_bot_builders')->where('id', $bot_id)->update($update);
@@ -599,6 +605,8 @@ public function save_bot_settings()
                 'bot_enabled' => isset($bot->bot_enabled) ? (int)$bot->bot_enabled : 1,
                 'keyword_match_type' => $bot->keyword_match_type ?? 'contains',
                 'chat_type' => $bot->chat_type ?? 'all',
+                'autorespond' => $bot->autorespond ?? 0,
+                'autorespond_delay' => $bot->autorespond_delay ?? 60,
             ]
         ]);
     }
@@ -992,6 +1000,31 @@ public function save_bot_settings()
                     ];
                     $this->run_flow($session, $text, $type, $instance_id_for_send, true);
                     $handled_count++;
+                }
+
+                // 4. Autorespond — responder qualquer palavra
+                if ($handled_count === 0) {
+                    $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup);
+                    if ($auto_bot) {
+                        $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
+                        if ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
+                            $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup);
+                            $this->model->db->table('sp_bb_sessions')
+                                ->where('id', $session_id)
+                                ->update(['autorespond_last_at' => date('Y-m-d H:i:s')]);
+                            $session = (object)[
+                                'id' => $session_id,
+                                'bot_id' => $auto_bot->id,
+                                'phone' => $reply_phone,
+                                'reply_phone' => $reply_phone,
+                                'canonical_phone' => $phone,
+                                'context' => '{}',
+                                'current_block_id' => $auto_bot->start_block_id
+                            ];
+                            $this->run_flow($session, $text, $type, $instance_id_for_send, true);
+                            $handled_count++;
+                        }
+                    }
                 }
             }
         }
@@ -2492,6 +2525,33 @@ private function find_reply_trigger($text, $instance_id) {
         }
     }
     return null;
+}
+
+private function find_autorespond_bot($instance_id)
+{
+    return $this->model->db->table('sp_bot_builders as b')
+        ->select('b.*')
+        ->join('sp_bb_integrations as i', 'i.bot_id = b.id')
+        ->where('i.instance_id', $instance_id)
+        ->where('i.status', 1)
+        ->where('b.status', 1)
+        ->where('b.bot_enabled', 1)
+        ->where('b.autorespond', 1)
+        ->orderBy('b.id', 'ASC')
+        ->get()->getRow() ?: null;
+}
+
+private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
+{
+    $session = $this->model->db->table('sp_bb_sessions')
+        ->where('bot_id', $bot_id)
+        ->where('phone', $phone)
+        ->where('autorespond_last_at IS NOT NULL', null, false)
+        ->orderBy('autorespond_last_at', 'DESC')
+        ->get()->getRow();
+
+    if (!$session) return true;
+    return (time() - strtotime($session->autorespond_last_at)) >= $delay_seconds;
 }
 
     private function find_next_node($edges, $from_id, $handle = null) {

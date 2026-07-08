@@ -68,6 +68,10 @@ function appendBotSettings(fd, includeMatchAndChat) {
         if(matchType) fd.append('keyword_match_type', matchType.value);
         const chatTypeRadio = document.querySelector('input[name="pm-chat-type"]:checked');
         if(chatTypeRadio) fd.append('chat_type', chatTypeRadio.value);
+        const autorespond = document.getElementById('pm-autorespond');
+        const autorespondDelay = document.getElementById('pm-autorespond-delay');
+        if(autorespond) fd.append('autorespond', autorespond.checked ? '1' : '0');
+        if(autorespondDelay) fd.append('autorespond_delay', autorespondDelay.value || '60');
     }
 }
 

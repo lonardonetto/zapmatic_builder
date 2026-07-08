@@ -474,6 +474,25 @@ $hash = csrf_hash();
                 </div>
             </div>
 
+            <!-- Autorespond Toggle -->
+            <div class="pm-setting-row" style="margin-top:14px;">
+                <div class="pm-setting-info">
+                    <div class="pm-setting-label">⚡ Responder qualquer palavra</div>
+                    <div class="pm-setting-desc">Modo autoresponder — fluxo responde qualquer mensagem recebida.</div>
+                </div>
+                <label class="pm-toggle-switch">
+                    <input type="checkbox" id="pm-autorespond">
+                    <span class="pm-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="pm-input-row" id="pm-autorespond-delay-row" style="display:none; margin-top:8px;">
+                <label style="font-size:12px;color:#6b7280;margin-bottom:4px;display:block;">
+                    Delay entre respostas ao mesmo contato (segundos)
+                </label>
+                <input type="number" class="pm-input" id="pm-autorespond-delay"
+                       value="60" min="1" max="86400" placeholder="60">
+            </div>
+
             <!-- Save Settings Button -->
             <div style="margin-top:12px;text-align:right;">
                 <button class="pm-btn pm-btn-outline" id="pm-save-settings-btn" onclick="saveBotSettings()">
@@ -1176,12 +1195,32 @@ $hash = csrf_hash();
         stop_keyword: '<?php echo addslashes($bot->stop_keyword ?? '') ?>',
         bot_enabled: <?php echo (isset($bot->bot_enabled) ? (int)$bot->bot_enabled : 1) ?>,
         keyword_match_type: '<?php echo addslashes($bot->keyword_match_type ?? 'contains') ?>',
-        chat_type: '<?php echo addslashes($bot->chat_type ?? 'all') ?>'
+        chat_type: '<?php echo addslashes($bot->chat_type ?? 'all') ?>',
+        autorespond: <?php echo (isset($bot->autorespond) ? (int)$bot->autorespond : 0) ?>,
+        autorespond_delay: <?php echo (isset($bot->autorespond_delay) ? (int)$bot->autorespond_delay : 60) ?>
     };
     window.initialNodes = <?php echo !empty($blocks) ? json_encode($blocks) : '[]' ?>;
     window.initialEdges = <?php echo !empty($edges) ? json_encode($edges) : '[]' ?>;
     window.waInstances = <?php echo !empty($instances) ? json_encode($instances) : '[]' ?>;
     window.linkedInstanceIds = <?php echo !empty($linked_instance_ids) ? json_encode($linked_instance_ids) : '[]' ?>;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.initialBotSettings.autorespond == 1) {
+            document.getElementById('pm-autorespond').checked = true;
+            document.getElementById('pm-autorespond-delay-row').style.display = 'block';
+        } else {
+            document.getElementById('pm-autorespond').checked = false;
+        }
+        document.getElementById('pm-autorespond-delay').value = window.initialBotSettings.autorespond_delay || 60;
+
+        const arToggle = document.getElementById('pm-autorespond');
+        const arDelayRow = document.getElementById('pm-autorespond-delay-row');
+        if (arToggle && arDelayRow) {
+            arToggle.addEventListener('change', () => {
+                arDelayRow.style.display = arToggle.checked ? 'block' : 'none';
+            });
+        }
+    });
 </script>
 
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/utils.js') ?>?v=<?php echo time() ?>"></script>

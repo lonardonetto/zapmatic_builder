@@ -3532,7 +3532,7 @@ const WAZIPER = {
 		bot_builder_flow: async function (instance_id, chat_id, message) {
 			try {
 				const integrations = await Common.db_query(
-					"SELECT i.bot_id, b.trigger_keywords, b.enable_keyword, b.stop_keyword, b.bot_enabled, b.keyword_match_type, b.chat_type, b.status " +
+					"SELECT i.bot_id, b.trigger_keywords, b.enable_keyword, b.stop_keyword, b.bot_enabled, b.keyword_match_type, b.chat_type, b.status, b.autorespond, b.autorespond_delay " +
 					"FROM sp_bb_integrations i " +
 					"JOIN sp_bot_builders b ON b.id = i.bot_id " +
 					"JOIN sp_accounts a ON a.id = i.instance_id " +
@@ -3601,6 +3601,20 @@ const WAZIPER = {
 							.filter(Boolean);
 
 						if ([...primaryKeywords, ...fallbackKeywords].some(matches)) {
+							shouldProcess = true;
+							break;
+						}
+					}
+				}
+
+				if (!shouldProcess) {
+					for (const bot of integrations) {
+						if (bot.bot_enabled == 0) continue;
+						const chatType = bot.chat_type || 'all';
+						const isGroup = String(chat_id || '').includes('@g.us');
+						if (chatType === 'individual' && isGroup) continue;
+						if (chatType === 'groups' && !isGroup) continue;
+						if (bot.autorespond == 1) {
 							shouldProcess = true;
 							break;
 						}
