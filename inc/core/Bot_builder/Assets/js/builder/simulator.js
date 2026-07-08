@@ -54,7 +54,13 @@ function startSimulation() {
     var chat = ctx().$('#preview-chat');
     if(chat) chat.innerHTML = '<div class="chat-date">Hoje</div>';
     M.clearActiveNode();
-    var nextSimState = { currentNode: null, context: {}, waiting: false, history: [], traversedEdges: [] };
+    var nextSimState = { 
+        currentNode: null, 
+        context: { wa_name: "Simulador", wa_phone: "5511999999999" }, 
+        waiting: false, 
+        history: [], 
+        traversedEdges: [] 
+    };
     if(typeof ctx().setSim === 'function') ctx().setSim(nextSimState);
     M.updateVarsPanel();
     M.updateHistoryPanel();
