@@ -153,6 +153,7 @@ class Bot_builderModel
         $this->safe_add_column('sp_bot_builders', 'chat_type', "VARCHAR(20) DEFAULT 'all' AFTER `keyword_match_type`");
         $this->safe_add_column('sp_bot_builders', 'autorespond', "TINYINT(1) DEFAULT 0 AFTER `chat_type`");
         $this->safe_add_column('sp_bot_builders', 'autorespond_delay', "INT(11) DEFAULT 60 AFTER `autorespond`");
+        $this->safe_add_column('sp_bot_builders', 'session_timeout', "INT(11) DEFAULT 60 AFTER `autorespond_delay`");
         $this->safe_add_column('sp_bb_sessions', 'autorespond_last_at', "DATETIME DEFAULT NULL AFTER `updated_at`");
         $this->safe_add_column('sp_bb_sessions', 'instance_id', "VARCHAR(255) DEFAULT NULL AFTER `bot_id`");
 

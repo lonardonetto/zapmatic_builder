@@ -577,6 +577,9 @@ public function save_bot_settings()
         if($this->request->getPost('autorespond_delay') !== null) {
             $update['autorespond_delay'] = max(1, intval($this->request->getPost('autorespond_delay')));
         }
+        if($this->request->getPost('session_timeout') !== null) {
+            $update['session_timeout'] = max(1, intval($this->request->getPost('session_timeout')));
+        }
 
         if(!empty($update)) {
             $this->model->db->table('sp_bot_builders')->where('id', $bot_id)->update($update);
@@ -607,6 +610,7 @@ public function save_bot_settings()
                 'chat_type' => $bot->chat_type ?? 'all',
                 'autorespond' => $bot->autorespond ?? 0,
                 'autorespond_delay' => $bot->autorespond_delay ?? 60,
+                'session_timeout' => $bot->session_timeout ?? 60,
             ]
         ]);
     }
@@ -942,6 +946,18 @@ public function save_bot_settings()
                 $session = null;
             }
 
+            // ★ Expire old sessions (Timeout)
+            if ($session) {
+                $session_bot = $this->model->get_bot($session->bot_id);
+                $timeout_minutes = max(1, intval($session_bot->session_timeout ?? 60));
+                $last_update = strtotime($session->updated_at ?? $session->created_at ?? date('Y-m-d H:i:s'));
+                if ((time() - $last_update) > ($timeout_minutes * 60)) {
+                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ Session #{$session->id} expired due to inactivity ({$timeout_minutes}m). Restarting flow.\n", FILE_APPEND);
+                    $this->model->update_session($session->id, ['is_completed' => 1]);
+                    $session = null;
+                }
+            }
+
             if ($session) {
                 // Update context with push_name and clean_phone if they don't exist
                 $ctx_array = json_decode($session->context ?? '{}', true);
@@ -988,7 +1004,8 @@ public function save_bot_settings()
                 $init_ctx = json_encode([
                     'wa_name' => $push_name,
                     'wa_phone' => $clean_phone,
-                    'wa_phone_formatted' => $formatted_phone
+                    'wa_phone_formatted' => $formatted_phone,
+                    'msg' => $text,
                 ]);
 
                 // 1. Try keyword trigger first

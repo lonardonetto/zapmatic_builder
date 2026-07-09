@@ -70,8 +70,10 @@ function appendBotSettings(fd, includeMatchAndChat) {
         if(chatTypeRadio) fd.append('chat_type', chatTypeRadio.value);
         const autorespond = document.getElementById('pm-autorespond');
         const autorespondDelay = document.getElementById('pm-autorespond-delay');
+        const sessionTimeout = document.getElementById('pm-session-timeout');
         if(autorespond) fd.append('autorespond', autorespond.checked ? '1' : '0');
         if(autorespondDelay) fd.append('autorespond_delay', autorespondDelay.value || '60');
+        if(sessionTimeout) fd.append('session_timeout', sessionTimeout.value || '60');
     }
 }
 

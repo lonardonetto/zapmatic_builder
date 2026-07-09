@@ -1560,7 +1560,7 @@ const WAZIPER = {
 											return false;
 										});
 
-										if (!botBuilderHandled) {
+										if (!botBuilderHandled && botBuilderHandled !== 'blocked') {
 											WAZIPER.chatbot(instance_id, user_type, message);
 											await Common.sleep(1000);
 											WAZIPER.autoresponder(instance_id, user_type, message);
@@ -3607,6 +3607,7 @@ const WAZIPER = {
 					}
 				}
 
+				let autorespondOnly = false;
 				if (!shouldProcess) {
 					for (const bot of integrations) {
 						if (bot.bot_enabled == 0) continue;
@@ -3659,6 +3660,7 @@ const WAZIPER = {
 					return true;
 				}
 
+				if (autorespondOnly) { console.log("[BOT_BUILDER] Autoresponder bloqueado por delay"); return 'blocked'; }
 				return false;
 			} catch (error) {
 				console.error(`[BOT_BUILDER] Erro no fluxo: ${error.message}`);
@@ -4994,7 +4996,7 @@ const WAZIPER = {
 									return false;
 								});
 
-								if (!botBuilderHandled) {
+								if (!botBuilderHandled && botBuilderHandled !== 'blocked') {
 									WAZIPER.chatbot(instance_id, "user", message_to_script);
 									await Common.sleep(1000);
 									WAZIPER.autoresponder(instance_id, "user", message_to_script);
