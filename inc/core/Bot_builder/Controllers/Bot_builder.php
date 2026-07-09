@@ -972,6 +972,12 @@ public function save_bot_settings()
                     $updated_ctx = true;
                 }
                 if (!empty($text)) { $ctx_array["msg"] = $text; $updated_ctx = true; }
+                // Inject group ID if message is from a group
+                if (strpos($phone, '@g.us') !== false && empty($ctx_array['wa_group_id'])) {
+                    $ctx_array['wa_group_id'] = explode('@', $phone)[0];
+                    $ctx_array['wa_group_name'] = $this->get_group_name($ctx_array['wa_group_id'], $instance_id_for_send);
+                    $updated_ctx = true;
+                }
                 
                 if ($updated_ctx) {
                     $session->context = json_encode($ctx_array);
@@ -1007,6 +1013,8 @@ public function save_bot_settings()
                     'wa_phone' => $clean_phone,
                     'wa_phone_formatted' => $formatted_phone,
                     'msg' => $text,
+                    'wa_group_id' => (strpos($phone, '@g.us') !== false) ? explode('@', $phone)[0] : '',
+                    'wa_group_name' => (strpos($phone, '@g.us') !== false) ? $this->get_group_name(explode('@', $phone)[0], $instance_id_for_send) : '',
                 ]);
 
                 // 1. Try keyword trigger first
@@ -2623,6 +2631,27 @@ private function find_autorespond_bot($instance_id, $chat_id = null)
         if($this->model->chat_type_matches($bot, $chat_id)) return $bot;
     }
     return null;
+}
+
+private function get_group_name($group_id, $instance_id)
+{
+    if (empty($group_id) || empty($instance_id)) return '';
+    try {
+        $ch = curl_init("http://localhost:8090/groups/list?instance_id=" . urlencode($instance_id));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+        ]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        if (!$resp) return '';
+        $data = json_decode($resp, true);
+        if (!isset($data['groups'])) return '';
+        foreach ($data['groups'] as $g) {
+            if ($g['jid'] === $group_id) return $g['name'];
+        }
+    } catch (\Throwable $e) {}
+    return '';
 }
 
 private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
