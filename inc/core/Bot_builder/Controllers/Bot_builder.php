@@ -1964,30 +1964,40 @@ public function save_bot_settings()
                     $sheet   = $bData->sheet_name ?? 'Sheet1';
                     $values  = $this->replace_vars($bData->values ?? '', $context);
                     $varName = $bData->variable ?? 'sheets_result';
-                    // Google Sheets via Apps Script webhook or direct API
+                    
                     try {
-                        $payload = json_encode([
-                            'action'         => $action,
-                            'spreadsheet_id' => $sheetId,
-                            'sheet_name'     => $sheet,
-                            'values'         => explode(',', $values)
-                        ]);
-                        // Use configured webhook URL or default storage
-                        $webhookUrl = $context['sheets_webhook_url'] ?? '';
-                        if(!empty($webhookUrl)) {
-                            $ch = curl_init($webhookUrl);
-                            curl_setopt_array($ch, [
-                                CURLOPT_RETURNTRANSFER => true,
-                                CURLOPT_POST           => true,
-                                CURLOPT_POSTFIELDS     => $payload,
-                                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-                                CURLOPT_TIMEOUT        => 15,
+                        if (empty($sheetId)) {
+                            throw new \Exception("ID da Planilha ausente.");
+                        }
+
+                        $credentialsPath = APPPATH . 'Config/google-service-account.json';
+                        if (!file_exists($credentialsPath)) {
+                            throw new \Exception("Credenciais do Google ausentes.");
+                        }
+
+                        // Initialize Google Client
+                        $client = new \Google_Client();
+                        $client->setAuthConfig($credentialsPath);
+                        $client->addScope(\Google_Service_Sheets::SPREADSHEETS);
+                        $service = new \Google_Service_Sheets($client);
+
+                        if ($action === 'append_row') {
+                            $parsed_values = explode(',', $values);
+                            // Trim whitespace from values
+                            $parsed_values = array_map('trim', $parsed_values);
+
+                            $body = new \Google_Service_Sheets_ValueRange([
+                                'values' => [$parsed_values]
                             ]);
-                            $resp = curl_exec($ch);
-                            curl_close($ch);
-                            $context[$varName] = $resp ?: 'success';
+                            $params = [
+                                'valueInputOption' => 'USER_ENTERED'
+                            ];
+                            
+                            $range = $sheet; // Just the sheet name to append to the bottom
+                            $result = $service->spreadsheets_values->append($sheetId, $range, $body, $params);
+                            $context[$varName] = 'success';
                         } else {
-                            $context[$varName] = 'success'; // no webhook configured, just log
+                            $context[$varName] = "Ação $action não suportada ainda.";
                         }
                     } catch(\Throwable $e) {
                         $context[$varName] = 'error: ' . $e->getMessage();

@@ -149,3 +149,4 @@ app_zapmatic_whatsmeow_api/logs/
 *.db
 *.db-shm
 *.db-wal
+app/Config/google-service-account.json

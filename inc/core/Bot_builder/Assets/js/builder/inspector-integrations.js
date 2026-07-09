@@ -12,12 +12,12 @@ function renderIntegrationFields(node, id, d) {
     var type = node.type;
 
     if(type === 'intg_sheets') {
-        h += M.select('conf-action', 'Ação', d.action, ['append_row','read_row','update_row','delete_row']);
+        h += M.select('conf-action', 'Ação', d.action, ['append_row']);
         h += M.field('input', 'conf-spreadsheet_id', 'ID da planilha', d.spreadsheet_id, 'Informe o ID do Google Sheets');
-        h += M.field('input', 'conf-sheet_name', 'Nome da aba', d.sheet_name, 'Planilha1');
-        h += M.field('textarea', 'conf-values', 'Valores da linha (separados por vírgula)', d.values, '{{name}},{{email}},{{phone}}', 2);
+        h += M.field('input', 'conf-sheet_name', 'Nome da aba', d.sheet_name, 'Página1');
+        h += M.field('textarea', 'conf-values', 'Valores da linha (separados por vírgula)', d.values, '{{wa_name}},{{wa_phone_formatted}},{{email}}', 2);
         h += M.field('input', 'conf-variable', 'Salvar resultado em', d.variable, 'sheets_result');
-        h += '<div class="form-hint">Use {{variavel}} para valores dinâmicos. Vírgula separa colunas.</div>';
+        h += '<div class="form-hint" style="color:#d97706;font-weight:500;">Atenção: Você precisa compartilhar sua planilha como Editor com o e-mail: <br><strong style="user-select:all;color:#b45309;">id-bot-planilhas@wa-zapmatic-crm.iam.gserviceaccount.com</strong></div>';
     }
     if(type === 'intg_analytics') {
         h += M.field('input', 'conf-tracking_id', 'ID de acompanhamento', d.tracking_id, 'G-XXXXXXXXXX');
