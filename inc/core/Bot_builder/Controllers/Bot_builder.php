@@ -971,6 +971,7 @@ public function save_bot_settings()
                     $ctx_array['wa_phone_formatted'] = $formatted_phone;
                     $updated_ctx = true;
                 }
+                if (!empty($text)) { $ctx_array["msg"] = $text; $updated_ctx = true; }
                 
                 if ($updated_ctx) {
                     $session->context = json_encode($ctx_array);

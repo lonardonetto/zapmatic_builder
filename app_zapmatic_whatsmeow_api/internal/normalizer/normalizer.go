@@ -45,20 +45,49 @@ func NormalizeMessage(instanceID string, msg *events.Message) NormalizedPayload 
 
 	var messagePayload interface{}
 	if conversationText != "" {
-		messagePayload = map[string]interface{}{
-			"conversation": conversationText,
+			messagePayload = map[string]interface{}{
+				"conversation": conversationText,
+			}
+		} else if extended := msg.Message.GetExtendedTextMessage(); extended != nil {
+			messagePayload = map[string]interface{}{
+				"extendedTextMessage": map[string]interface{}{
+					"text": extended.GetText(),
+				},
+			}
+		} else if btnResp := msg.Message.GetButtonsResponseMessage(); btnResp != nil {
+			messagePayload = map[string]interface{}{
+				"buttonsResponseMessage": map[string]interface{}{
+					"selectedDisplayText": btnResp.GetSelectedDisplayText(),
+					"selectedButtonId":    btnResp.GetSelectedButtonID(),
+				},
+			}
+		} else if listResp := msg.Message.GetListResponseMessage(); listResp != nil {
+			title := listResp.GetTitle()
+			rowID := ""
+			if sr := listResp.GetSingleSelectReply(); sr != nil {
+				rowID = sr.GetSelectedRowID()
+			}
+			messagePayload = map[string]interface{}{
+				"listResponseMessage": map[string]interface{}{
+					"title": title,
+					"singleSelectReply": map[string]interface{}{
+						"selectedRowId": rowID,
+					},
+				},
+			}
+		} else if btnReply := msg.Message.GetTemplateButtonReplyMessage(); btnReply != nil {
+			messagePayload = map[string]interface{}{
+				"templateButtonReplyMessage": map[string]interface{}{
+					"selectedDisplayText": btnReply.GetSelectedDisplayText(),
+					"selectedIndex":       btnReply.GetSelectedIndex(),
+					"selectedId":          btnReply.GetSelectedID(),
+				},
+			}
+		} else {
+			messagePayload = map[string]interface{}{
+				"conversation": "",
+			}
 		}
-	} else if extended := msg.Message.GetExtendedTextMessage(); extended != nil {
-		messagePayload = map[string]interface{}{
-			"extendedTextMessage": map[string]interface{}{
-				"text": extended.GetText(),
-			},
-		}
-	} else {
-		messagePayload = map[string]interface{}{
-			"conversation": "",
-		}
-	}
 
 	return NormalizedPayload{
 		InstanceID: instanceID,
