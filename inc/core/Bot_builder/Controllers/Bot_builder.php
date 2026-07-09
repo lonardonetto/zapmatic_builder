@@ -2636,6 +2636,8 @@ private function find_autorespond_bot($instance_id, $chat_id = null)
 private function get_group_name($group_id, $instance_id)
 {
     if (empty($group_id) || empty($instance_id)) return '';
+    
+    // Try GO gateway first (localhost:8090)
     try {
         $ch = curl_init("http://localhost:8090/groups/list?instance_id=" . urlencode($instance_id));
         curl_setopt_array($ch, [
@@ -2644,13 +2646,30 @@ private function get_group_name($group_id, $instance_id)
         ]);
         $resp = curl_exec($ch);
         curl_close($ch);
-        if (!$resp) return '';
-        $data = json_decode($resp, true);
-        if (!isset($data['groups'])) return '';
-        foreach ($data['groups'] as $g) {
-            if ($g['jid'] === $group_id) return $g['name'];
+        if ($resp) {
+            $data = json_decode($resp, true);
+            if (isset($data['groups'])) {
+                foreach ($data['groups'] as $g) {
+                    if ($g['jid'] === $group_id) return $g['name'];
+                }
+            }
         }
     } catch (\Throwable $e) {}
+
+    // Fallback: Baileys/Waziper Node.js API
+    try {
+        if (function_exists('wa_get_curl')) {
+            $grp = wa_get_curl('get_groups', ['instance_id' => $instance_id]);
+            if ($grp && isset($grp->data) && is_array($grp->data)) {
+                foreach ($grp->data as $g) {
+                    if (($g->id ?? '') === $group_id || ($g->id ?? '') === $group_id . '@g.us') {
+                        return $g->name ?? ($g->subject ?? '');
+                    }
+                }
+            }
+        }
+    } catch (\Throwable $e) {}
+
     return '';
 }
 
