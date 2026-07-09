@@ -25,10 +25,26 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	jid, err := types.ParseJID(req.ChatID)
 	if err != nil { return SendResponse{Status: "error", Provider: "whatsmeow", Error: fmt.Sprintf("invalid JID: %v", err)} }
 	if req.Body == "" { req.Body = "Escolha:" }
-	if len(req.Buttons) > 3 { req.Buttons = req.Buttons[:3] }
 
 	sendCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+
+	// WhatsApp Cloud API native interactive only supports 3 buttons max
+	// For > 3 buttons, use text fallback (like Baileys) so all options are visible
+	if len(req.Buttons) > 3 {
+		logging.Log.Info().Str("instance", req.InstanceID).Int("button_count", len(req.Buttons)).Msg(">3 buttons, using text fallback")
+		var tf string
+		if req.Title != "" { tf = fmt.Sprintf("*%s*\n\n%s", req.Title, req.Body) } else { tf = req.Body }
+		for i, b := range req.Buttons { tf += fmt.Sprintf("\n*%d.* %s", i+1, b.Text) }
+		if req.Footer != "" { tf += "\n\n_" + req.Footer + "_" }
+		tf += "\n\n_Responda com o número ou nome da opção._"
+		resp, ferr := client.SendMessage(sendCtx, jid, &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(tf)}})
+		if ferr != nil {
+			logging.Log.Warn().Err(ferr).Str("instance", req.InstanceID).Msg("Text fallback failed")
+			return SendResponse{Status: "error", Provider: "whatsmeow", Error: ferr.Error()}
+		}
+		return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
+	}
 
 	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
 	for _, b := range req.Buttons {
@@ -62,7 +78,6 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 	}
 
 	// EXACT Baileys biz node (messages-send.js line 1338-1367)
-	// v:'9', name:'mixed', quality_control, actual_actors, host_storage, privacy_mode_ts
 	bizNode := []waBinary.Node{{
 		Tag: "biz",
 		Attrs: waBinary.Attrs{
