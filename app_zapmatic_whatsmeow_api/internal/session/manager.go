@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"path/filepath"
 	"sync"
 	"time"
@@ -378,13 +379,18 @@ func (m *Manager) WaitConnection(instanceID string, timeout time.Duration) (*Con
 			}
 		case StatePasskeyReady:
 			if challenge != nil && len(challenge) > 0 {
-				var pubKey types.WebAuthnPublicKey
-				if err := json.Unmarshal(challenge, &pubKey); err == nil {
+				var parsed struct {
+					Challenge json.RawMessage `json:"challenge"`
+					RpID      string          `json:"rpId"`
+					Timeout   int             `json:"timeout"`
+				}
+				if err := json.Unmarshal(challenge, &parsed); err == nil {
+					challengeStr := strings.Trim(string(parsed.Challenge), "\"")
 					return &ConnectionResult{
 						Method:    "passkey",
-						Challenge: string(pubKey.Challenge),
-						RpID:      pubKey.RelyingPartID,
-						Timeout:   pubKey.Timeout,
+						Challenge: challengeStr,
+						RpID:      parsed.RpID,
+						Timeout:   parsed.Timeout,
 						State:     "passkey_ready",
 					}, nil
 				}

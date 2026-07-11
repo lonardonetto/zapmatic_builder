@@ -1527,11 +1527,16 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
 
         $decoded = json_decode($response, true);
-        if (!is_array($decoded) || empty($decoded['qrcode'])) {
+        if (!is_array($decoded) || (empty($decoded['qrcode']) && empty($decoded['challenge']))) {
             echo json_encode([
                 "status" => "error",
                 "message" => "Resposta inválida do gateway"
             ]);
+            exit;
+        }
+
+        if (isset($decoded['method']) && $decoded['method'] === 'passkey') {
+            echo json_encode($decoded);
             exit;
         }
 

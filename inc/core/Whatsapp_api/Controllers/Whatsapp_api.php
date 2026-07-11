@@ -262,12 +262,16 @@ class Whatsapp_api extends Controller
             ],
         ]);
 
+        $normalized_recipient = function_exists('wa_meta_normalize_recipient') ? wa_meta_normalize_recipient($number) : preg_replace('/[^0-9]/', '', $number);
+        $chat_id = ($normalized_recipient !== '' ? $normalized_recipient : $number) . "@s.whatsapp.net";
+
         $response = wa_post_curl("send_message", [
             "instance_id" => $instance_id, 
-            "access_token" => $access_token
+            "access_token" => $access_token,
+            "type" => 1
         ], [
             "media_url" => $media_url,
-            "chat_id" => $number."@c.us",
+            "chat_id" => $chat_id,
             "caption" => $message,
             "filename" => $filename
         ] );
