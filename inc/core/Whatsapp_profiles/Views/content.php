@@ -73,7 +73,48 @@
     .text-teal {
         color: #20c997;
     }
-    </style>
+    
+/* wa-account cards (same style as connection page) */
+.wa-accounts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+.wa-account-cell{min-width:0;position:relative}
+.wa-account-tile{height:100%;padding:18px;border-radius:20px;border:1px solid #edf1f7;background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);box-shadow:0 18px 45px rgba(15,23,42,.06);display:flex;flex-direction:column;gap:14px;transition:transform .2s,box-shadow .2s,border-color .2s;position:relative;overflow:visible;z-index:1}
+.wa-account-tile:hover{transform:translateY(-3px);box-shadow:0 22px 48px rgba(15,23,42,.1);border-color:#dce6f2}
+.wa-account-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.wa-account-identity{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.wa-account-avatar{width:52px;height:52px;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);border:1px solid #dbe5f1;display:flex;align-items:center;justify-content:center;color:#25d366;flex-shrink:0}
+.wa-account-avatar img{width:100%;height:100%;object-fit:cover}
+.wa-account-copy{min-width:0}
+.wa-account-name{font-size:15px;font-weight:700;color:#0f172a;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-account-subline{margin-top:4px;color:#64748b;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wa-account-middle{display:flex;flex-direction:column;gap:10px}
+.wa-status-slot{min-height:24px}
+.wa-status-pill{display:inline-flex;align-items:center;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700}
+.wa-status-pill-success{background:#ecfdf3;color:#15803d}
+.wa-status-pill-danger{background:#fef2f2;color:#b91c1c}
+.wa-local-note{color:#64748b;font-size:12px;display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:#f8fafc}
+.wa-account-footer{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wa-account-primary-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wa-local-chip{display:inline-flex;align-items:center;padding:8px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600}
+.wa-actions-dropdown{position:relative}
+.wa-actions-menu{min-width:220px;border-radius:16px;border:1px solid #e8edf5;position:absolute;z-index:9999}
+.wa-actions-wrap{position:relative}
+.wa-actions-btn:focus{outline:none;box-shadow:0 0 0 2px rgba(0,0,0,.1)}
+.wa-actions-menu-custom{
+    display:none;position:absolute;bottom:calc(100% + 6px);right:0;min-width:220px;
+    background:#fff;border-radius:16px;border:1px solid #e8edf5;
+    box-shadow:0 12px 32px rgba(15,23,42,.12);padding:8px;z-index:9999;
+}
+.wa-actions-menu-custom a{
+    display:flex;align-items:center;padding:8px 12px;border-radius:10px;
+    color:#334155;font-size:0.88rem;text-decoration:none;transition:background .15s;
+}
+.wa-actions-menu-custom a:hover{background:#f8fafc}
+.wa-actions-menu-custom a i{width:20px;text-align:center;margin-right:8px}
+.wa-actions-menu-custom hr{margin:4px 0;border-color:#edf1f7}
+
+.wa-account-cell .dropdown-menu{z-index:9999 !important}
+.wa-account-cell.wa-menu-open,.wa-account-cell.wa-menu-open .wa-account-tile{z-index:50}
+</style>
 
     <!-- Search Bar -->
     <div class="mb-4">
@@ -86,114 +127,102 @@
     </div>
 
     <!-- Cards Grid -->
-    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4" id="profileCards">
+    <div class="wa-accounts-grid" id="profileCards">
         <?php foreach ($accounts as $account): ?>
-        <div class="col profile-card">
-            <div class="card rounded-2 mb-3 position-relative h-100 border-0 shadow-sm hover-shadow" 
-                 data-profile-id="<?php _e($account->ids); ?>"
-                 data-profile-name="<?php _e($account->name); ?>">
-                <?php // #chcknbox: Checkbox do card implementado com sucesso
-                // Posicionamento: 10px das bordas, z-index garantido ?>
-                <input type="checkbox" class="form-check-input position-absolute" 
-                       style="top: 10px; right: 10px; z-index: 10;"
-                       id="profile-checkbox-<?php _e($account->id); ?>"
-                       name="selected_profiles[]" 
-                       value="<?php _e($account->id); ?>"
-                >
-                <?php // ##CHECKPOINT: Perfil de Whatsapp atualizado com sucesso
-                // - Checkbox adicionado
-                // - Nome do perfil posicionado
-                // - Status de conexão adicionado
-                // - Número do WhatsApp formatado
-                // - Data de criação ajustada
-                // - Botão de configurações posicionado ?>
-                <div class="card-body">
-                    <div class="d-flex align-items-start mb-2 position-relative">
-                        <?php if (!empty($account->avatar)): ?>
-                            <img src="<?php _e( get_file_url($account->avatar) )?>" class="profile-pic rounded-circle position-absolute" style="top: -8px; right: 15px;" alt="Profile" width="50" height="50">
-                        <?php else: ?>
-                            <div class="profile-pic-placeholder rounded-circle position-absolute" style="top: -8px; right: 15px; width: 50px; height: 50px; background-color: #e0e0e0;"></div>
-                        <?php endif; ?>
-                        <div style="margin-left: 0; width: 100%;">
-                            <?php 
-                            // Função para truncar nome (declarada apenas se não existir)
-                            if (!function_exists('truncateName')) {
-                                function truncateName($name, $maxLength = 20) {
-                                    if (strlen($name) > $maxLength) {
-                                        return substr($name, 0, $maxLength - 3) . '...';
-                                    }
-                                    return $name;
-                                }
-                            }
+            <?php
+                $lt = (int)($account->login_type ?? 2);
+                $is_cloud = $lt === 1;
+                $is_whatsmeow = $lt === 3;
+                $is_connected = (int)($account->status ?? 0) === 1;
+                $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Baileys');
+                $profile_type_color = $is_cloud ? 'success' : ($is_whatsmeow ? 'info' : 'primary');
+                $profile_type_filter = $is_cloud ? 'cloud' : ($is_whatsmeow ? 'whatsmeow' : 'baileys');
+                $displayName = !empty($account->name) ? $account->name : str_replace('@s.whatsapp.net', '', $account->pid);
+                if (strlen($displayName) > 22) $displayName = substr($displayName, 0, 19) . '...';
+            ?>
+            <div class="wa-account-cell profile-card" data-account-type="<?php _ec($profile_type_filter) ?>">
+                <div class="wa-account-tile" data-profile-id="<?php _ec($account->ids) ?>" data-profile-name="<?php _ec($account->name) ?>">
+                    <input type="checkbox" class="form-check-input position-absolute"
+                           style="top:12px;right:12px;z-index:10;border-radius:4px;width:18px;height:18px;"
+                           id="profile-checkbox-<?php _ec($account->id) ?>"
+                           name="selected_profiles[]"
+                           value="<?php _ec($account->id) ?>">
 
-                            // Lógica para nome do perfil
-                            $displayName = !empty($account->name) 
-                                ? $account->name 
-                                : str_replace('@s.whatsapp.net', '', $account->pid);
-                            
-                            // Aplica truncamento
-                            $displayName = truncateName($displayName);
-                            ?>
-                            <h5 class="card-title mb-0 position-absolute" style="top: -8px; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php _e($displayName); ?></h5>
-                            <span class="badge <?php _e( $account->status ? 'bg-success' : 'bg-danger' )?> me-2 mb-1 d-inline-block position-absolute" style="top: 20px; margin-top: -5px;">
-                                <?php _e( $account->status ? 'Conectado' : 'Desconectado' )?>
-                            </span>
-                        </div>
-                    </div>
-                    <div style="margin-top: 50px;" class="text-start">
-                        <h6 class="mb-1 text-muted" style="font-size: 0.8rem;">
-                            <span class="text-success">WhatsApp</span>: <?php _e(str_replace('@s.whatsapp.net', '', $account->pid)); ?>
-                        </h6>
-                        <small class="text-muted">Perfil criado em: <?php _e(date('d/m/Y H:i', $account->created)); ?></small>
-                    </div>
-
-                    <div class="card-footer bg-transparent border-0 position-absolute bottom-0 end-0 p-3">
-                        <div class="dropup">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-cog me-2"></i> Configurações
-                            </button>
-                            <ul class="dropdown-menu">
-                                <?php if ($account->status !== '1'): ?>
-                                    <li><a class="dropdown-item" href="<?php echo base_url('whatsapp_profiles/oauth/' . $account->token); ?>">
-                                        <i class="fas fa-plug text-success me-2"></i> <?php _e("Conectar")?>
-                                    </a></li>
+                    <div class="wa-account-top">
+                        <div class="wa-account-identity">
+                            <div class="wa-account-avatar">
+                                <?php if (!empty($account->avatar)): ?>
+                                    <img src="<?php _ec(get_file_url($account->avatar)) ?>" alt="">
                                 <?php else: ?>
-                                    <li><a class="dropdown-item" href="#" onclick="disconnectProfile('<?php _e($account->ids); ?>')">
-                                        <i class="fas fa-times-circle text-danger me-2"></i> <?php _e("Desconectar")?>
-                                    </a></li>
+                                    <span><i class="fab fa-whatsapp"></i></span>
                                 <?php endif; ?>
-                                <li><a class="dropdown-item" href="#" onclick="editProfileName('<?php _e($account->ids); ?>')">
-                                    <i class="fas fa-edit text-primary me-2"></i> <?php _e("Editar Nome")?>
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="deleteProfile('<?php _e($account->ids); ?>')">
-                                    <i class="fas fa-trash text-danger me-2"></i> <?php _e("Excluir")?>
-                                </a></li>
-                                <?php if (isset($account->login_type) && $account->login_type == 1): ?>
-                                    <?php 
+                            </div>
+                            <div class="wa-account-copy min-w-0">
+                                <div class="wa-account-name" title="<?php _ec($account->name) ?>"><?php _ec($displayName) ?></div>
+                                <div class="wa-account-subline"><?php _ec(str_replace('@s.whatsapp.net', '', $account->pid)) ?></div>
+                            </div>
+                        </div>
+                        <span class="badge badge-light-<?php _ec($profile_type_color) ?> fs-10"><?php _ec($profile_type_label) ?></span>
+                    </div>
+
+                    <div class="wa-account-middle">
+                        <div class="wa-status-slot">
+                            <?php if ($is_connected): ?>
+                                <span class="wa-status-pill wa-status-pill-success"><i class="fas fa-check-circle me-1"></i><?php _e('Conectado') ?></span>
+                            <?php else: ?>
+                                <span class="wa-status-pill wa-status-pill-danger"><i class="fas fa-plug-circle-xmark me-1"></i><?php _e('Desconectado') ?></span>
+                            <?php endif ?>
+                        </div>
+                        <?php if ($is_cloud): ?>
+                            <div class="wa-local-note"><i class="fas fa-cloud me-1"></i><?php _e('Cloud API (Meta)') ?></div>
+                        <?php elseif ($is_whatsmeow): ?>
+                            <div class="wa-local-note"><i class="fas fa-server me-1"></i><?php _e('Conexão via Whatsmeow (Go)') ?></div>
+                        <?php else: ?>
+                            <div class="wa-local-note"><i class="fas fa-qrcode me-1"></i><?php _e('Conexão local via Baileys') ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="wa-account-footer">
+                        <div class="wa-account-primary-actions">
+                            <?php if (!$is_connected && !$is_cloud): ?>
+                                <a href="<?php _ec(base_url('whatsapp_profiles/oauth/' . $account->token)) ?>" class="btn btn-success btn-sm rounded-pill px-3">
+                                    <i class="fas fa-plug me-1"></i><?php _e("Conectar")?>
+                                </a>
+                            <?php elseif ($is_connected && !$is_cloud): ?>
+                                <span class="wa-local-chip"><?php _e('Sessão ativa') ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="wa-actions-wrap">
+                            <button class="btn btn-light-dark btn-sm rounded-pill px-3 wa-actions-btn" type="button" onclick="var m=this.nextElementSibling;m.style.display=m.style.display==='block'?'none':'block'">
+                                <i class="fas fa-ellipsis-h me-1"></i><?php _e('Ações') ?>
+                            </button>
+                            <div class="wa-actions-menu-custom">
+                                <?php if (!$is_connected && !$is_cloud): ?>
+                                    <li><a class="dropdown-item" href="<?php _ec(base_url('whatsapp_profiles/oauth/' . $account->token)) ?>"><i class="fas fa-plug text-success me-2"></i><?php _e('Conectar') ?></a></li>
+                                <?php else: ?>
+                                    <li><a class="dropdown-item" href="#" onclick="disconnectProfile('<?php _ec($account->ids) ?>')"><i class="fas fa-times-circle text-danger me-2"></i><?php _e('Desconectar') ?></a></li>
+                                <?php endif; ?>
+                                <li><a class="dropdown-item" href="#" onclick="editProfileName('<?php _ec($account->ids) ?>')"><i class="fas fa-edit text-primary me-2"></i><?php _e('Editar Nome') ?></a></li>
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteProfile('<?php _ec($account->ids) ?>')"><i class="fas fa-trash me-2"></i><?php _e('Excluir') ?></a></li>
+                                <?php if ($is_cloud): ?>
+                                    <?php
                                         $data_acc = json_decode($account->data);
                                         $waba_id = $data_acc->waba_id ?? '';
                                         $phone_id = $data_acc->phone_number_id ?? '';
                                         $v_token = $data_acc->verify_token ?? '';
                                         $token_meta = $data_acc->token ?? '';
                                     ?>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-primary" href="#" onclick="testarConexaoCloud('<?php _e($account->ids); ?>')">
-                                        <i class="fas fa-bolt me-2"></i> <?php _e("Testar Conexão")?>
-                                    </a></li>
-                                    <li><a class="dropdown-item text-info" href="#" onclick="sincronizarTemplates('<?php _e($account->ids); ?>')">
-                                        <i class="fas fa-sync-alt me-2"></i> <?php _e("Sincronizar Templates")?>
-                                    </a></li>
-                                    <?php /* Página meta_templates desativada (fluxo movido para módulos de templates) */ ?>
-                                    <li><a class="dropdown-item text-success" href="#" onclick="editarPerfilCloud('<?php _e($account->ids); ?>', '<?php _e($account->name); ?>', '<?php _e($waba_id); ?>', '<?php _e($phone_id); ?>', '<?php _e($token_meta); ?>', '<?php _e($v_token); ?>')">
-                                        <i class="fas fa-edit me-2"></i> <?php _e("Editar Cloud API")?>
-                                    </a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="testarConexaoCloud('<?php _ec($account->ids) ?>')"><i class="fas fa-bolt text-warning me-2"></i><?php _e('Testar Conexão') ?></a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="sincronizarTemplates('<?php _ec($account->ids) ?>')"><i class="fas fa-sync-alt text-info me-2"></i><?php _e('Sincronizar Templates') ?></a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="editarPerfilCloud('<?php _ec($account->ids) ?>', '<?php _ec($account->name) ?>', '<?php _ec($waba_id) ?>', '<?php _ec($phone_id) ?>', '<?php _ec($token_meta) ?>', '<?php _ec($v_token) ?>')"><i class="fas fa-edit text-success me-2"></i><?php _e('Editar Cloud API') ?></a></li>
                                 <?php endif; ?>
-                            </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
         <?php endforeach ?>
     </div>
 </div>
@@ -512,7 +541,8 @@ function editProfileName(profileId) {
     bottom: 100%;
     top: auto !important;
 }
-</style>
+
+/* wa-account cards (same style as connection page) */
 
 <?php 
 // Método estático para truncar nome
@@ -706,4 +736,6 @@ function sincronizarTemplates(ids) {
         if (btn) btn.html(originalHtml).prop('disabled', false);
     });
 }
+
+
 </script>

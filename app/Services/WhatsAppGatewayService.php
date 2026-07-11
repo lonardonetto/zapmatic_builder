@@ -6,10 +6,23 @@ class WhatsAppGatewayService
     public static function send($instanceId, string $chatId, string $type, array $payload): array
     {
         self::ensureTables();
-        $gateway = self::gatewayForInstance($instanceId);
 
-        if (($gateway['provider'] ?? 'baileys') === 'whatsmeow') {
+        // Se a campanha tem override de gateway, usa ele
+        $override = $payload['_gateway_override'] ?? null;
+
+        if ($override === 'cloud_api') {
+            return self::sendViaCloudAPI($instanceId, $chatId, $type, $payload);
+        }
+
+        $gateway = self::gatewayForInstance($instanceId);
+        $provider = $override ?? ($gateway['provider'] ?? 'baileys');
+
+        if ($provider === 'whatsmeow') {
             return self::sendViaWhatsmeow($gateway, $instanceId, $chatId, $type, $payload);
+        }
+
+        if ($provider === 'cloud_api') {
+            return self::sendViaCloudAPI($instanceId, $chatId, $type, $payload);
         }
 
         return self::sendViaBaileys($instanceId, $chatId, $type, $payload);
@@ -448,4 +461,281 @@ class WhatsAppGatewayService
             'raw' => $response,
         ];
     }
+
+    // ======================== CLOUD API METHODS ========================
+
+    public static function getCloudAPIConfig($instanceId): ?array
+    {
+        $db = \Config\Database::connect();
+        $row = $db->table('sp_whatsapp_cloud_api_config')
+            ->where('instance_id', (string)$instanceId)
+            ->get()
+            ->getRowArray();
+        return $row ?: null;
+    }
+
+    public static function setCloudAPIConfig(array $config): array
+    {
+        $db = \Config\Database::connect();
+        $existing = $db->table('sp_whatsapp_cloud_api_config')
+            ->where('instance_id', $config['instance_id'])
+            ->get()
+            ->getRowArray();
+
+        $data = [
+            'team_id' => $config['team_id'],
+            'instance_id' => $config['instance_id'],
+            'phone_number_id' => $config['phone_number_id'],
+            'waba_id' => $config['waba_id'],
+            'access_token' => $config['access_token'],
+            'business_id' => $config['business_id'],
+            'verify_token' => $config['verify_token'] ?? '',
+            'is_coexistence' => $config['is_coexistence'] ?? 0,
+            'changed' => time(),
+        ];
+
+        if ($existing) {
+            $db->table('sp_whatsapp_cloud_api_config')
+                ->where('id', $existing['id'])
+                ->update($data);
+            return ['status' => 'success', 'message' => 'Cloud API config updated'];
+        }
+
+        $data['created'] = time();
+        $db->table('sp_whatsapp_cloud_api_config')->insert($data);
+        return ['status' => 'success', 'message' => 'Cloud API config created'];
+    }
+
+    private static function sendViaCloudAPI($instanceId, string $chatId, string $type, array $payload): array
+    {
+        $config = self::getCloudAPIConfig($instanceId);
+        if (!$config) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Cloud API config not found for instance ' . $instanceId];
+        }
+
+        $url = "https://graph.facebook.com/v21.0/{$config['phone_number_id']}/messages";
+        $headers = [
+            'Authorization: Bearer ' . $config['access_token'],
+            'Content-Type: application/json',
+        ];
+
+        $body = self::buildCloudAPIPayload($chatId, $type, $payload);
+        if (isset($body['status']) && $body['status'] === 'error') {
+            return $body;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($body),
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'CURL error: ' . $curlError];
+        }
+
+        $decoded = json_decode($response, true);
+        $msgId = $decoded['messages'][0]['id'] ?? null;
+
+        return [
+            'status' => ($httpCode >= 200 && $httpCode < 300) ? 'success' : 'error',
+            'provider' => 'cloud_api',
+            'http_code' => $httpCode,
+            'message_id' => $msgId,
+            'response' => $decoded,
+        ];
+    }
+
+    private static function buildCloudAPIPayload(string $chatId, string $type, array $payload): array
+    {
+        $phone = preg_replace('/@.*/', '', $chatId);
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (empty($phone)) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Invalid phone number'];
+        }
+
+        switch ($type) {
+            case 'text':
+                $text = $payload['message'] ?? $payload['caption'] ?? $payload['text'] ?? '';
+                if (empty($text)) {
+                    return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Empty message'];
+                }
+                return [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'text',
+                    'text' => ['body' => $text],
+                ];
+
+            case 'image':
+                $mediaUrl = $payload['url'] ?? $payload['media_url'] ?? '';
+                $caption = $payload['caption'] ?? '';
+                if (empty($mediaUrl)) {
+                    return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Empty media URL'];
+                }
+                $msg = [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'image',
+                    'image' => ['link' => $mediaUrl],
+                ];
+                if ($caption) $msg['image']['caption'] = $caption;
+                return $msg;
+
+            case 'audio':
+                $audioUrl = $payload['url'] ?? $payload['media_url'] ?? '';
+                return [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'audio',
+                    'audio' => ['link' => $audioUrl],
+                ];
+
+            case 'video':
+                $videoUrl = $payload['url'] ?? $payload['media_url'] ?? '';
+                $caption = $payload['caption'] ?? '';
+                $msg = [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'video',
+                    'video' => ['link' => $videoUrl],
+                ];
+                if ($caption) $msg['video']['caption'] = $caption;
+                return $msg;
+
+            case 'document':
+                $docUrl = $payload['url'] ?? $payload['media_url'] ?? '';
+                $filename = $payload['filename'] ?? 'document';
+                return [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'document',
+                    'document' => ['link' => $docUrl, 'filename' => $filename],
+                ];
+
+            case 'buttons':
+                $btnBody = $payload['body'] ?? $payload['text'] ?? 'Escolha:';
+                $buttons = [];
+                foreach (array_slice($payload['buttons'] ?? [], 0, 3) as $btn) {
+                    $buttons[] = [
+                        'type' => 'reply',
+                        'reply' => [
+                            'id' => $btn['id'] ?? uniqid(),
+                            'title' => substr($btn['text'] ?? 'Opção', 0, 20),
+                        ],
+                    ];
+                }
+                $msg = [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'interactive',
+                    'interactive' => [
+                        'type' => 'button',
+                        'body' => ['text' => $btnBody],
+                        'action' => ['buttons' => $buttons],
+                    ],
+                ];
+                if (!empty($payload['title'])) {
+                    $msg['interactive']['header'] = ['type' => 'text', 'text' => $payload['title']];
+                }
+                if (!empty($payload['footer'])) {
+                    $msg['interactive']['footer'] = ['text' => $payload['footer']];
+                }
+                return $msg;
+
+            case 'list':
+                $listBody = $payload['body'] ?? $payload['text'] ?? 'Selecione:';
+                $buttonText = $payload['button_text'] ?? 'Opções';
+                $sections = [];
+                foreach ($payload['sections'] ?? [] as $sec) {
+                    $rows = [];
+                    foreach ($sec['rows'] ?? [] as $r) {
+                        $rows[] = [
+                            'id' => $r['id'] ?? $r['rowId'] ?? uniqid(),
+                            'title' => substr($r['title'] ?? '', 0, 24),
+                            'description' => substr($r['description'] ?? '', 0, 72),
+                        ];
+                    }
+                    $sections[] = ['title' => $sec['title'] ?? '', 'rows' => $rows];
+                }
+                $msg = [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'interactive',
+                    'interactive' => [
+                        'type' => 'list',
+                        'body' => ['text' => $listBody],
+                        'action' => [
+                            'button' => $buttonText,
+                            'sections' => $sections,
+                        ],
+                    ],
+                ];
+                if (!empty($payload['title'])) {
+                    $msg['interactive']['header'] = ['type' => 'text', 'text' => $payload['title']];
+                }
+                if (!empty($payload['footer'])) {
+                    $msg['interactive']['footer'] = ['text' => $payload['footer']];
+                }
+                return $msg;
+
+            default:
+                return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Unsupported message type for Cloud API: ' . $type];
+        }
+    }
+
+    public static function getAvailableGateways(array $accountIds, int $teamId): array
+    {
+        $db = \Config\Database::connect();
+        $accounts = $db->table('sp_accounts')
+            ->whereIn('id', $accountIds)
+            ->where('social_network', 'whatsapp')
+            ->where('status', 1)
+            ->where('team_id', $teamId)
+            ->get()
+            ->getResultArray();
+
+        $gateways = [];
+        $available = [];
+
+        foreach ($accounts as $acc) {
+            $provider = 'baileys';
+            $loginType = (int)($acc['login_type'] ?? 2);
+
+            if ($loginType === 3) {
+                // whatsmeow/go - verificar se tem gateway registrado
+                $gw = self::gatewayForInstance($acc['token']);
+                $provider = $gw['provider'] ?? 'whatsmeow';
+            } elseif ($loginType === 1) {
+                // cloud api
+                $provider = 'cloud_api';
+            }
+
+            $gateways[] = [
+                'id' => (int)$acc['id'],
+                'name' => $acc['name'] ?? '',
+                'provider' => $provider,
+                'token' => $acc['token'] ?? '',
+                'login_type' => $loginType,
+            ];
+
+            if (!in_array($provider, $available)) {
+                $available[] = $provider;
+            }
+        }
+
+        return [
+            'gateways' => $gateways,
+            'available' => $available,
+        ];
+    }
+
 }

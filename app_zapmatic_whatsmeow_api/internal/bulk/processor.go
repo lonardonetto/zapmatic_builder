@@ -1,10 +1,14 @@
 package bulk
 
 import (
-	"database/sql"
+	"bytes"
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -143,12 +147,13 @@ func (p *Processor) processCampaign(c *Campaign) {
 	params, _ := phone["params"].(map[string]string)
 	isValidRaw := phone["is_valid"]
 
-	// Resolve instance
-	instanceID := p.resolveBestInstance(c)
-	if instanceID == "" {
+	// Resolve instance with provider detection
+	resolved := p.resolveBestInstance(c)
+	if resolved == nil {
 		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", time.Now().Unix()+30))
 		UnlockCampaign(c.ID); return
 	}
+	instanceID := resolved.InstanceID
 
 	// Normalize phones
 	normalizer := &PhoneNormalizer{}
@@ -198,19 +203,28 @@ func (p *Processor) processCampaign(c *Campaign) {
 	logging.Log.Info().Int("campaign", c.ID).Str("from", instanceID).Str("to", chatID).Msg("Sending")
 
 	var msgResult sender.SendResponse
-	switch c.Type {
-	case CampaignText:
-		msgResult = p.sendText(c, instanceID, chatID, params, pushName)
-	case CampaignButton:
-		msgResult = p.sendButton(c, instanceID, chatID, params, pushName)
-	case CampaignCarousel:
-		msgResult = p.sendCarousel(c, instanceID, chatID, params, pushName)
-	case CampaignList:
-		msgResult = p.sendList(c, instanceID, chatID, params, pushName)
-	case CampaignPoll:
-		msgResult = p.sendPoll(c, instanceID, chatID, params, pushName)
-	default:
-		msgResult = sender.SendResponse{Status: "error", Error: "unsupported type"}
+
+	// Route by provider
+	if resolved.Provider == "baileys" {
+		msgResult = p.sendViaBaileysHTTP(c, resolved, chatID, params, pushName)
+	} else if resolved.Provider == "cloud_api" {
+		msgResult = p.sendViaCloudAPIHTTP(c, resolved, chatID, params, pushName)
+	} else {
+		// whatsmeow (default, current behavior)
+		switch c.Type {
+		case CampaignText:
+			msgResult = p.sendText(c, instanceID, chatID, params, pushName)
+		case CampaignButton:
+			msgResult = p.sendButton(c, instanceID, chatID, params, pushName)
+		case CampaignCarousel:
+			msgResult = p.sendCarousel(c, instanceID, chatID, params, pushName)
+		case CampaignList:
+			msgResult = p.sendList(c, instanceID, chatID, params, pushName)
+		case CampaignPoll:
+			msgResult = p.sendPoll(c, instanceID, chatID, params, pushName)
+		default:
+			msgResult = sender.SendResponse{Status: "error", Error: "unsupported type"}
+		}
 	}
 
 	if msgResult.Status == "success" {
@@ -223,46 +237,75 @@ func (p *Processor) processCampaign(c *Campaign) {
 	UnlockCampaign(c.ID)
 }
 
-// resolveBestInstance returns a connected instance registered in MySQL.
-func (p *Processor) resolveBestInstance(c *Campaign) string {
-	// Collect MySQL registered instance tokens
-	dbTokens := make(map[string]bool)
-	if mysqlDB != nil {
-		rows, err := mysqlDB.Query(
-			`SELECT token FROM sp_accounts
-			 WHERE social_network='whatsapp' AND status=1 AND login_type=3`,
-		)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var token string
-				if rows.Scan(&token) == nil && token != "" {
-					dbTokens[token] = true
-				}
-			}
-		}
+// ResolvedInstance holds the result of resolving which instance/gateway to use.
+type ResolvedInstance struct {
+	InstanceID string
+	Provider   string // "whatsmeow", "baileys", "cloud_api"
+	AccountID  int
+	Token      string
+}
+
+// resolveBestInstance returns a connected instance with its provider.
+func (p *Processor) resolveBestInstance(c *Campaign) *ResolvedInstance {
+	if len(c.Accounts) == 0 || c.Accounts[0] <= 0 {
+		return nil
 	}
 
-	// Use campaign-specific accounts
-	if len(c.Accounts) > 0 && c.Accounts[0] > 0 {
-		rot := p.getOrCreateRotator(c)
-		for i := 0; i < len(c.Accounts)*2; i++ {
-			accID := rot.Next()
-			var token string
-			if mysqlDB != nil {
-				mysqlDB.QueryRow(
-					"SELECT token FROM sp_accounts WHERE id=? AND status=1 AND social_network='whatsapp'", accID,
-				).Scan(&token)
-			}
-			if token != "" {
-				for _, s := range p.sm.ListInstances() {
-					if s.ID == token && s.State == "connected" { return s.ID }
-				}
+	rot := p.getOrCreateRotator(c)
+	for i := 0; i < len(c.Accounts)*2; i++ {
+		accID := rot.Next()
+		var token string
+		var loginType int
+		if mysqlDB != nil {
+			mysqlDB.QueryRow(
+				"SELECT token, COALESCE(login_type, 2) FROM sp_accounts WHERE id=? AND status=1 AND social_network='whatsapp'", accID,
+			).Scan(&token, &loginType)
+		}
+		if token == "" {
+			continue
+		}
+
+		// Determine provider based on gateway_overrides per-account or login_type
+		provider := "whatsmeow"
+		// Check per-account override first
+		if c.GatewayOverrides != nil {
+			if override, ok := c.GatewayOverrides[token]; ok && override != "" {
+				provider = override
+			} else if override, ok := c.GatewayOverrides[fmt.Sprintf("%d", accID)]; ok && override != "" {
+				provider = override
 			}
 		}
+		// Fallback to gateway_mode or login_type
+		if provider == "whatsmeow" && (c.GatewayMode != "" && c.GatewayMode != "auto") {
+			provider = c.GatewayMode
+		} else if provider == "whatsmeow" {
+			switch loginType {
+			case 1:
+				provider = "cloud_api"
+			case 2:
+				provider = "baileys"
+			case 3:
+				provider = "whatsmeow"
+			}
+		}
+
+		// For whatsmeow, verify session is connected
+		if provider == "whatsmeow" {
+			for _, s := range p.sm.ListInstances() {
+				if s.ID == token && s.State == "connected" {
+					return &ResolvedInstance{InstanceID: s.ID, Provider: provider, AccountID: accID, Token: token}
+				}
+			}
+			// Not connected, try next account
+			continue
+		}
+
+		// For baileys/cloud_api, we don't need a whatsmeow session
+		// The token is the instance_id for the PHP side
+		return &ResolvedInstance{InstanceID: token, Provider: provider, AccountID: accID, Token: token}
 	}
 
-	return ""
+	return nil
 }
 
 func (p *Processor) sendText(c *Campaign, instanceID, chatID string, params map[string]string, pushName string) sender.SendResponse {
@@ -340,6 +383,122 @@ func (p *Processor) validatePhones() {
 	}, 5)
 }
 
+
+// sendViaBaileysHTTP sends a message via the Baileys Node.js server (HTTP).
+func (p *Processor) sendViaBaileysHTTP(c *Campaign, resolved *ResolvedInstance, chatID string, params map[string]string, pushName string) sender.SendResponse {
+	msg := BuildMessage(c.Caption, params, pushName, resolved.InstanceID, pushName, phoneFromJID(chatID))
+
+	payload := map[string]interface{}{
+		"chat_id":    chatID,
+		"caption":    msg,
+		"message":    msg,
+		"instance_id": resolved.InstanceID,
+	}
+
+	if c.Media != "" {
+		payload["media_url"] = BuildMessage(c.Media, params, pushName, resolved.InstanceID, pushName, "")
+		payload["type"] = "media"
+	} else {
+		payload["type"] = "text"
+	}
+
+	// Try common Baileys API endpoints
+	endpoints := []string{
+		"http://127.0.0.1:8000/send_message",
+		"http://localhost:8000/send_message",
+	}
+
+	for _, endpoint := range endpoints {
+		bodyBytes, _ := json.Marshal(payload)
+		req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(bodyBytes))
+		if err != nil { continue }
+		req.Header.Set("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil { continue }
+		defer resp.Body.Close()
+
+		respBody, _ := io.ReadAll(resp.Body)
+		var result map[string]interface{}
+		json.Unmarshal(respBody, &result)
+
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			return sender.SendResponse{Status: "success", Provider: "baileys", MessageID: fmt.Sprintf("%v", result["message_id"])}
+		}
+	}
+
+	return sender.SendResponse{Status: "error", Provider: "baileys", Error: "failed to send via Baileys HTTP"}
+}
+
+// sendViaCloudAPIHTTP sends a message via Meta Cloud API (HTTP).
+func (p *Processor) sendViaCloudAPIHTTP(c *Campaign, resolved *ResolvedInstance, chatID string, params map[string]string, pushName string) sender.SendResponse {
+	// Read Cloud API config from MySQL
+	var phoneNumberID, accessToken string
+	if mysqlDB != nil {
+		err := mysqlDB.QueryRow(
+			"SELECT phone_number_id, access_token FROM sp_whatsapp_cloud_api_config WHERE instance_id = ?",
+			resolved.Token,
+		).Scan(&phoneNumberID, &accessToken)
+		if err != nil {
+			return sender.SendResponse{Status: "error", Provider: "cloud_api", Error: "Cloud API config not found: " + err.Error()}
+		}
+	}
+
+	phone := phoneFromJID(chatID)
+	msg := BuildMessage(c.Caption, params, pushName, resolved.InstanceID, pushName, phone)
+
+	// Build Cloud API payload
+	payload := map[string]interface{}{
+		"messaging_product": "whatsapp",
+		"to":   phone,
+		"type": "text",
+		"text": map[string]string{"body": msg},
+	}
+
+	if c.Media != "" {
+		mediaURL := BuildMessage(c.Media, params, pushName, resolved.InstanceID, pushName, "")
+		payload["type"] = "image"
+		payload["image"] = map[string]string{"link": mediaURL, "caption": msg}
+		delete(payload, "text")
+	}
+
+	bodyBytes, _ := json.Marshal(payload)
+	url := fmt.Sprintf("https://graph.facebook.com/v21.0/%s/messages", phoneNumberID)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return sender.SendResponse{Status: "error", Provider: "cloud_api", Error: err.Error()}
+	}
+	req.Header.Set("Authorization", "Bearer " + accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return sender.SendResponse{Status: "error", Provider: "cloud_api", Error: err.Error()}
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(respBody, &result)
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		messages, _ := result["messages"].([]interface{})
+		msgID := ""
+		if len(messages) > 0 {
+			m, _ := messages[0].(map[string]interface{})
+			msgID, _ = m["id"].(string)
+		}
+		return sender.SendResponse{Status: "success", Provider: "cloud_api", MessageID: msgID}
+	}
+
+	errMsg := ""
+	if errObj, ok := result["error"].(map[string]interface{}); ok {
+		errMsg, _ = errObj["message"].(string)
+	}
+	return sender.SendResponse{Status: "error", Provider: "cloud_api", Error: fmt.Sprintf("Cloud API HTTP %d: %s", resp.StatusCode, errMsg)}
+}
 func (p *Processor) cleanupCampaign(cid int) {
 	p.mu.Lock()
 	delete(p.rotators, cid)

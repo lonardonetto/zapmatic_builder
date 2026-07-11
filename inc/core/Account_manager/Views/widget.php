@@ -37,7 +37,12 @@
 					<?php foreach ($accounts as $key => $value): ?>
 
 						<?php
-							switch ($value->login_type) {
+							switch ((int)$value->login_type) {
+								case 1:
+									$login_type = "Cloud API";
+									$login_type_color = "primary";
+									break;
+
 								case 2:
 									$login_type = __("Unofficial");
 									$login_type_color = "danger";
@@ -50,7 +55,7 @@
 								
 								default:
 									$login_type = "";
-									$login_type_color = "success";
+									$login_type_color = "secondary";
 									break;
 							}
 

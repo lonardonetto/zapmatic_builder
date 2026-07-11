@@ -851,6 +851,11 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
             $schedule_time = post("schedule_time");
             $schedule_weekdays = post('schedule_weekdays');
             $skip_team_holidays = (int)(post('skip_team_holidays') ? 1 : 0);
+            $gateway_mode = post('gateway_mode') ?? 'auto';
+            $gateway_overrides = post('gateway_overrides') ?? '{}';
+            if (!in_array($gateway_mode, ['auto', 'whatsmeow', 'baileys', 'cloud_api'])) {
+                $gateway_mode = 'auto';
+            }
             $accounts = post("accounts");
             $raw_time_post = post("time_post");
             $time_post = $this->parse_time_post_input($raw_time_post);
@@ -1056,6 +1061,8 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     "schedule_time" => $schedule_time,
                     "schedule_weekdays" => $schedule_weekdays,
                     "skip_team_holidays" => $skip_team_holidays,
+                    "gateway_mode" => $gateway_mode,
+                    "gateway_overrides" => $gateway_overrides,
                     "timezone" => get_user("timezone"),
                     "name" => $name,
                     "caption" => $caption,
@@ -1088,6 +1095,8 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     "schedule_time" => $schedule_time,
                     "schedule_weekdays" => $schedule_weekdays,
                     "skip_team_holidays" => $skip_team_holidays,
+                    "gateway_mode" => $gateway_mode,
+                    "gateway_overrides" => $gateway_overrides,
                     "timezone" => get_user("timezone"),
                     "name" => $name,
                     "caption" => $caption,
@@ -1321,4 +1330,49 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
             ]);
         }
     }
+
+    public function detect_gateways()
+    {
+        $team_id = get_team("id");
+        // Aceita account_ids (int) ou accounts (pid/JID string)
+        $account_ids = post("account_ids") ?? post("accounts") ?? [];
+
+        if (empty($account_ids)) {
+            echo json_encode(["status" => "error", "message" => "account_ids required"]);
+            exit;
+        }
+
+        // Converter para inteiros se vierem como strings
+        $account_ids = array_map(function($v) {
+            return is_numeric($v) ? (int)$v : $v;
+        }, $account_ids);
+
+        // Se os valores são JIDs (pid), converter para account IDs
+        $first = reset($account_ids);
+        if (is_string($first) && strpos($first, '@') !== false) {
+            $db = \Config\Database::connect();
+            $ids = [];
+            foreach ($account_ids as $pid) {
+                $row = $db->table('sp_accounts')
+                    ->select('id')
+                    ->where('pid', $pid)
+                    ->where('social_network', 'whatsapp')
+                    ->where('team_id', $team_id)
+                    ->get()
+                    ->getRowArray();
+                if ($row) $ids[] = (int)$row['id'];
+            }
+            $account_ids = $ids;
+        }
+
+        $result = \App\Services\WhatsAppGatewayService::getAvailableGateways($account_ids, $team_id);
+
+        echo json_encode([
+            "status" => "success",
+            "gateways" => $result['gateways'],
+            "available" => $result['available'],
+        ]);
+        exit;
+    }
+
 }

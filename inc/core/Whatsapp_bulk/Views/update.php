@@ -96,6 +96,63 @@
                     <small class="text-gray-700"><?php _e("Only Baileys accounts can be selected for call campaigns.")?></small>
                 </div>
 
+                                <input type="hidden" name="gateway_mode" value="auto">
+
+                <?php
+                    // Build account->gateway map for badges
+                    $account_gateway_map = [];
+                    $db = \Config\Database::connect();
+                    $all_accounts = db_fetch("*", TB_ACCOUNTS, [
+                        "social_network" => "whatsapp",
+                        "status" => 1,
+                        "team_id" => get_team("id")
+                    ]);
+                    if (!empty($all_accounts)) {
+                        foreach ($all_accounts as $acc) {
+                            if (empty($acc->ids)) continue;
+                            $gateways = [];
+                            $lt = (int)$acc->login_type;
+
+                            // 1. Gateway primário pelo login_type
+                            if ($lt === 3) {
+                                $gw = \App\Services\WhatsAppGatewayService::gatewayForInstance($acc->token);
+                                $gateways[] = $gw['provider'] ?? 'whatsmeow';
+                            } elseif ($lt === 1) {
+                                $gateways[] = 'cloud_api';
+                            } else {
+                                $gateways[] = 'baileys';
+                            }
+
+                            // 2. Verificar se existe gateway REGISTRADO no banco (não o default)
+                            $gwRow = $db->table('sp_whatsapp_gateways')
+                                ->where('instance_id', (string)$acc->token)
+                                ->where('status', 1)
+                                ->get()
+                                ->getRowArray();
+                            if (!empty($gwRow) && !in_array($gwRow['provider'], $gateways)) {
+                                $gateways[] = $gwRow['provider'];
+                            }
+
+                            // 3. Verificar se existe Cloud API config REGISTRADA
+                            $cloudRow = $db->table('sp_whatsapp_cloud_api_config')
+                                ->where('instance_id', (string)$acc->token)
+                                ->get()
+                                ->getRowArray();
+                            if (!empty($cloudRow) && !in_array('cloud_api', $gateways)) {
+                                $gateways[] = 'cloud_api';
+                            }
+
+                            $account_gateway_map[$acc->ids] = array_values(array_unique($gateways));
+                        }
+                    }
+                ?>
+
+                <div class="mb-3" id="gateway-badges-section" style="display:none;">
+                    <label class="form-label"><i class="fas fa-route me-1"></i> <?php _e("Gateway por perfil")?></label>
+                    <div id="gateway-badges-list" class="d-flex flex-column gap-2"></div>
+                    <input type="hidden" name="gateway_overrides" id="gateway_overrides" value="{}">
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label"><?php _e("Campaign name")?></label>
                     <input type="text" class="form-control form-control-solid" name="name" value="<?php _ec( get_data($result, "name") )?>" required>
@@ -534,7 +591,88 @@
 
 <script type="text/javascript">
 $(function(){
+    // ==================== GATEWAY BADGES ====================
+    var accountGatewayMap = <?php echo json_encode($account_gateway_map ?? []); ?>;
+    var providerConfig = {
+        'whatsmeow': { label: 'Go/Whatsmeow', icon: '🟢', class: 'badge badge-light-success' },
+        'baileys':   { label: 'Baileys',       icon: '🟡', class: 'badge badge-light-warning' },
+        'cloud_api': { label: 'Cloud API',     icon: '☁️', class: 'badge badge-light-primary' }
+    };
+
+    var gatewayOverrides = {};
+
+    var updateGatewayBadges = function(){
+        var checkedPids = [];
+        $(".am-choice-body .check-item:checked").each(function(){
+            checkedPids.push($(this).val());
+        });
+
+        var $section = $("#gateway-badges-section");
+        var $list = $("#gateway-badges-list");
+        var $overrides = $("#gateway_overrides");
+
+        if (checkedPids.length === 0) {
+            $section.hide();
+            return;
+        }
+
+        $section.show();
+        $list.empty();
+        gatewayOverrides = {};
+
+        checkedPids.forEach(function(pid){
+            var gateways = accountGatewayMap[pid] || ['desconhecido'];
+            var cfg0 = providerConfig[gateways[0]] || { label: gateways[0], icon: '⚪', class: 'badge badge-light' };
+
+            // Buscar nome da conta
+            var $checkbox = $(".am-choice-body .check-item[value='"+pid+"']");
+            var accountName = $checkbox.closest(".am-choice-item").find(".am-choice-item-name").text().trim() || pid;
+
+            var rowHtml = '<div class="d-flex align-items-center gap-2 p-2 border rounded bg-light">';
+            rowHtml += '<strong class="fs-12" style="min-width:140px;">' + accountName + '</strong>';
+
+            if (gateways.length === 1) {
+                // Apenas 1 gateway: badge read-only
+                rowHtml += '<span class="' + cfg0.class + ' fs-12">' + cfg0.icon + ' ' + cfg0.label + '</span>';
+                gatewayOverrides[pid] = gateways[0];
+            } else {
+                // Múltiplos gateways (CoEx): dropdown para escolher
+                rowHtml += '<select class="form-select form-select-sm gateway-per-profile" data-pid="' + pid + '" style="width:auto;">';
+                gateways.forEach(function(gw){
+                    var cfg = providerConfig[gw] || { label: gw, icon: '⚪' };
+                    rowHtml += '<option value="' + gw + '">' + cfg.icon + ' ' + cfg.label + '</option>';
+                });
+                rowHtml += '</select>';
+                gatewayOverrides[pid] = gateways[0]; // padrão: primeiro
+            }
+
+            rowHtml += '</div>';
+            $list.append(rowHtml);
+        });
+
+        $overrides.val(JSON.stringify(gatewayOverrides));
+    };
+
+    // Quando troca o gateway de um perfil específico (CoEx)
+    $(document).on("change", ".gateway-per-profile", function(){
+        var pid = $(this).data("pid");
+        gatewayOverrides[pid] = $(this).val();
+        $("#gateway_overrides").val(JSON.stringify(gatewayOverrides));
+    });
+
+    // Hooks nos eventos do account manager
+    $(document).on("change", ".am-choice-body .am-choice-item", function(){ setTimeout(updateGatewayBadges, 200); });
+    $(document).on("click", ".am-selected-list .am-selected-item .remove", function(){ setTimeout(updateGatewayBadges, 200); });
+    $(document).on("change", ".am-list-account .check-box-all", function(){ setTimeout(updateGatewayBadges, 400); });
+    $(document).on("click", ".btnSelectedGroup", function(){ setTimeout(updateGatewayBadges, 400); });
+
+    // Executar na carga
+    updateGatewayBadges();
+    // ==================== END GATEWAY BADGES ====================
+
     Core.tagsinput();
+
+    
 
     var cloudParallelUrl = '<?php _e(get_module_url("cloud_capabilities")) ?>';
     var teamHolidaysUrl = '<?php _e(get_module_url("team_holidays")) ?>';

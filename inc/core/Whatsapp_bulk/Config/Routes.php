@@ -30,3 +30,8 @@ $routes->post(
     $config['id'] . '/cloud_capabilities',
     '\\' . ucfirst($config['folder']) . '\\' . ucfirst($config['id']) . '\\Controllers\\Whatsapp_bulk::cloud_capabilities'
 );
+
+$routes->post(
+    $config['id'] . '/detect_gateways',
+    '\\' . ucfirst($config['folder']) . '\\' . ucfirst($config['id']) . '\\Controllers\\Whatsapp_bulk::detect_gateways'
+);

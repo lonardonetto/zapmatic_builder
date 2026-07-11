@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<div class="container">
+<div class="container-fluid px-4">
     <div class="row justify-content-center mt-5 mb-3">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-12">
             <div class="central-hero">
                 <div>
                     <div class="central-eyebrow"><?php _e('Central de Conexão') ?></div>
@@ -15,7 +15,7 @@
     <?php $show_embedded_signup = !empty($cloud_api_embedded_signup_enabled); ?>
 
     <div class="row justify-content-center mt-3">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-12">
             <div class="wa-connection-switchboard">
                 <div class="wa-connection-switchboard-copy">
                     <div class="wa-connection-switchboard-title"><?php _e('Conectar nova conta') ?></div>
@@ -77,7 +77,7 @@
 
     <form class="actionForm" action="<?php _e( base_url("whatsapp_profiles/" . ( uri('segment', 3)=="unofficial"?"save_unofficial":"save" ) ) )?>" method="POST" data-redirect="<?php _e( base_url("account_manager") )?>">
     <div class="row justify-content-center mt-3">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-12">
             <div class="card mb-4 mb-xl-10">
                 <div class="card-header border-0 pt-0">
                     <h5><i class="fas fa-qrcode me-2 text-success"></i><?php _e("Conexão Baileys")?></h5>
@@ -164,7 +164,7 @@
                 <div class="wa-connection-drawer-view<?php _e(!empty($show_whatsmeow_qr) || !empty($open_whatsmeow_drawer) ? ' is-active' : '') ?>" data-drawer-view="whatsmeow">
         <form class="actionForm" action="<?php _e( base_url("whatsapp_profiles/" . ( uri('segment', 3)=="unofficial"?"save_unofficial":"save" ) ) )?>" method="POST" data-redirect="<?php _e( base_url("account_manager") )?>">
         <div class="row justify-content-center mt-3">
-            <div class="col-xl-10 col-lg-11">
+            <div class="col-12">
             <div class="card mb-4 mb-xl-10">
                 <div class="card-header border-0 pt-0">
                     <h5><i class="fab fa-golang me-2 text-info"></i><?php _e("Conexão Whatsmeow (Go)")?></h5>
@@ -227,7 +227,7 @@
                 <div class="wa-connection-drawer-view" data-drawer-view="cloud">
     <?php if ((int)permission("cloud_api_enabled") == 1): ?>
     <div class="row justify-content-center mt-3">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-12">
             <div class="card mb-4">
                 <div class="card-header">
                     <h5><i class="fas fa-cloud me-2 text-primary"></i><?php _e("Conexão Cloud API")?></h5>
@@ -369,7 +369,7 @@
                 }
             ?>
             <div class="row justify-content-center mt-3">
-                <div class="col-xl-10 col-lg-11">
+                <div class="col-12">
                     <div class="card mb-4">
                         <div class="card-header border-0 pb-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -514,7 +514,7 @@
             <?php endif ?>
 
             <div class="row justify-content-center mt-3">
-                <div class="col-xl-10 col-lg-11">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-body">
                             <div class="note">

@@ -54,6 +54,8 @@ type Campaign struct {
 	CloudParallel    bool           `json:"cloud_parallel_enabled"`
 	CloudParallelLvl int            `json:"cloud_parallel_level"`
 	SkipHolidays     bool           `json:"skip_team_holidays"`
+	GatewayMode      string         `json:"gateway_mode"`
+	GatewayOverrides map[string]string `json:"gateway_overrides"`
 }
 
 type CampaignResult struct {
@@ -77,6 +79,7 @@ func scanCampaign(s scanner) (*Campaign, error) {
 		cloudParal         sql.NullInt64
 		cloudParalLvl      sql.NullInt64
 		skipHoliday        sql.NullInt64
+		gatewayOverridesJSON sql.NullString
 	)
 	err := s.Scan(
 		&c.ID, &c.IDs, &c.TeamID, &accountsJSON,
@@ -86,6 +89,8 @@ func scanCampaign(s scanner) (*Campaign, error) {
 		&c.Name, &c.Caption, &mediaSQL,
 		&c.Sent, &c.Failed, &c.Run, (*int)(&c.Status),
 		&cloudParal, &cloudParalLvl, &skipHoliday,
+		&c.GatewayMode,
+		&gatewayOverridesJSON,
 	)
 	if err != nil {
 		return nil, err
@@ -123,6 +128,8 @@ func scanCampaign(s scanner) (*Campaign, error) {
 	if skipHoliday.Valid {
 		c.SkipHolidays = skipHoliday.Int64 == 1
 	}
+	// gateway_mode is scanned as a string from DB
+	// It's already captured in the scan via the extra column
 	return &c, nil
 }
 
@@ -135,7 +142,8 @@ const campaignCols = `id, ids, team_id, accounts, next_account, contact_id,
  schedule_time, schedule_weekdays, timezone,
  name, caption, media,
  sent, failed, run, status,
- cloud_parallel_enabled, cloud_parallel_level, skip_team_holidays`
+ cloud_parallel_enabled, cloud_parallel_level, skip_team_holidays,
+ COALESCE(gateway_mode, 'auto'), COALESCE(gateway_overrides, '{}')`
 
 func ListDueCampaigns(limit int) ([]*Campaign, error) {
 	if mysqlDB == nil {

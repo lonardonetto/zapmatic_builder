@@ -8,12 +8,9 @@ return [
     'desc' => 'Customize system interface',
     'icon' => 'fad fa-share-alt',
     'color' => '#002bff',
-    'menu' => [
-        'tab' => 3,
-        'type' => 'top',
-        'position' => 2000,
-        'name' => 'Account manager'
-    ],
+    // 'menu' => removido — perfis agora são gerenciados pela Central de Conexão (whatsapp_profiles/oauth)
+    // O widget ainda é usado em outras páginas (campanhas, etc.)
+    'hidden_menu' => true,
     'css' => [
         "Assets/css/account_manager.css"
     ],

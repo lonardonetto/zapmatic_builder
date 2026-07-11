@@ -9,6 +9,8 @@ class Account_manager extends \CodeIgniter\Controller
     }
     
     public function index( $page = false ) {
+        // Redirecionar para Central de Conexão
+        return redirect()->to(base_url('whatsapp_profiles/oauth'));
         $permissions = $this->model->block_permissions();
         $block_accounts = $permissions['items'];
 
