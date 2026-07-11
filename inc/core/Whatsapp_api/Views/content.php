@@ -16,7 +16,8 @@
                     <?php if (!empty($accounts)) : ?>
 
                         <?php foreach ($accounts as $key => $value) : ?>
-                            <option value="<?php _ec($value->token) ?>" <?php _ec($account == $value->token ? 'selected' : '')  ?> data-img="<?php _ec(get_file_url($value->avatar)) ?>"><?php _ec($value->name) ?></option>
+                            <?php $lt=(int)($value->login_type??2); $gc=$lt===1?'#0d6efd':($lt===3?'#0dcaf0':'#ffc107'); $gl=$lt===1?'Cloud API':($lt===3?'Go':'Baileys'); ?>
+                            <option value="<?php _ec($value->token) ?>" <?php _ec($account == $value->token ? 'selected' : '')  ?> data-img="<?php _ec(get_file_url($value->avatar)) ?>" data-gw-label="<?php _ec($gl) ?>" data-gw-color="<?php _ec($gc) ?>"><?php _ec($value->name) ?></option>
                         <?php endforeach ?>
 
                     <?php else : ?>

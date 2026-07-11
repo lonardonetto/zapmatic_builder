@@ -1205,30 +1205,34 @@ function Core() {
                 allowHtml: true,
                 width: 'resolve',
                 templateSelection: function (icon) {
-                    var style = "";
+                    var gwBadge = '';
+                    if ($(icon.element).data('gw-label') != undefined) {
+                        var gwColor = $(icon.element).data('gw-color') || '#6c757d';
+                        gwBadge = ' <small style="color:' + gwColor + ';font-weight:600">' + $(icon.element).data('gw-label') + '</small>';
+                    }
                     if ($(icon.element).data('icon-color') != undefined) {
-                        style = ' style="color: ' + $(icon.element).data('icon-color') + '" ';
-                        return $('<span><i class="' + $(icon.element).data('icon') + '" ' + style + ' ></i> ' + icon.text + '</span>');
+                        var style = ' style="color: ' + $(icon.element).data('icon-color') + '" ';
+                        return $('<span><i class="' + $(icon.element).data('icon') + '" ' + style + ' ></i> ' + icon.text + gwBadge + '</span>');
                     }
-
                     if ($(icon.element).data('img') != undefined) {
-                        return $('<span><img src="' + $(icon.element).data('img') + '" class="w-17"> ' + icon.text + '</span>');
+                        return $('<span><img src="' + $(icon.element).data('img') + '" class="w-17"> ' + icon.text + gwBadge + '</span>');
                     }
-
-                    return $('<span>' + icon.text + '</span>');
+                    return $('<span>' + icon.text + gwBadge + '</span>');
                 },
                 templateResult: function (icon) {
-                    var style = "";
+                    var gwBadge = '';
+                    if ($(icon.element).data('gw-label') != undefined) {
+                        var gwColor = $(icon.element).data('gw-color') || '#6c757d';
+                        gwBadge = ' <small style="color:' + gwColor + ';font-weight:600">' + $(icon.element).data('gw-label') + '</small>';
+                    }
                     if ($(icon.element).data('icon-color') != undefined) {
-                        style = ' style="color: ' + $(icon.element).data('icon-color') + '" ';
-                        return $('<span><i class="' + $(icon.element).data('icon') + '" ' + style + ' ></i> ' + icon.text + '</span>');
+                        var style = ' style="color: ' + $(icon.element).data('icon-color') + '" ';
+                        return $('<span><i class="' + $(icon.element).data('icon') + '" ' + style + ' ></i> ' + icon.text + gwBadge + '</span>');
                     }
-
                     if ($(icon.element).data('img') != undefined) {
-                        return $('<span><img src="' + $(icon.element).data('img') + '" class="w-17"> ' + icon.text + '</span>');
+                        return $('<span><img src="' + $(icon.element).data('img') + '" class="w-17"> ' + icon.text + gwBadge + '</span>');
                     }
-
-                    return $('<span>' + icon.text + '</span>');
+                    return $('<span>' + icon.text + gwBadge + '</span>');
                 }
             });
         }
