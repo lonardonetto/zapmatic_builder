@@ -499,7 +499,7 @@
                                                             <li><hr class="dropdown-divider"></li>
                                                         <?php endif; ?>
 
-                                                        <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="desconectarPerfil('<?php echo htmlspecialchars($value->ids, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo base_url('whatsapp_profiles/disconnect'); ?>')"><i class="fas fa-trash-alt me-2"></i><?php _e('Excluir') ?></a></li>
+                                                        <li><a class="dropdown-item text-danger" href="javascript:void(0);" onclick="desconectarPerfil('<?php echo htmlspecialchars($value->ids, ENT_QUOTES, 'UTF-8'); ?>', '<?php echo base_url('whatsapp_profiles/delete'); ?>')"><i class="fas fa-trash-alt me-2"></i><?php _e('Excluir') ?></a></li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -2445,4 +2445,73 @@ window.addEventListener('message', function(event) {
     } catch(e) {}
 });
 <?php endif; ?>
+</script>
+<script>
+function desconectarPerfil(profileId, endpointUrl) {
+    if (typeof Swal === 'undefined') {
+        alert("Erro na interface. Por favor, atualize a página.");
+        return;
+    }
+
+    Swal.fire({
+        title: 'Excluir permanentemente?',
+        text: "Esta ação não poderá ser desfeita. Todos os dados vinculados a essa conexão serão removidos.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        cancelButtonColor: '#3498db',
+        confirmButtonText: '<i class="fas fa-trash-alt me-1"></i> Sim, excluir!',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Processando exclusão...',
+                html: 'Removendo todos os registros de forma segura. Aguarde.',
+                timer: 3000,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then(() => {
+                const formData = new FormData();
+                formData.append('ids', profileId);
+                if (typeof csrf !== 'undefined') formData.append('csrf', csrf);
+
+                fetch(endpointUrl, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error("O servidor retornou uma resposta inválida.");
+                    }
+                    
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            title: 'Excluído!',
+                            text: data.message || 'O perfil foi removido com sucesso do sistema.',
+                            icon: 'success',
+                            confirmButtonColor: '#2ecc71',
+                            timer: 2500
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire('Atenção', data.message || 'Ocorreu um erro ao excluir.', 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Erro Crítico', 'Falha na comunicação: ' + error.message, 'error');
+                });
+            });
+        }
+    });
+}
 </script>
