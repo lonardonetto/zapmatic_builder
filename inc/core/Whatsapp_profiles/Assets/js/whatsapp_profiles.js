@@ -83,7 +83,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: '<?php echo base_url("whatsapp_profiles/delete"); ?>',
                     method: 'POST',
-                    data: { ids: profileId, csrf: csrf_token },
+                    data: { ids: profileId, csrf: csrf },
                     dataType: 'json',
                     timeout: 10000, // 10 segundos de timeout
                     success: function(response) {
@@ -167,7 +167,7 @@ $(document).ready(function() {
                 $.ajax({
                     url: '<?php echo base_url("whatsapp_profiles/delete"); ?>',
                     method: 'POST',
-                    data: { ids: selectedIds, csrf: csrf_token },
+                    data: { ids: selectedIds, csrf: csrf },
                     dataType: 'json',
                     timeout: 10000, // 10 segundos de timeout
                     success: function(response) {

@@ -267,8 +267,8 @@ function executeDisconnectProfile(profileId) {
 
     const formData = new FormData();
     formData.append('ids', profileId);
-    if (typeof csrf_token !== 'undefined') {
-        formData.append('csrf', csrf_token);
+    if (typeof csrf !== 'undefined') {
+        formData.append('csrf', csrf);
     }
 
     fetch(PATH + '/whatsapp_profiles/disconnect', {
@@ -324,8 +324,8 @@ function executeDeleteProfile(profileId) {
 
     const formData = new FormData();
     formData.append('ids', profileId);
-    if (typeof csrf_token !== 'undefined') {
-        formData.append('csrf', csrf_token);
+    if (typeof csrf !== 'undefined') {
+        formData.append('csrf', csrf);
     }
 
     fetch(PATH + '/whatsapp_profiles/delete', {
