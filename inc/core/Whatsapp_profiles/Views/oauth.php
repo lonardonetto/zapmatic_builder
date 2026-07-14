@@ -1971,7 +1971,7 @@ function editProfileName(profileId) {
             .then(function(data) {
                 actionToast.complete('Nome atualizado', data.message || 'O nome do perfil foi salvo com sucesso.');
                 showNotification(data.message || 'Nome atualizado com sucesso.', 'success');
-                window.location.reload();
+                window.location.href = PATH + '/whatsapp_profiles/oauth';
             })
             .catch(function(error) {
                 actionToast.error('Falha ao salvar o nome', error.message || 'Não foi possível atualizar o nome deste perfil.');
@@ -2494,11 +2494,11 @@ function desconectarPerfil(profileId, endpointUrl) {
             if (data.status === 'success') {
                 if (actionToast) {
                     actionToast.complete('Excluído com sucesso', data.message || 'O perfil foi removido do sistema.');
-                    setTimeout(() => { window.location.reload(); }, 1500);
+                    setTimeout(() => { window.location.href = PATH + '/whatsapp_profiles/oauth'; }, 1500);
                 } else if (typeof Swal !== 'undefined') {
-                    Swal.fire({ title: 'Excluído!', text: data.message, icon: 'success', timer: 1500 }).then(() => { window.location.reload(); });
+                    Swal.fire({ title: 'Excluído!', text: data.message, icon: 'success', timer: 1500 }).then(() => { window.location.href = PATH + '/whatsapp_profiles/oauth'; });
                 } else {
-                    window.location.reload();
+                    window.location.href = PATH + '/whatsapp_profiles/oauth';
                 }
             } else {
                 if (actionToast) {
