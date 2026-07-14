@@ -108,10 +108,10 @@ func scanCampaign(s scanner) (*Campaign, error) {
 		}
 	}
 	if scheduleTimeJSON.Valid {
-		json.Unmarshal([]byte(scheduleTimeJSON.String), &c.ScheduleTime)
+		var rawTime []interface{}; json.Unmarshal([]byte(scheduleTimeJSON.String), &rawTime); for _, val := range rawTime { switch v := val.(type) { case string: if i, err := strconv.Atoi(v); err == nil { c.ScheduleTime = append(c.ScheduleTime, i) }; case float64: c.ScheduleTime = append(c.ScheduleTime, int(v)) } }
 	}
 	if scheduleWeekdaySQL.Valid {
-		json.Unmarshal([]byte(scheduleWeekdaySQL.String), &c.ScheduleWeekdays)
+		var rawWd []interface{}; json.Unmarshal([]byte(scheduleWeekdaySQL.String), &rawWd); for _, val := range rawWd { switch v := val.(type) { case string: if i, err := strconv.Atoi(v); err == nil { c.ScheduleWeekdays = append(c.ScheduleWeekdays, i) }; case float64: c.ScheduleWeekdays = append(c.ScheduleWeekdays, int(v)) } }
 	}
 	if timezoneSQL.Valid {
 		c.Timezone = timezoneSQL.String

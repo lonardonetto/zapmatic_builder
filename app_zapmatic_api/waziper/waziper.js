@@ -1834,8 +1834,8 @@ const WAZIPER = {
 			if (webhook) {
 				webhook.allowed_events = webhook.allowed_events ?? '';
 				if (webhook.allowed_events == '' || webhook.allowed_events.includes(data.event)) {
-					//console.log('trigger webhook', instance_id, data.event);
-					axios.post(webhook.webhook_url, { instance_id: instance_id, data: data }).then((res) => { }).catch((err) => { });
+					console.log("[WEBHOOK] trigger", instance_id, data.event, "→", webhook.webhook_url);
+					axios.post(webhook.webhook_url, { instance_id: instance_id, data: data }).then((res) => { console.log("[WEBHOOK] sent OK", res.status); }).catch((err) => { console.error("[WEBHOOK] FAILED", err.message); });
 				}
 			}
 		}
@@ -2477,7 +2477,7 @@ const WAZIPER = {
 
 					const candidate = dayMoment.clone().hour(availableHours[0]).minute(0).second(0);
 					const candidateUnix = parseInt(candidate.unix(), 10);
-					if (Number.isFinite(candidateUnix) && candidateUnix > parseInt(now, 10)) {
+					if (Number.isFinite(candidateUnix) && candidateUnix >= parseInt(now, 10)) {
 						return {
 							allowed: false,
 							nextTime: candidateUnix,
@@ -2499,7 +2499,7 @@ const WAZIPER = {
 
 				const candidate = dayMoment.clone().hour(0).minute(0).second(0);
 				const candidateUnix = parseInt(candidate.unix(), 10);
-				if (!Number.isFinite(candidateUnix) || candidateUnix <= parseInt(now, 10)) {
+				if (!Number.isFinite(candidateUnix) || candidateUnix < parseInt(now, 10)) {
 					continue;
 				}
 

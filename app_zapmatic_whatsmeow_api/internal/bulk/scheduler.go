@@ -155,6 +155,7 @@ func (s *Scheduler) findNextSlot(campaign *Campaign, from int64) int64 {
 				}
 			}
 
+			if check.Unix() <= from { continue }
 			return check.Unix()
 		}
 	}
