@@ -437,10 +437,16 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"number": "{int}",</span><br>
+                    <span class="ms-4">"type": "text",</span><br>
+                    <span class="ms-4">"message": "{string}",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
@@ -495,10 +501,16 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"number": "{int}",</span><br>
+                    <span class="ms-4">"type": "poll", // button, list, carousel</span><br>
+                    <span class="ms-4">"template": "template ids",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
@@ -553,10 +565,17 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"number": "{int}",</span><br>
+                    <span class="ms-4">"type": "media",</span><br>
+                    <span class="ms-4">"message": "{string}",</span><br>
+                    <span class="ms-4">"media_url": "{string}",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
@@ -649,10 +668,16 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"group_id": "8498761xxxxxxxx@g.us",</span><br>
+                    <span class="ms-4">"type": "text",</span><br>
+                    <span class="ms-4">"message": "{string}",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
@@ -707,7 +732,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
                                 <code>{<br>
@@ -766,7 +791,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
                                 <code>{<br>
@@ -832,7 +857,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
                                 <code>{<br>
@@ -898,10 +923,16 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"group_id": "8498761xxxxxxxx@g.us",</span><br>
+                    <span class="ms-4">"type": "poll", // button, list, carousel</span><br>
+                    <span class="ms-4">"template": "template ids",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
@@ -956,10 +987,17 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request (JSON)</label>
                             <div class="swagger-url-box" style="background:#282a36;">
                                 <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                                <code>{<br>
+                    <span class="ms-4">"group_id": "8498761xxxxxxxx@g.us",</span><br>
+                    <span class="ms-4">"type": "media",</span><br>
+                    <span class="ms-4">"message": "{string}",</span><br>
+                    <span class="ms-4">"media_url": "{string}",</span><br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
+                    }</code>
                             </div>
                         </div>
                     </div>
