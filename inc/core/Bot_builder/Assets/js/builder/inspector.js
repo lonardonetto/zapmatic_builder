@@ -364,15 +364,12 @@ function openInspector(id) {
             if(bm === 'native') {
                 node.config.template_mode = 'native';
             } else {
-                // Switching to quick: full reset — template data stays in native_template
+                // Switching to quick: reset visual fields but keep template_ids link
+                // so re-promoting updates the same row instead of creating duplicates
                 node.config.text = '';
                 node.config.title = '';
                 node.config.image = '';
                 node.config.options = '';
-                delete node.config.template_ids;
-                delete node.config.template_name;
-                delete node.config.template_type;
-                delete node.config.native_template;
             }
             ctx().updateNodePreview(id);
             ctx().markDirty();

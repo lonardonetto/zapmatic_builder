@@ -352,7 +352,7 @@ function Whatsapp(){
     };
 
     this.template = function(){
-        $(document).on("click", ".btn-wa-add-section", function(){
+        $(document).off("click.wasection", ".btn-wa-add-section").on("click.wasection", ".btn-wa-add-section", function(){
             var option = $(".wa-template-data-section").html();
             var count_msg_item = $(".wa-template-section .wa-template-section-item").length;
             option = option.replace(/{count}/g, (count_msg_item + 1));
@@ -360,7 +360,7 @@ function Whatsapp(){
             $(".wa-template-section").append(option);
             $(".wa-empty").hide();
         });
-        $(document).on("click", ".btn-wa-add-list-option", function(){
+        $(document).off("click.walistopt", ".btn-wa-add-list-option").on("click.walistopt", ".btn-wa-add-list-option", function(){
             var that = $(this);
             var section_count = $(this).parents(".wa-template-section-item").attr("data-count");
             var option = $(".wa-template-data-option").html();
@@ -368,7 +368,7 @@ function Whatsapp(){
             $(this).parents(".wa-template-section-item").find(".wa-template-option").append(option);
             $(".wa-empty").hide();
         });
-        $(document).on("click", ".btn-wa-add-option", function(){
+        $(document).off("click.waadd", ".btn-wa-add-option").on("click.waadd", ".btn-wa-add-option", function(){
             var option = $(".wa-template-data-option").html();
             var count_msg_item = $(".wa-template-option .wa-template-option-item").length;
             option = option.replace(/{count}/g, (count_msg_item + 1));
@@ -378,7 +378,7 @@ function Whatsapp(){
             if( count_msg_item >= 9 ){ $(".wa-template-wrap-add").addClass("d-none"); }
             else { $(".wa-template-wrap-add").removeClass("d-none"); }
         });
-        $(document).on("click", ".wa-template-option-remove", function(){
+        $(document).off("click.waremove", ".wa-template-option-remove").on("click.waremove", ".wa-template-option-remove", function(){
             $(this).parents(".wa-template-option-item").remove();
             if( $(".wa-template-option .wa-template-option-item").length >= 10 ){ $(".wa-template-wrap-add").addClass("d-none"); }
             else { $(".wa-template-wrap-add").removeClass("d-none"); }

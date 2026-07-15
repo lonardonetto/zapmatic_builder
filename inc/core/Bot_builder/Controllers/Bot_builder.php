@@ -518,7 +518,7 @@ class Bot_builder extends \CodeIgniter\Controller
 
         $table = $this->model->db->table(TB_WHATSAPP_TEMPLATE);
 
-        // Se já existe e é promovido, atualiza
+        // Se o cliente enviou o ids e é um template promovido, atualiza
         if ($existing_ids && strpos($existing_ids, 'bb_promoted_') === 0) {
             $existing = $table->where('team_id', $team_id)->where('ids', $existing_ids)->where('type', 2)->get()->getRow();
             if ($existing) {
@@ -530,11 +530,22 @@ class Bot_builder extends \CodeIgniter\Controller
             }
         }
 
-        // Senão, insere novo
-        $new_ids = 'bb_promoted_' . substr(md5(uniqid()), 0, 16);
+        // Se o ids foi perdido (ex: trocou para Quick e voltou), procura por block_id
+        // Deriva um id estável baseado no block_id para evitar duplicação
+        $stable_ids = 'bb_promoted_' . substr(md5('block_' . $block_id), 0, 16);
+        $existing_by_block = $table->where('team_id', $team_id)->where('ids', $stable_ids)->where('type', 2)->get()->getRow();
+        if ($existing_by_block) {
+            $table->where('id', $existing_by_block->id)->update([
+                'data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'changed' => time()
+            ]);
+            return $this->response->setJSON(['status' => 'success', 'ids' => $stable_ids]);
+        }
+
+        // Senão, insere novo com id estável derivado do block_id
         $row = [
             'team_id' => $team_id,
-            'ids' => $new_ids,
+            'ids' => $stable_ids,
             'name' => 'Template Nativo (Bloco ' . substr($block_id, 0, 8) . ')',
             'type' => 2,
             'data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -543,7 +554,7 @@ class Bot_builder extends \CodeIgniter\Controller
         ];
 
         $table->insert($row);
-        return $this->response->setJSON(['status' => 'success', 'ids' => $new_ids]);
+        return $this->response->setJSON(['status' => 'success', 'ids' => $stable_ids]);
     }
 public function save_bot_settings()
     {
