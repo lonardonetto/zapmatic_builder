@@ -218,6 +218,55 @@ WAZIPER.app.get('/probe_ip_open', WAZIPER.cors, async (req, res) => {
     }
 });
 
+WAZIPER.app.post("/delete_message", WAZIPER.cors, async (req, res) => {
+    var access_token = req.body.access_token || req.query.access_token;
+    var instance_id = req.body.instance_id || req.query.instance_id;
+    var group_id = req.body.group_id;
+    var message_id = req.body.message_id;
+    var from_me = req.body.from_me ?? false;
+
+    var team = await WAZIPER.get_team(access_token);
+    if (!team) return res.json({ status: "error", message: "Invalid access_token" });
+
+    var session = await Common.db_get("sp_whatsapp_sessions", [{ instance_id: instance_id }, { team_id: team.id }]);
+    if (!session) return res.json({ status: "error", message: "Instance not found" });
+
+    var client = sessions[instance_id];
+    if (!client) return res.json({ status: "error", message: "Client not connected" });
+
+    try {
+        var key = { remoteJid: group_id, id: message_id, fromMe: from_me };
+        await client.sendMessage(group_id, { delete: key });
+        return res.json({ status: "success", message: "Message deleted" });
+    } catch(e) {
+        return res.json({ status: "error", message: e.message || "Cannot delete message" });
+    }
+});
+
+WAZIPER.app.post("/restrict_user", WAZIPER.cors, async (req, res) => {
+    var access_token = req.body.access_token || req.query.access_token;
+    var instance_id = req.body.instance_id || req.query.instance_id;
+    var group_id = req.body.group_id;
+    var participant = req.body.participant;
+    var action = req.body.action || "demote";
+
+    var team = await WAZIPER.get_team(access_token);
+    if (!team) return res.json({ status: "error", message: "Invalid access_token" });
+
+    var session = await Common.db_get("sp_whatsapp_sessions", [{ instance_id: instance_id }, { team_id: team.id }]);
+    if (!session) return res.json({ status: "error", message: "Instance not found" });
+
+    var client = sessions[instance_id];
+    if (!client) return res.json({ status: "error", message: "Client not connected" });
+
+    try {
+        var result = await client.groupParticipantsUpdate(group_id, [participant], action);
+        return res.json({ status: "success", message: "User " + action, data: result });
+    } catch(e) {
+        return res.json({ status: "error", message: e.message || "Cannot " + action + " user" });
+    }
+});
+
 WAZIPER.app.get('/logout', WAZIPER.cors, async (req, res) => {
     var access_token = req.query.access_token;
     var instance_id = req.query.instance_id;
@@ -326,6 +375,33 @@ WAZIPER.app.get('/webhook/:accountId', async function (req, res) {
 
 WAZIPER.app.get('/', WAZIPER.cors, async (req, res) => {
     return res.json({ status: 'success', message: `BEM VINDO(A) AO ZAPMATIC - 🟢 O SERVIÇO ESTÁ ON SEU CURIOSO!!!` });
+});
+
+WAZIPER.app.post("/delete_message2", async (req, res) => {
+    try {
+        var instance_id = req.body.instance_id;
+        var group_id = req.body.group_id;
+        var message_id = req.body.message_id;
+        var from_me = req.body.from_me || false;
+        var client = sessions[instance_id];
+        if (!client) return res.json({ status: "error", message: "Client not connected" });
+        var key = { remoteJid: group_id, id: message_id, fromMe: from_me };
+        await client.sendMessage(group_id, { delete: key });
+        return res.json({ status: "success", message: "Message deleted" });
+    } catch(e) { return res.json({ status: "error", message: e.message }); }
+});
+
+WAZIPER.app.post("/restrict_user2", async (req, res) => {
+    try {
+        var instance_id = req.body.instance_id;
+        var group_id = req.body.group_id;
+        var participant = req.body.participant;
+        var action = req.body.action || "demote";
+        var client = sessions[instance_id];
+        if (!client) return res.json({ status: "error", message: "Client not connected" });
+        var result = await client.groupParticipantsUpdate(group_id, [participant], action);
+        return res.json({ status: "success", message: "Done", data: result });
+    } catch(e) { return res.json({ status: "error", message: e.message }); }
 });
 
 WAZIPER.server.listen(config.port, async () => {

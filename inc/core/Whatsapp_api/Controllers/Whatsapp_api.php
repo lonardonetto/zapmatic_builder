@@ -1132,61 +1132,14 @@ if (isset($response->status) && $response->status === 'success') {
             ];
         }
         
+
+
+
                 if(isset($type) && $type == "carousel"){
             $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
-            
-            if(!$item){
-                return $this->respond(["status" => "error", "message" => __("Template not found")]);
-            }
-            $template = $item->ids;
-            $creds = [
-                "instance_id" => $instance_id,
-                "access_token" => $access_token,
-                "type" => 5
-            ];
-            
-            $params = [
-                "chat_id" => $chat_id,
-                "template" => $template
-            ];
-        }
-        
-                if(isset($type) && $type == "carousel"){
-            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
-            
-            if(!$item){
-                return $this->respond(["status" => "error", "message" => __("Template not found")]);
-            }
-            $template = $item->ids;
-            $creds = [
-                "instance_id" => $instance_id,
-                "access_token" => $access_token,
-                "type" => 5
-            ];
-            
-            $params = [
-                "chat_id" => $number,
-                "template" => $template
-            ];
-        }
-        
-                if(isset($type) && $type == "carousel"){
-            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
-            
-            if(!$item){
-                return $this->respond(["status" => "error", "message" => __("Template not found")]);
-            }
-            $template = $item->ids;
-            $creds = [
-                "instance_id" => $instance_id,
-                "access_token" => $access_token,
-                "type" => 5
-            ];
-            
-            $params = [
-                "chat_id" => $number,
-                "template" => $template
-            ];
+            if(!$item) return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            $creds = ["instance_id" => $instance_id, "access_token" => $access_token, "type" => 5];
+            $params = ["chat_id" => $chat_id, "template" => $item->ids];
         }
         
         if(isset($type) && $type == "list"){
@@ -1332,42 +1285,13 @@ if (isset($response->status) && $response->status === 'success') {
             ];
         }
         
+
+
                 if(isset($type) && $type == "carousel"){
             $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
-            
-            if(!$item){
-                return $this->respond(["status" => "error", "message" => __("Template not found")]);
-            }
-            $template = $item->ids;
-            $creds = [
-                "instance_id" => $instance_id,
-                "access_token" => $access_token,
-                "type" => 5
-            ];
-            
-            $params = [
-                "chat_id" => $chat_id,
-                "template" => $template
-            ];
-        }
-        
-                if(isset($type) && $type == "carousel"){
-            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
-            
-            if(!$item){
-                return $this->respond(["status" => "error", "message" => __("Template not found")]);
-            }
-            $template = $item->ids;
-            $creds = [
-                "instance_id" => $instance_id,
-                "access_token" => $access_token,
-                "type" => 5
-            ];
-            
-            $params = [
-                "chat_id" => $number,
-                "template" => $template
-            ];
+            if(!$item) return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            $creds = ["instance_id" => $instance_id, "access_token" => $access_token, "type" => 5];
+            $params = ["chat_id" => $number, "template" => $item->ids];
         }
         
         if(isset($type) && $type == "list"){
