@@ -437,10 +437,10 @@ window.promoteToNative = function(id) {
         if(res.status === 'error') { alert(res.message); return; }
         // Preserve preview data from quick config, then switch to native
         node.config.template_ids = res.ids;
-        node.config.template_name = res.name;
+        node.config.template_name = res.name || ('Template Nativo (Bloco ' + id.substr(0,8) + ')');
         node.config.template_type = '2';
         node.config.button_mode = 'native';
-        window.showToast(res.message, 'success');
+        window.showToast('Template nativo atualizado com sucesso!', 'success');
         var pers = window.BotBuilderModules && window.BotBuilderModules.persistence;
         if(pers && pers.triggerAutoSave) pers.triggerAutoSave();
         if(window.BotBuilderModules && window.BotBuilderModules.inspector && window.BotBuilderModules.inspector.openInspector) {
