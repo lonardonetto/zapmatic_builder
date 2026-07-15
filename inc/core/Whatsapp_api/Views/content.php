@@ -37,7 +37,8 @@
                 <?php _e("Your Access Token:") ?> <strong><?php _ec(get_team("ids")) ?></strong>
             </div>
 
-            <style>
+            
+<style>
     .swagger-wrapper { max-width: 1200px; margin: 0 auto; }
     .swagger-card { border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); background: #fff; }
     .swagger-header { padding: 10px 16px; display: flex; align-items: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid transparent; }
@@ -46,8 +47,6 @@
     .swagger-method { font-weight: 700; font-size: 13px; padding: 5px 12px; border-radius: 4px; margin-right: 15px; color: #fff; min-width: 80px; text-align: center; text-transform: uppercase; }
     .swagger-method.post { background: #10b981; }
     .swagger-method.get { background: #3b82f6; }
-    .swagger-method.put { background: #f59e0b; }
-    .swagger-method.delete { background: #ef4444; }
     .swagger-path { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; color: #0f172a; font-weight: 600; flex-grow: 1; }
     .swagger-title { font-size: 13px; color: #64748b; margin-left: 15px; }
     
@@ -98,8 +97,911 @@
             });
         });
     });
-</script><div class="swagger-wrapper"><h3 class="swagger-section-title"><?php _e("Instance Api") ?></h3>
+</script>
 
-</div>
+<h3 class="swagger-section-title"><?php _e("Instance Api") ?></h3><div class="swagger-wrapper">
+            
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/create_instance</div>
+                <div class="swagger-title"><?php _e("Create Instance") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Create a new Instance ID") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/create_instance?access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send_pedido</div>
+                <div class="swagger-title"><?php _e("Send Pedido") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Envie notificações de <b>status de pedido<b>")?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/send_pedido?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec( get_team("ids") )?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method get"><?php _e("GET") ?></div>
+                <div class="swagger-path">/api/get_qrcode</div>
+                <div class="swagger-title"><?php _e("Get QR Code") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Display QR code to login to Whatsapp web. You can get the results returned via Webhook") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/get_qrcode?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+<?php if(get_option('wa_paircode') == 1):?>
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method get"><?php _e("GET") ?></div>
+                <div class="swagger-path">/api/get_paircode</div>
+                <div class="swagger-title"><?php _e("Get Pairing Code") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Get pairing code to login to Whatsapp web.") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/get_paircode?instance_id=".  $account ."&access_token=" . get_team("ids")."&phone=62815xxxxxxxx")) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                    <tr><td class="param-name">phone</td>
+                        <td>62815xxxxxxxx</td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+<?php endif ?>
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/set_webhook</div>
+                <div class="swagger-title"><?php _e("Set Receving Webhook") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Get all return values from Whatsapp. Like connection status, Incoming message, Outgoing message, Disconnected, Change Battery,...") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/set_webhook?webhook_url=https://webhook.site/1b25464d6833784f96eef4xxxxxxxxxx&enable=true&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">webhook_url</td>
+                        <td>https://webhook.site/1b25464d6833784f96eef4xxxxxxxxxx</td>
+                    </tr>
+                    <tr><td class="param-name">enable</td>
+                        <td>true</td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/reboot</div>
+                <div class="swagger-title"><?php _e("Reboot Instance") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Logout Whatsapp web and do a fresh scan") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/reboot?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/reset_instance</div>
+                <div class="swagger-title"><?php _e("Reset Instance") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("This will logout Whatsapp web, Change Instance ID, Delete all old instance data") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/reset_instance?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/reconnect</div>
+                <div class="swagger-title"><?php _e("Reconnect") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"><?php _e("Re-initiate connection from app to Whatsapp web when lost connection") ?></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/reconnect?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+<h3 class="swagger-section-title"><?php _e("Send Direct Message Api") ?></h3>
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send</div>
+                <div class="swagger-title"><?php _e("Send Text") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send?number=84933313xxx&type=text&message=test%20message&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">number</td>
+                        <td>84933313xxx</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>text</td>
+                    </tr>
+                    <tr><td class="param-name">message</td>
+                        <td><?php _ec("test message") ?></td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send</div>
+                <div class="swagger-title"><?php _e("Send Poll, Button, List") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send?number=84933313xxx&type=poll&template=templateids&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">number</td>
+                        <td>84933313xxx</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>button/poll/list</td>
+                    </tr>
+                    <tr><td class="param-name">template</td>
+                        <td><?php _ec("template ids") ?></td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send</div>
+                <div class="swagger-title"><?php _e("Send Media & File") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send?number=84933313xxx&type=media&message=test%20message&media_url=https://i.pravatar.cc&filename=file_test.jpg&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">number</td>
+                        <td>84933313xxx</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>media</td>
+                    </tr>
+                    <tr><td class="param-name">message</td>
+                        <td><?php _ec("test message") ?></td>
+                    </tr>
+                    <tr><td class="param-name">media_url</td>
+                        <td>https://i.pravatar.cc</td>
+                    </tr>
+                    <tr><td class="param-name">filename <span class="text-danger small">(<?php _e("Just use for send document") ?>)</span></td>
+                        <td>file_test.pdf</td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+<h3 class="swagger-section-title"><?php _e("Group Api") ?></h3>
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/get_groups</div>
+                <div class="swagger-title"><?php _e("Get Groups from Instance") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc"></div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/get_groups?instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send_group</div>
+                <div class="swagger-title"><?php _e("Send Text Message Group") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=text&message=test%20message&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">group_id</td>
+                        <td>84987694574-1618740914@g.us</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>text</td>
+                    </tr>
+                    <tr><td class="param-name">message</td>
+                        <td><?php _ec("test message") ?></td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/create_groups</div>
+                <div class="swagger-title"><?php _e("Create new Group") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/create_groups")) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code>{<br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>",</span><br>
+                    <span class="ms-4">"name": "Group Name",</span><br>
+                    <span class="ms-4">"participants": ["5596xxxxxxxx@s.whatsapp.net", "5596xxxxxxxx@s.whatsapp.net"]</span><br>
+                    }</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                    <tr><td class="param-name">name</td>
+                        <td>Group Name</td>
+                    </tr>
+                    <tr><td class="param-name">participants</td>
+                        <td>559684040268@s.whatsapp.net</td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/add_participants</div>
+                <div class="swagger-title"><?php _e("Add Participants") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/add_participants")) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code>{<br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>",</span><br>
+                    <span class="ms-4">"group_id": "xyz@g.us",</span><br>
+                    <span class="ms-4">"type": "add",</span><br>
+                    <span class="ms-4">"participants": [
+                        "55968100xxxx@s.whatsapp.net",
+                        "55968401xxxx@s.whatsapp.net"
+                    ]</span><br>
+                    }</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                    <tr><td class="param-name">group_id</td>
+                        <td>xyz@g.us</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>add</td>
+                    </tr>
+                    <tr><td class="param-name">participants</td>
+                        <td>1234@s.whatsapp.net</td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/remove_participants</div>
+                <div class="swagger-title"><?php _e("Remove Participants") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/remove_participants")) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code>{<br>
+                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
+                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>",</span><br>
+                    <span class="ms-4">"group_id": "xyz@g.us",</span><br>
+                    <span class="ms-4">"type": "remove",</span><br>
+                    <span class="ms-4">"participants": [
+                        "55968100xxxx@s.whatsapp.net",
+                        "55968401xxxx@s.whatsapp.net"
+                    ]</span><br>
+                    }</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                    <tr><td class="param-name">group_id</td>
+                        <td>xyz@g.us</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>remove</td>
+                    </tr>
+                    <tr><td class="param-name">participants</td>
+                        <td>1234@s.whatsapp.net</td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send_group</div>
+                <div class="swagger-title"><?php _e("Send Poll, Button, List") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=poll&template=templateids&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">group_id</td>
+                        <td>84987694574-1618740914@g.us</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>button/poll/list</td>
+                    </tr>
+                    <tr><td class="param-name">template</td>
+                        <td><?php _ec("template ids") ?></td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <div class="swagger-card">
+            <div class="swagger-header">
+                <div class="swagger-method post"><?php _e("POST") ?></div>
+                <div class="swagger-path">/api/send_group</div>
+                <div class="swagger-title"><?php _e("Send Media & File Message Group") ?></div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Resource URL</label>
+                            <div class="swagger-url-box">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=media&message=test%20message&media_url=https://i.pravatar.cc&filename=file_test.jpg&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Body Request / cURL</label>
+                            <div class="swagger-url-box" style="background:#282a36;">
+                                <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                                <code><?php _ec(base_url("api/send_group")) ?></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Parâmetros</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th>Nome do Parâmetro</th>
+                                <th>Valor / Exemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    <tr><td class="param-name">group_id</td>
+                        <td>8498761xxxxxxxx@g.us</td>
+                    </tr>
+                    <tr><td class="param-name">type</td>
+                        <td>media</td>
+                    </tr>
+                    <tr><td class="param-name">message</td>
+                        <td><?php _ec("test message") ?></td>
+                    </tr>
+                    <tr><td class="param-name">media_url</td>
+                        <td>https://i.pravatar.cc</td>
+                    </tr>
+                    <tr><td class="param-name">filename <span class="text-danger small">(<?php _e("Just use for send document") ?>)</span></td>
+                        <td>file_test.pdf</td>
+                    </tr>
+                    <tr><td class="param-name">instance_id</td>
+                        <td><?php _e($account) ?></td>
+                    </tr>
+                    <tr><td class="param-name">access_token</td>
+                        <td><?php _ec(get_team("ids")) ?></td>
+                    </tr>
+                </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+</div></div>
 </div>
 </div>
