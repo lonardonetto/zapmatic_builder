@@ -163,6 +163,8 @@ class Whatsapp_api extends Controller
             $types = 1;
         }elseif($type == "button"){
             $types = 2;
+        }elseif($type == "carousel"){
+            $types = 5;
         }else{
             $types = 3;
         }
@@ -1130,6 +1132,63 @@ if (isset($response->status) && $response->status === 'success') {
             ];
         }
         
+                if(isset($type) && $type == "carousel"){
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            
+            if(!$item){
+                return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            }
+            $template = $item->ids;
+            $creds = [
+                "instance_id" => $instance_id,
+                "access_token" => $access_token,
+                "type" => 5
+            ];
+            
+            $params = [
+                "chat_id" => $chat_id,
+                "template" => $template
+            ];
+        }
+        
+                if(isset($type) && $type == "carousel"){
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            
+            if(!$item){
+                return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            }
+            $template = $item->ids;
+            $creds = [
+                "instance_id" => $instance_id,
+                "access_token" => $access_token,
+                "type" => 5
+            ];
+            
+            $params = [
+                "chat_id" => $number,
+                "template" => $template
+            ];
+        }
+        
+                if(isset($type) && $type == "carousel"){
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            
+            if(!$item){
+                return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            }
+            $template = $item->ids;
+            $creds = [
+                "instance_id" => $instance_id,
+                "access_token" => $access_token,
+                "type" => 5
+            ];
+            
+            $params = [
+                "chat_id" => $number,
+                "template" => $template
+            ];
+        }
+        
         if(isset($type) && $type == "list"){
             $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 1, "ids" => $template, "team_id" => $team_id]);
             
@@ -1265,6 +1324,44 @@ if (isset($response->status) && $response->status === 'success') {
                 "instance_id" => $instance_id,
                 "access_token" => $access_token,
                 "type" => 2
+            ];
+            
+            $params = [
+                "chat_id" => $number,
+                "template" => $template
+            ];
+        }
+        
+                if(isset($type) && $type == "carousel"){
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            
+            if(!$item){
+                return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            }
+            $template = $item->ids;
+            $creds = [
+                "instance_id" => $instance_id,
+                "access_token" => $access_token,
+                "type" => 5
+            ];
+            
+            $params = [
+                "chat_id" => $chat_id,
+                "template" => $template
+            ];
+        }
+        
+                if(isset($type) && $type == "carousel"){
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            
+            if(!$item){
+                return $this->respond(["status" => "error", "message" => __("Template not found")]);
+            }
+            $template = $item->ids;
+            $creds = [
+                "instance_id" => $instance_id,
+                "access_token" => $access_token,
+                "type" => 5
             ];
             
             $params = [
