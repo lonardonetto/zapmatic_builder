@@ -510,6 +510,75 @@
         </div>
         
 
+        <div class="swagger-card" style="border-color:#3b82f6;">
+            <div class="swagger-header" style="background:#eff6ff;">
+                <div class="swagger-method get" style="background:#3b82f6;">GET</div>
+                <div class="swagger-path" style="color:#1d4ed8;">/api/get_templates</div>
+                <div class="swagger-title" style="color:#1e40af;">Lista de Templates (copie o ID para usar no campo "template")</div>
+                <div class="ms-auto"><i class="fas fa-chevron-down toggle-icon"></i></div>
+            </div>
+            <div class="swagger-body">
+                <div class="swagger-info-block">
+                    <div class="swagger-desc">Estes são os templates interativos criados no seu Bot Builder. Copie o <strong>ID (hash)</strong> da coluna "ID do Template" e cole no parâmetro <code>"template"</code> do endpoint <code>/api/send</code>.</div>
+                    <label class="fw-bold fs-12 text-uppercase text-muted mb-2 d-block">Endpoint URL</label>
+                    <div class="swagger-url-box">
+                        <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
+                        <code><?php _ec(base_url("api/get_templates?type=1&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
+                    </div>
+                </div>
+                <div class="swagger-params-block">
+                    <div class="swagger-params-title">Templates Disponíveis</div>
+                    <table class="swagger-table">
+                        <thead>
+                            <tr>
+                                <th style="width:25%">ID do Template (copie este)</th>
+                                <th>Nome</th>
+                                <th style="width:15%">Tipo</th>
+                                <th style="width:80px">Copiar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        $team_id = get_team("id");
+                        $templates = db_fetch("*", TB_WHATSAPP_TEMPLATE, ["team_id" => $team_id]);
+                        $type_names = [1 => "List", 2 => "Button", 3 => "Poll", 5 => "Carousel", 6 => "Mídia", 66 => "Texto"];
+                        $type_colors = [1 => "#3b82f6", 2 => "#10b981", 3 => "#f59e0b", 5 => "#8b5cf6", 6 => "#ec4899", 66 => "#6b7280"];
+                        if (!empty($templates)) {
+                            foreach ($templates as $tpl) {
+                                $tpl_type = $type_names[$tpl->type] ?? "Tipo {$tpl->type}";
+                                $tpl_color = $type_colors[$tpl->type] ?? "#6b7280";
+                                echo '<tr>';
+                                echo '<td class="param-name" style="cursor:pointer;" onclick="copyTemplateId(this)" data-id="'.$tpl->ids.'">'.$tpl->ids.'</td>';
+                                echo '<td>'.htmlspecialchars($tpl->name).'</td>';
+                                echo '<td><span style="background:'.$tpl_color.';color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">'.$tpl_type.'</span></td>';
+                                echo '<td><button class="btn btn-sm btn-outline-primary" onclick="copyTemplateIdById(\''.$tpl->ids.'\')"><i class="far fa-copy"></i></button></td>';
+                                echo '</tr>';
+                            }
+                        } else {
+                            echo '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:30px;">Nenhum template encontrado. Crie templates no Bot Builder primeiro.</td></tr>';
+                        }
+                        ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <script>
+        function copyTemplateId(td) {
+            var id = td.getAttribute('data-id');
+            navigator.clipboard.writeText(id).then(function() {
+                var icon = td.querySelector('i') || td;
+                td.style.color = '#10b981';
+                setTimeout(function() { td.style.color = '#0f172a'; }, 1500);
+            });
+        }
+        function copyTemplateIdById(id) {
+            navigator.clipboard.writeText(id).then(function() {
+                alert('ID copiado: ' + id);
+            });
+        }
+        </script>
+        
         <div class="swagger-card">
             <div class="swagger-header">
                 <div class="swagger-method post"><?php _e("POST") ?></div>
@@ -1017,6 +1086,10 @@
         </div>
         
 
+        <div class="alert alert-info" style="border-radius:8px;padding:12px 20px;margin-bottom:15px;">
+            <i class="fas fa-info-circle me-2"></i> <strong>Atenção:</strong> Para enviar Poll, Button, List ou Carousel para grupos, você precisa do <strong>ID do Template</strong>. Role a página até o bloco azul <strong>"Lista de Templates"</strong> no topo para copiar o ID.
+        </div>
+        
         <div class="swagger-card">
             <div class="swagger-header">
                 <div class="swagger-method post"><?php _e("POST") ?></div>
