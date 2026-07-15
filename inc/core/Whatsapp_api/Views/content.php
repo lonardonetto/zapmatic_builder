@@ -438,16 +438,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code>{<br>
-                    <span class="ms-4">"number": "{int}",</span><br>
-                    <span class="ms-4">"type": "text",</span><br>
-                    <span class="ms-4">"message": "{string}",</span><br>
-                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
-                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
-                    }</code>
+                        <code><?php _ec(base_url("api/send?number=84933313xxx&type=text&message=test%20message&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
@@ -588,16 +582,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code>{<br>
-                    <span class="ms-4">"number": "{int}",</span><br>
-                    <span class="ms-4">"type": "poll", // button, list, carousel, carousel</span><br>
-                    <span class="ms-4">"template": "template ids",</span><br>
-                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
-                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
-                    }</code>
+                        <code><?php _ec(base_url("api/send?number=84933313xxx&type=poll&template=templateids&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
@@ -669,17 +657,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code>{<br>
-                    <span class="ms-4">"number": "{int}",</span><br>
-                    <span class="ms-4">"type": "media",</span><br>
-                    <span class="ms-4">"message": "{string}",</span><br>
-                    <span class="ms-4">"media_url": "{string}",</span><br>
-                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
-                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
-                    }</code>
+                        <code><?php _ec(base_url("api/send?number=84933313xxx&type=media&message=test%20message&media_url=https://i.pravatar.cc&filename=file_test.jpg&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
@@ -793,10 +774,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code><?php _ec(base_url("api/create_groups")) ?></code>
+                        <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=text&message=test%20message&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
@@ -872,7 +853,7 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
                         <code><?php _ec(base_url("api/add_participants")) ?></code>
@@ -949,7 +930,7 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
                         <code><?php _ec(base_url("api/remove_participants")) ?></code>
@@ -1099,16 +1080,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code>{<br>
-                    <span class="ms-4">"group_id": "8498761xxxxxxxx@g.us",</span><br>
-                    <span class="ms-4">"type": "poll", // button, list, carousel, carousel</span><br>
-                    <span class="ms-4">"template": "template ids",</span><br>
-                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
-                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
-                    }</code>
+                        <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=poll&template=templateids&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
@@ -1180,17 +1155,10 @@
             </div>
             <div class="swagger-body">
                 <div class="swagger-info-block">
-                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL</span>
+                    <span class="swagger-block-label"><span class="badge-method">POST</span> Resource URL (cole no Postman)</span>
                     <div class="swagger-url-box">
                         <button class="copy-btn" title="Copiar"><i class="far fa-copy"></i></button>
-                        <code>{<br>
-                    <span class="ms-4">"group_id": "8498761xxxxxxxx@g.us",</span><br>
-                    <span class="ms-4">"type": "media",</span><br>
-                    <span class="ms-4">"message": "{string}",</span><br>
-                    <span class="ms-4">"media_url": "{string}",</span><br>
-                    <span class="ms-4">"instance_id": "<?php _e($account) ?>",</span><br>
-                    <span class="ms-4">"access_token": "<?php _ec(get_team("ids")) ?>"</span><br>
-                    }</code>
+                        <code><?php _ec(base_url("api/send_group?group_id=84987694574-1618740914@g.us&type=media&message=test%20message&media_url=https://i.pravatar.cc&filename=file_test.jpg&instance_id=".  $account ."&access_token=" . get_team("ids"))) ?></code>
                     </div>
                     <div class="mt-3">
                         <span class="swagger-block-label">Body (JSON) — copie e cole no Postman</span>
