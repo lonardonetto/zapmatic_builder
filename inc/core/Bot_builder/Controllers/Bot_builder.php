@@ -2661,9 +2661,9 @@ private function get_group_name($group_id, $instance_id)
 {
     if (empty($group_id) || empty($instance_id)) return '';
     
-    // Try GO gateway first (localhost:8090)
+    // Try GO gateway first (reads port from config.json)
     try {
-        $ch = curl_init("http://localhost:8090/groups/list?instance_id=" . urlencode($instance_id));
+        $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 5,

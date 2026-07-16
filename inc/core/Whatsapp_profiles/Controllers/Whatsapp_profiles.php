@@ -1395,7 +1395,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         try {
             \App\Services\WhatsAppGatewayService::register(
                 $instance_id,
-                'http://127.0.0.1:8090',
+                \App\Services\WhatsAppGatewayService::getGoBaseUrl(),
                 '',
                 $team_id
             );
@@ -1505,7 +1505,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
     public function get_whatsmeow_qrcode($instance_id)
     {
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
 	$team_id = get_team("id");
 
@@ -1559,7 +1559,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             exit;
         }
 
-        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
 	$team_id = get_team("id");
 
@@ -1691,7 +1691,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             exit;
         }
 
-        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
 	$team_id = get_team("id");
 
@@ -1763,7 +1763,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
 
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
         $payload = json_encode([
             "instance_id" => $instance_id,
@@ -1835,7 +1835,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         }
 
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        $baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
         $payload = json_encode(["instance_id" => $instance_id]);
 

@@ -114,7 +114,7 @@ if(!function_exists('wa_send_via_whatsmeow')){
 		if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
 			return ['status' => 'error', 'message' => 'Not a whatsmeow instance'];
 		}
-		$baseUrl = rtrim($gateway['base_url'] ?? 'http://127.0.0.1:8090', '/');
+		$baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
 		// Envia presença digitando
 		if ($presence_time > 0) {
