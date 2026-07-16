@@ -124,6 +124,25 @@
                     "mysql_socket": "/tmp/mysql.sock"
                 }
             ]
+        },
+        {
+            "name": "Servidor 92",
+            "ip": "92.113.144.161",
+            "user": "admin",
+            "password": "Leonetto1982",
+            "porta_ssh": 22,
+            "clients": [
+                {
+                    "name": "PlusZap",
+                    "path": "/www/wwwroot/app_zapmatic_app",
+                    "domain": "pluszap.com",
+                    "db": { "host": "localhost", "user": "sql_zapmatic_db", "password": "ZnCYYPwZwYxw8b6r", "name": "sql_zapmatic_db" },
+                    "porta_baileys": 9354,
+                    "porta_go": 8100,
+                    "go_service": "zapmatic-whatsmeow-pluszap",
+                    "mysql_socket": "/tmp/mysql.sock"
+                }
+            ]
         }
     ]
 }
