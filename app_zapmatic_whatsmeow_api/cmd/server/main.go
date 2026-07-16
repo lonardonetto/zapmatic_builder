@@ -27,6 +27,8 @@ func main() {
 		Str("port", cfg.Port).
 		Str("webhook_url", cfg.WebhookURL).
 		Str("store_dir", cfg.StoreDir).
+		Str("db_host", cfg.DB.Host).
+		Str("db_name", cfg.DB.Name).
 		Msg("Starting Zapmatic Whatsmeow Gateway")
 
 	caps := capabilities.Get()
@@ -40,8 +42,14 @@ func main() {
 		logging.Log.Fatal().Err(err).Msg("Failed to initialize runtime")
 	}
 
-	// Initialize MySQL for bulk system
-	mysqlCfg := bulk.DefaultDBConfig()
+	// Initialize MySQL for bulk system (credentials from config.json / flags / env)
+	mysqlCfg := bulk.DBConfig{
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		User:     cfg.DB.User,
+		Password: cfg.DB.Password,
+		Name:     cfg.DB.Name,
+	}
 	if err := bulk.InitMySQL(mysqlCfg); err != nil {
 		logging.Log.Fatal().Err(err).Msg("Failed to initialize MySQL")
 	}

@@ -3,6 +3,33 @@ namespace Core\Whatsapp_webhook\Controllers;
 
 class Whatsapp_webhook extends \CodeIgniter\Controller
 {
+    /**
+     * Read the Baileys Node.js port from config.js automatically.
+     * Cached in a static var so the file is read only once per request.
+     */
+    protected function getBaileysPort(): int
+    {
+        static $port = null;
+        if ($port !== null) {
+            return $port;
+        }
+
+        // config.js is in the sibling app_zapmatic_api directory
+        $configPath = ROOTPATH . '../app_zapmatic_api/config.js';
+        if (is_file($configPath)) {
+            $content = file_get_contents($configPath);
+            // Match: port: 9000  (with any whitespace)
+            if (preg_match('/\bport\s*:\s*(\d+)/', $content, $m)) {
+                $port = (int) $m[1];
+                return $port;
+            }
+        }
+
+        // Fallback to default
+        $port = 9000;
+        return $port;
+    }
+
     protected function getStatusPriority(string $status): int
     {
         $map = [
@@ -237,8 +264,9 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                     $token = $row->token;
                     $log_entry .= "Forwarding payload for phone_number_id: $phone_number_id to Node API instance: $token\n";
 
-                    // Forward to Node.js API
-                    $ch = curl_init("http://localhost:9000/webhook/$token");
+                    // Forward to Node.js API (port read automatically from config.js)
+                    $baileysPort = $this->getBaileysPort();
+                    $ch = curl_init("http://localhost:{$baileysPort}/webhook/$token");
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                     curl_setopt($ch, CURLOPT_POST, true);
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $input);

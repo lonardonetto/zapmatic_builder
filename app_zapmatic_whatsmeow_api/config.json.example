@@ -1,0 +1,15 @@
+{
+    "port": "8090",
+    "log_level": "info",
+    "log_dir": "logs",
+    "store_dir": "storage/sessions",
+    "webhook_url": "https://SEU_DOMINIO/index.php/bot-builder/webhook",
+    "api_key": "",
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "user": "SEU_USUARIO_DB",
+        "password": "SUA_SENHA_DB",
+        "name": "SEU_NOME_DB"
+    }
+}

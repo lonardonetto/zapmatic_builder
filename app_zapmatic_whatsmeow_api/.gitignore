@@ -6,6 +6,9 @@ IMPLEMENTACAO_BULK.md
 RELATORIO_*.md
 RESUMO_EXECUTIVO_*.txt
 
+# Config (contains credentials - keep config.json.example in git)
+config.json
+
 # Test binaries
 server
 
