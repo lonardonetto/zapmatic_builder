@@ -373,71 +373,96 @@ document.querySelectorAll('.add-block-btn').forEach(function(btn) {
 
 // Vincular eventos de salvar/deletar nas seções
 function bindSectionEvents() {
-    // Salvar seção
-    document.querySelectorAll('.save-section-btn').forEach(function(btn) {
-        btn.removeEventListener('click', onSaveSection);
-        btn.addEventListener('click', onSaveSection);
-    });
+    // Usar event delegation no container para delete (funciona para elementos dinâmicos)
+    var container = document.getElementById('sections-container');
     
-    // Deletar seção
-    document.querySelectorAll('.delete-section').forEach(function(btn) {
-        btn.removeEventListener('click', onDeleteSection);
-        btn.addEventListener('click', onDeleteSection);
-    });
-}
-
-function onSaveSection() {
-    var form = this.closest('.section-form');
-    var data = {};
-    $(form).serializeArray().forEach(function(item) {
-        data[item.name] = item.value;
-    });
+    // Remove listeners antigos
+    var newContainer = container.cloneNode(true);
+    container.parentNode.replaceChild(newContainer, container);
     
-    $.post(moduleUrl + 'save_section', data, function(res) {
-        if (res.status === 'success') {
-            if (res.section_id) {
-                form.querySelector('input[name="section_id"]').value = res.section_id;
-                var card = form.closest('.section-card');
-                if (card) card.dataset.id = res.section_id;
+    // Re-bind com event delegation
+    newContainer.addEventListener('click', function(e) {
+        var target = e.target;
+        
+        // Delete button
+        if (target.closest('.delete-section')) {
+            e.preventDefault();
+            var btn = target.closest('.delete-section');
+            var card = btn.closest('.section-card');
+            if (!card) return;
+            
+            var sectionId = btn.getAttribute('data-id') || card.getAttribute('data-id') || '0';
+            
+            if (!sectionId || sectionId === '0') {
+                card.remove();
+                checkEmpty();
+                return;
             }
-            // Não mostra alert, feedback visual é melhor
-            var btn = form.querySelector('.save-section-btn');
-            if (btn) {
-                var orig = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
-                btn.classList.add('btn-success');
-                btn.classList.remove('btn-primary');
-                setTimeout(function() {
-                    btn.innerHTML = orig;
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-primary');
-                }, 2000);
-            }
+            
+            if (!confirm('Remover esta seção? Esta ação não pode ser desfeita.')) return;
+            
+            $.post(moduleUrl + 'delete_section', {id: sectionId}, function(res) {
+                if (res.status === 'success') {
+                    card.remove();
+                    checkEmpty();
+                } else {
+                    alert('Erro ao remover: ' + (res.message || 'tente novamente'));
+                }
+            }, 'json').fail(function() {
+                alert('Erro de conexão ao remover seção');
+            });
         }
-    }, 'json');
+        
+        // Save button
+        if (target.closest('.save-section-btn')) {
+            e.preventDefault();
+            var btn = target.closest('.save-section-btn');
+            var form = btn.closest('.section-form');
+            if (!form) return;
+            
+            var data = {};
+            $(form).find('input, select, textarea').each(function() {
+                data[this.name] = this.value;
+            });
+            
+            var origText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+            btn.disabled = true;
+            
+            $.post(moduleUrl + 'save_section', data, function(res) {
+                btn.disabled = false;
+                if (res.status === 'success') {
+                    if (res.section_id) {
+                        form.querySelector('input[name="section_id"]').value = res.section_id;
+                        var card = form.closest('.section-card');
+                        if (card) card.setAttribute('data-id', res.section_id);
+                    }
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
+                    btn.classList.add('btn-success');
+                    btn.classList.remove('btn-primary');
+                    setTimeout(function() {
+                        btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar Seção';
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-primary');
+                    }, 2000);
+                } else {
+                    btn.innerHTML = origText;
+                    alert(res.message || 'Erro ao salvar');
+                }
+            }, 'json').fail(function() {
+                btn.disabled = false;
+                btn.innerHTML = origText;
+                alert('Erro de conexão ao salvar');
+            });
+        }
+    });
 }
 
-function onDeleteSection() {
-    var card = this.closest('.section-card');
-    var id = this.dataset.id || card.dataset.id;
-    
-    if (!id || id == '0') {
-        card.remove();
-        return;
-    }
-    
-    if (confirm('Remover esta seção?')) {
-        $.post(moduleUrl + 'delete_section', {id: id}, function() {
-            card.remove();
-            if (!document.querySelectorAll('.section-card').length) {
-                document.getElementById('sections-container').innerHTML = `
-                    <div class="text-center py-5">
-                        <div style="font-size:48px">🧱</div>
-                        <h5>Nenhuma seção adicionada</h5>
-                        <p class="text-muted">Clique em um bloco ao lado para adicionar</p>
-                    </div>`;
-            }
-        }, 'json');
+function checkEmpty() {
+    var cards = document.querySelectorAll('#sections-container .section-card');
+    if (cards.length === 0) {
+        document.getElementById('sections-container').innerHTML = 
+            '<div class="text-center py-5" id="empty-state"><div style="font-size:48px">🧱</div><h5>Nenhuma seção adicionada</h5><p class="text-muted">Clique em um bloco ao lado para adicionar</p></div>';
     }
 }
 
