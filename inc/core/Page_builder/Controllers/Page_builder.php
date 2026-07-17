@@ -260,7 +260,7 @@ class Page_builder extends \CodeIgniter\Controller
 
     private function getBlockFormHtml($blockType, $data)
     {
-        $d = $data;
+        $d = is_array($data) ? $data : [];
         switch ($blockType) {
             case 'hero':
                 return '<div class="row g-3">
@@ -271,9 +271,9 @@ class Page_builder extends \CodeIgniter\Controller
                     <div class="col-md-4"><label class="form-label">URL do Botão</label><input type="text" class="form-control" name="button_url" value="'.($d['button_url']??'').'"></div>
                     <div class="col-md-4"><label class="form-label">Cor do Botão</label><input type="color" class="form-control form-control-color" name="button_color" value="'.($d['button_color']??'#6C5CE7').'"></div>
                     <div class="col-md-4"><label class="form-label">Tipo Fundo</label><select class="form-select" name="background_type">
-                        <option value="color" '.($d['background_type']=='color'?'selected':'').'>Cor Sólida</option>
-                        <option value="image" '.($d['background_type']=='image'?'selected':'').'>Imagem</option>
-                        <option value="gradient" '.($d['background_type']=='gradient'?'selected':'').'>Gradiente</option>
+                        <option value="color" '.($d['background_type']??''=='color'?'selected':'').'>Cor Sólida</option>
+                        <option value="image" '.($d['background_type']??''=='image'?'selected':'').'>Imagem</option>
+                        <option value="gradient" '.($d['background_type']??''=='gradient'?'selected':'').'>Gradiente</option>
                     </select></div>
                     <div class="col-md-4"><label class="form-label">Cor Fundo</label><input type="color" class="form-control form-control-color" name="background_color" value="'.($d['background_color']??'#0F0E17').'"></div>
                     <div class="col-md-4"><label class="form-label">Imagem Fundo</label><input type="text" class="form-control" name="background_image" value="'.($d['background_image']??'').'"></div>
@@ -285,8 +285,8 @@ class Page_builder extends \CodeIgniter\Controller
                     <div class="col-12"><label class="form-label">Título</label><input type="text" class="form-control" name="section_title" value="'.($d['section_title']??'').'"></div>
                     <div class="col-12"><label class="form-label">Subtítulo</label><textarea class="form-control" name="section_subtitle" rows="2">'.($d['section_subtitle']??'').'</textarea></div>
                     <div class="col-md-6"><label class="form-label">Layout</label><select class="form-select" name="layout">
-                        <option value="3" '.($d['layout']=='3'?'selected':'').'>3 Colunas</option>
-                        <option value="4" '.($d['layout']=='4'?'selected':'').'>4 Colunas</option>
+                        <option value="3" '.($d['layout']??''=='3'?'selected':'').'>3 Colunas</option>
+                        <option value="4" '.($d['layout']??''=='4'?'selected':'').'>4 Colunas</option>
                     </select></div>
                     <div class="col-12"><label class="form-label">Cards (JSON)</label><textarea class="form-control" name="cards" rows="6">'.json_encode($d['cards']??[], JSON_UNESCAPED_UNICODE).'</textarea>
                     <small class="text-muted">Formato: [{"icon":"🚀","title":"título","description":"descrição"}]</small></div>
@@ -297,8 +297,8 @@ class Page_builder extends \CodeIgniter\Controller
                     <div class="col-12"><label class="form-label">Título</label><input type="text" class="form-control" name="section_title" value="'.($d['section_title']??'').'"></div>
                     <div class="col-12"><label class="form-label">Subtítulo</label><textarea class="form-control" name="section_subtitle" rows="2">'.($d['section_subtitle']??'').'</textarea></div>
                     <div class="col-12"><label class="form-label">Origem</label><select class="form-select" name="pricing_origin">
-                        <option value="auto" '.($d['pricing_origin']=='auto'?'selected':'').'>Automático (do banco)</option>
-                        <option value="manual" '.($d['pricing_origin']=='manual'?'selected':'').'>Manual (JSON)</option>
+                        <option value="auto" '.($d['pricing_origin']??''=='auto'?'selected':'').'>Automático (do banco)</option>
+                        <option value="manual" '.($d['pricing_origin']??''=='manual'?'selected':'').'>Manual (JSON)</option>
                     </select></div>
                 </div>';
 
@@ -306,8 +306,8 @@ class Page_builder extends \CodeIgniter\Controller
                 return '<div class="row g-3">
                     <div class="col-12"><label class="form-label">Título</label><input type="text" class="form-control" name="section_title" value="'.($d['section_title']??'').'"></div>
                     <div class="col-12"><label class="form-label">Origem</label><select class="form-select" name="faq_origin">
-                        <option value="auto" '.($d['faq_origin']=='auto'?'selected':'').'>Automático (do banco)</option>
-                        <option value="manual" '.($d['faq_origin']=='manual'?'selected':'').'>Manual (JSON)</option>
+                        <option value="auto" '.($d['faq_origin']??''=='auto'?'selected':'').'>Automático (do banco)</option>
+                        <option value="manual" '.($d['faq_origin']??''=='manual'?'selected':'').'>Manual (JSON)</option>
                     </select></div>
                 </div>';
 
