@@ -135,13 +135,27 @@ function savePage() {
             data[item.name] = item.value;
         }
     });
-    $.post('<?php _e(get_module_url("save_page")) ?>', data, function(res) {
-        if (res.status === 'success') {
-            location.href = res.redirect;
-        } else {
-            alert(res.message);
+    $.ajax({
+        url: '<?php _e(get_module_url("save_page")) ?>',
+        type: 'POST',
+        data: data,
+        dataType: 'text',
+        success: function(raw) {
+            try {
+                var res = JSON.parse(raw);
+                if (res.status === 'success') {
+                    location.href = res.redirect;
+                } else {
+                    alert(res.message);
+                }
+            } catch(e) {
+                alert('Erro ao processar resposta');
+            }
+        },
+        error: function() {
+            alert('Erro de conexão');
         }
-    }, 'json');
+    });
 }
 
 function deletePage(id, title) {

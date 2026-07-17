@@ -392,15 +392,27 @@ document.querySelector('#sections-container').addEventListener('click', function
         
         if (!confirm('Remover esta seção?')) return;
         
-        $.post(moduleUrl + 'delete_section', {id: sectionId}, function(res) {
-            if (res.status === 'success') {
-                card.remove();
-                checkEmpty();
-            } else {
-                alert('Erro: ' + (res.message || 'desconhecido'));
+        $.ajax({
+            url: moduleUrl + 'delete_section',
+            type: 'POST',
+            data: {id: sectionId},
+            dataType: 'text',
+            success: function(raw) {
+                try {
+                    var res = JSON.parse(raw);
+                    if (res.status === 'success') {
+                        card.remove();
+                        checkEmpty();
+                    } else {
+                        alert('Erro: ' + (res.message || 'desconhecido'));
+                    }
+                } catch(e) {
+                    alert('Erro ao processar resposta do servidor');
+                }
+            },
+            error: function() {
+                alert('Erro de conexão ao remover seção');
             }
-        }, 'json').fail(function(jqXHR) {
-            alert('Erro ao conectar com o servidor (código ' + jqXHR.status + ')');
         });
     }
     
@@ -420,30 +432,43 @@ document.querySelector('#sections-container').addEventListener('click', function
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>';
         btn.disabled = true;
         
-        $.post(moduleUrl + 'save_section', data, function(res) {
-            btn.disabled = false;
-            if (res.status === 'success') {
-                if (res.section_id) {
-                    form.querySelector('input[name="section_id"]').value = res.section_id;
-                    var card = form.closest('.section-card');
-                    if (card) card.setAttribute('data-id', res.section_id);
+        $.ajax({
+            url: moduleUrl + 'save_section',
+            type: 'POST',
+            data: data,
+            dataType: 'text',
+            success: function(raw) {
+                btn.disabled = false;
+                try {
+                    var res = JSON.parse(raw);
+                    if (res.status === 'success') {
+                        if (res.section_id) {
+                            form.querySelector('input[name="section_id"]').value = res.section_id;
+                            var card = form.closest('.section-card');
+                            if (card) card.setAttribute('data-id', res.section_id);
+                        }
+                        btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
+                        btn.classList.add('btn-success');
+                        btn.classList.remove('btn-primary');
+                        setTimeout(function() {
+                            btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar';
+                            btn.classList.remove('btn-success');
+                            btn.classList.add('btn-primary');
+                        }, 1500);
+                    } else {
+                        btn.innerHTML = origText;
+                        alert(res.message || 'Erro ao salvar');
+                    }
+                } catch(e) {
+                    btn.innerHTML = origText;
+                    alert('Erro ao processar resposta');
                 }
-                btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
-                btn.classList.add('btn-success');
-                btn.classList.remove('btn-primary');
-                setTimeout(function() {
-                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar';
-                    btn.classList.remove('btn-success');
-                    btn.classList.add('btn-primary');
-                }, 1500);
-            } else {
+            },
+            error: function() {
+                btn.disabled = false;
                 btn.innerHTML = origText;
-                alert(res.message || 'Erro ao salvar');
+                alert('Erro de conexão ao salvar');
             }
-        }, 'json').fail(function(jqXHR) {
-            btn.disabled = false;
-            btn.innerHTML = origText;
-            alert('Erro de conexão ao salvar');
         });
     }
 });
