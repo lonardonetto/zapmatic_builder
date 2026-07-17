@@ -127,7 +127,14 @@ function newPage() {
 
 function savePage() {
     var form = document.getElementById('pageForm');
-    var data = new FormData(form);
+    var data = {};
+    $(form).serializeArray().forEach(function(item) {
+        if (item.name === 'is_home' || item.name === 'is_published') {
+            data[item.name] = item.value || '0';
+        } else {
+            data[item.name] = item.value;
+        }
+    });
     $.post('<?php _e(get_module_url("save_page")) ?>', data, function(res) {
         if (res.status === 'success') {
             location.href = res.redirect;

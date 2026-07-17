@@ -388,12 +388,10 @@ function bindSectionEvents() {
 
 function onSaveSection() {
     var form = this.closest('.section-form');
-    var data = new FormData(form);
-    
-    // Capturar todos os campos do formulário
-    for (var pair of data.entries()) {
-        // já estão no FormData
-    }
+    var data = {};
+    $(form).serializeArray().forEach(function(item) {
+        data[item.name] = item.value;
+    });
     
     $.post(moduleUrl + 'save_section', data, function(res) {
         if (res.status === 'success') {
@@ -402,7 +400,19 @@ function onSaveSection() {
                 var card = form.closest('.section-card');
                 if (card) card.dataset.id = res.section_id;
             }
-            alert('Seção salva!');
+            // Não mostra alert, feedback visual é melhor
+            var btn = form.querySelector('.save-section-btn');
+            if (btn) {
+                var orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-primary');
+                setTimeout(function() {
+                    btn.innerHTML = orig;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 2000);
+            }
         }
     }, 'json');
 }
