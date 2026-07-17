@@ -278,6 +278,49 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                     curl_close($ch);
 
                     $log_entry .= "Node API Response status: " . $curl_info['http_code'] . "\n";
+
+                    // Also forward to Bot_builder webhook (autoresponder, chatbot flows)
+                    if (!empty($value['messages'])) {
+                        $bot_payload = [
+                            'instance_id' => $token,
+                            'data' => ['messages' => []],
+                        ];
+                        foreach ($value['messages'] as $msg) {
+                            $from = $msg['from'] ?? '';
+                            $type = $msg['type'] ?? 'text';
+                            $text_body = $msg['text']['body'] ?? '';
+                            $push_name = '';
+                            if (!empty($value['contacts'])) {
+                                $push_name = $value['contacts'][0]['profile']['name'] ?? '';
+                            }
+                            $message_body = [];
+                            if ($type === 'text') {
+                                $message_body = ['conversation' => $text_body];
+                            }
+                            $bot_payload['data']['messages'][] = [
+                                'key' => [
+                                    'remoteJid' => $from . '@s.whatsapp.net',
+                                    'fromMe' => false,
+                                    'id' => $msg['id'] ?? '',
+                                ],
+                                'pushName' => $push_name,
+                                'messageTimestamp' => (int)($msg['timestamp'] ?? time()),
+                                'message' => $message_body,
+                                'official_api' => true,
+                                '_wa_id' => $from,
+                            ];
+                        }
+                        $bot_ch = curl_init(base_url('bot-builder/webhook'));
+                        curl_setopt($bot_ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($bot_ch, CURLOPT_POST, true);
+                        curl_setopt($bot_ch, CURLOPT_POSTFIELDS, json_encode($bot_payload));
+                        curl_setopt($bot_ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 10);
+                        $bot_response = curl_exec($bot_ch);
+                        $bot_http = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);
+                        curl_close($bot_ch);
+                        $log_entry .= "Bot_builder Response status: " . $bot_http . "\n";
+                    }
                 } else {
                     $log_entry .= "No account found matching phone_number_id: $phone_number_id\n";
                 }
