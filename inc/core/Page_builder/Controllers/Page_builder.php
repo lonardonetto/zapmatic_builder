@@ -54,7 +54,11 @@ class Page_builder extends \CodeIgniter\Controller
 
         // Auto-gerar slug se vazio
         if (empty($slug)) {
-            $slug = url_title(convert_accented_characters($title), '-', true);
+            $map = ['á'=>'a','à'=>'a','ã'=>'a','â'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','õ'=>'o','ô'=>'o','ö'=>'o','ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n'];
+            $slug = strtr(mb_strtolower(trim($title)), $map);
+            $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+            $slug = trim($slug, '-');
+            if (empty($slug)) $slug = 'page-' . time();
         }
 
         $data = [
