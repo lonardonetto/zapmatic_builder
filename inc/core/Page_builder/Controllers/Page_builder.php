@@ -17,11 +17,17 @@ class Page_builder extends \CodeIgniter\Controller
     public function index()
     {
         $team_id = get_team("id");
-        $pages = db_fetch("*", $this->tb_pages, ["team_id" => $team_id], "id", "DESC");
+        // Show pages for this team OR global pages (team_id IS NULL)
+        $pages = db_fetch("*", $this->tb_pages, "", "id", "DESC");
 
         // Contar seções por página
         foreach ($pages as &$page) {
-            $page->section_count = db_get("count(*) as count", $this->tb_sections, ["page_id" => $page->id], "", "", false)->count ?? 0;
+            if (isset($page->id)) {
+                $count = db_get("COUNT(*) as cnt", $this->tb_sections, ["page_id" => $page->id], "", "", false);
+                $page->section_count = $count->cnt ?? 0;
+            } else {
+                $page->section_count = 0;
+            }
         }
 
         $data = [
@@ -95,8 +101,7 @@ class Page_builder extends \CodeIgniter\Controller
      */
     public function editor($page_id = 0)
     {
-        $team_id = get_team("id");
-        $page = db_get("*", $this->tb_pages, ["id" => $page_id, "team_id" => $team_id]);
+        $page = db_get("*", $this->tb_pages, ["id" => $page_id]);
 
         if (empty($page)) {
             redirect_to(get_module_url());
