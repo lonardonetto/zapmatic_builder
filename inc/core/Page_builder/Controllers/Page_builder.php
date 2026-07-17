@@ -193,12 +193,16 @@ class Page_builder extends \CodeIgniter\Controller
 
         if ($section_id > 0) {
             db_update($this->tb_sections, $db_data, ["id" => $section_id]);
-            ms(["status" => "success", "message" => "Seção atualizada!"]);
+            header('Content-Type: application/json');
+            echo json_encode(["status" => "success", "message" => "Seção atualizada!"], JSON_UNESCAPED_UNICODE);
+            exit;
         } else {
             $db_data["sort_order"] = $sort_order;
             $db_data["created"] = time();
             $section_id = db_insert($this->tb_sections, $db_data);
-            ms(["status" => "success", "message" => "Seção adicionada!", "section_id" => $section_id]);
+            header('Content-Type: application/json');
+            echo json_encode(["status" => "success", "message" => "Seção adicionada!", "section_id" => $section_id], JSON_UNESCAPED_UNICODE);
+            exit;
         }
     }
 
@@ -209,7 +213,9 @@ class Page_builder extends \CodeIgniter\Controller
     {
         $id = (int) post('id');
         db_delete($this->tb_sections, ["id" => $id]);
-        ms(["status" => "success", "message" => "Seção removida!"]);
+        header('Content-Type: application/json');
+        echo json_encode(["status" => "success", "message" => "Seção removida!"]);
+        exit;
     }
 
     /**
@@ -223,7 +229,9 @@ class Page_builder extends \CodeIgniter\Controller
                 db_update($this->tb_sections, ["sort_order" => $i], ["id" => (int) $section_id]);
             }
         }
-        ms(["status" => "success"]);
+        header('Content-Type: application/json');
+        echo json_encode(["status" => "success"]);
+        exit;
     }
 
     /**
@@ -247,7 +255,9 @@ class Page_builder extends \CodeIgniter\Controller
         if ($page) {
             db_update($this->tb_pages, ["is_published" => $page->is_published ? 0 : 1], ["id" => $id]);
         }
-        ms(["status" => "success"]);
+        header('Content-Type: application/json');
+        echo json_encode(["status" => "success"]);
+        exit;
     }
 
     /**
