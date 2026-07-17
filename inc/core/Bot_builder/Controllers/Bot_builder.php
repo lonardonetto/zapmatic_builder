@@ -3337,7 +3337,12 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
 
         // Cloud API (login_type = 1) → WhatsAppGatewayService
         if ($whatsmeowGatewayChecked[$instance_id] === 1) {
-            return \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+            $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+            file_put_contents(WRITEPATH . 'bot_builder_send.log',
+                date('Y-m-d H:i:s') . ' | CLOUD_API_SEND | instance=' . $instance_id . ' | phone=' . $phone . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
+                FILE_APPEND
+            );
+            return $result;
         }
 
         $params = [
