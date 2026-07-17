@@ -193,16 +193,12 @@ class Page_builder extends \CodeIgniter\Controller
 
         if ($section_id > 0) {
             db_update($this->tb_sections, $db_data, ["id" => $section_id]);
-            header('Content-Type: application/json');
-            echo json_encode(["status" => "success", "message" => "Seção atualizada!"], JSON_UNESCAPED_UNICODE);
-            exit;
+            return $this->response->setJSON(["status" => "success", "message" => "Seção atualizada!"]);
         } else {
             $db_data["sort_order"] = $sort_order;
             $db_data["created"] = time();
             $section_id = db_insert($this->tb_sections, $db_data);
-            header('Content-Type: application/json');
-            echo json_encode(["status" => "success", "message" => "Seção adicionada!", "section_id" => $section_id], JSON_UNESCAPED_UNICODE);
-            exit;
+            return $this->response->setJSON(["status" => "success", "message" => "Seção adicionada!", "section_id" => $section_id]);
         }
     }
 
@@ -213,9 +209,7 @@ class Page_builder extends \CodeIgniter\Controller
     {
         $id = (int) post('id');
         db_delete($this->tb_sections, ["id" => $id]);
-        header('Content-Type: application/json');
-        echo json_encode(["status" => "success", "message" => "Seção removida!"]);
-        exit;
+        return $this->response->setJSON(["status" => "success", "message" => "Seção removida!"]);
     }
 
     /**
@@ -229,9 +223,7 @@ class Page_builder extends \CodeIgniter\Controller
                 db_update($this->tb_sections, ["sort_order" => $i], ["id" => (int) $section_id]);
             }
         }
-        header('Content-Type: application/json');
-        echo json_encode(["status" => "success"]);
-        exit;
+        return $this->response->setJSON(["status" => "success"]);
     }
 
     /**
@@ -255,9 +247,7 @@ class Page_builder extends \CodeIgniter\Controller
         if ($page) {
             db_update($this->tb_pages, ["is_published" => $page->is_published ? 0 : 1], ["id" => $id]);
         }
-        header('Content-Type: application/json');
-        echo json_encode(["status" => "success"]);
-        exit;
+        return $this->response->setJSON(["status" => "success"]);
     }
 
     /**
