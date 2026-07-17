@@ -371,92 +371,82 @@ document.querySelectorAll('.add-block-btn').forEach(function(btn) {
     });
 });
 
-// Vincular eventos de salvar/deletar nas seções
-function bindSectionEvents() {
-    // Usar event delegation no container para delete (funciona para elementos dinâmicos)
-    var container = document.getElementById('sections-container');
+// Event delegation para salvar/deletar (funciona para elementos dinâmicos)
+document.querySelector('#sections-container').addEventListener('click', function(e) {
+    var target = e.target;
     
-    // Remove listeners antigos
-    var newContainer = container.cloneNode(true);
-    container.parentNode.replaceChild(newContainer, container);
-    
-    // Re-bind com event delegation
-    newContainer.addEventListener('click', function(e) {
-        var target = e.target;
+    // Delete button
+    if (target.closest('.delete-section')) {
+        e.preventDefault();
+        var btn = target.closest('.delete-section');
+        var card = btn.closest('.section-card');
+        if (!card) return;
         
-        // Delete button
-        if (target.closest('.delete-section')) {
-            e.preventDefault();
-            var btn = target.closest('.delete-section');
-            var card = btn.closest('.section-card');
-            if (!card) return;
-            
-            var sectionId = btn.getAttribute('data-id') || card.getAttribute('data-id') || '0';
-            
-            if (!sectionId || sectionId === '0') {
+        var sectionId = btn.getAttribute('data-id') || card.getAttribute('data-id') || '0';
+        
+        if (!sectionId || sectionId === '0') {
+            card.remove();
+            checkEmpty();
+            return;
+        }
+        
+        if (!confirm('Remover esta seção?')) return;
+        
+        $.post(moduleUrl + 'delete_section', {id: sectionId}, function(res) {
+            if (res.status === 'success') {
                 card.remove();
                 checkEmpty();
-                return;
+            } else {
+                alert('Erro: ' + (res.message || 'desconhecido'));
             }
-            
-            if (!confirm('Remover esta seção? Esta ação não pode ser desfeita.')) return;
-            
-            $.post(moduleUrl + 'delete_section', {id: sectionId}, function(res) {
-                if (res.status === 'success') {
-                    card.remove();
-                    checkEmpty();
-                } else {
-                    alert('Erro ao remover: ' + (res.message || 'tente novamente'));
-                }
-            }, 'json').fail(function() {
-                alert('Erro de conexão ao remover seção');
-            });
-        }
+        }, 'json').fail(function(jqXHR) {
+            alert('Erro ao conectar com o servidor (código ' + jqXHR.status + ')');
+        });
+    }
+    
+    // Save button
+    if (target.closest('.save-section-btn')) {
+        e.preventDefault();
+        var btn = target.closest('.save-section-btn');
+        var form = btn.closest('.section-form');
+        if (!form) return;
         
-        // Save button
-        if (target.closest('.save-section-btn')) {
-            e.preventDefault();
-            var btn = target.closest('.save-section-btn');
-            var form = btn.closest('.section-form');
-            if (!form) return;
-            
-            var data = {};
-            $(form).find('input, select, textarea').each(function() {
-                data[this.name] = this.value;
-            });
-            
-            var origText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
-            btn.disabled = true;
-            
-            $.post(moduleUrl + 'save_section', data, function(res) {
-                btn.disabled = false;
-                if (res.status === 'success') {
-                    if (res.section_id) {
-                        form.querySelector('input[name="section_id"]').value = res.section_id;
-                        var card = form.closest('.section-card');
-                        if (card) card.setAttribute('data-id', res.section_id);
-                    }
-                    btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
-                    btn.classList.add('btn-success');
-                    btn.classList.remove('btn-primary');
-                    setTimeout(function() {
-                        btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar Seção';
-                        btn.classList.remove('btn-success');
-                        btn.classList.add('btn-primary');
-                    }, 2000);
-                } else {
-                    btn.innerHTML = origText;
-                    alert(res.message || 'Erro ao salvar');
+        var data = {};
+        $(form).find('input, select, textarea').each(function() {
+            if (this.name) data[this.name] = this.value;
+        });
+        
+        var origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>';
+        btn.disabled = true;
+        
+        $.post(moduleUrl + 'save_section', data, function(res) {
+            btn.disabled = false;
+            if (res.status === 'success') {
+                if (res.section_id) {
+                    form.querySelector('input[name="section_id"]').value = res.section_id;
+                    var card = form.closest('.section-card');
+                    if (card) card.setAttribute('data-id', res.section_id);
                 }
-            }, 'json').fail(function() {
-                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i> Salvo!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-primary');
+                setTimeout(function() {
+                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 1500);
+            } else {
                 btn.innerHTML = origText;
-                alert('Erro de conexão ao salvar');
-            });
-        }
-    });
-}
+                alert(res.message || 'Erro ao salvar');
+            }
+        }, 'json').fail(function(jqXHR) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            alert('Erro de conexão ao salvar');
+        });
+    }
+});
 
 function checkEmpty() {
     var cards = document.querySelectorAll('#sections-container .section-card');
@@ -487,6 +477,4 @@ if (typeof Sortable !== 'undefined') {
     });
 }
 
-// Inicializar eventos
-bindSectionEvents();
 </script>
