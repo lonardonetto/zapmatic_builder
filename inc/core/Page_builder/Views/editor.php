@@ -399,15 +399,15 @@ document.querySelector('#sections-container').addEventListener('click', function
             dataType: 'text',
             success: function(raw) {
                 try {
-                    var res = JSON.parse(raw);
-                    if (res.status === 'success') {
+                    var res = extractJson(raw);
+                    if (res && res.status === 'success') {
                         card.remove();
                         checkEmpty();
                     } else {
-                        alert('Erro: ' + (res.message || 'desconhecido'));
+                        alert('Erro: ' + ((res && res.message) || 'desconhecido'));
                     }
                 } catch(e) {
-                    alert('Erro ao processar resposta do servidor');
+                    alert('Erro ao processar resposta');
                 }
             },
             error: function() {
@@ -440,8 +440,8 @@ document.querySelector('#sections-container').addEventListener('click', function
             success: function(raw) {
                 btn.disabled = false;
                 try {
-                    var res = JSON.parse(raw);
-                    if (res.status === 'success') {
+                    var res = extractJson(raw);
+                    if (res && res.status === 'success') {
                         if (res.section_id) {
                             form.querySelector('input[name="section_id"]').value = res.section_id;
                             var card = form.closest('.section-card');
@@ -472,6 +472,16 @@ document.querySelector('#sections-container').addEventListener('click', function
         });
     }
 });
+
+// Helper: extrair JSON de resposta que pode ter HTML do DebugToolbar
+function extractJson(raw) {
+    var start = -1;
+    for (var i = 0; i < raw.length; i++) {
+        if (raw[i] === '{' || raw[i] === '[') { start = i; break; }
+    }
+    if (start === -1) return null;
+    return JSON.parse(raw.substring(start));
+}
 
 function checkEmpty() {
     var cards = document.querySelectorAll('#sections-container .section-card');
