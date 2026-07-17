@@ -3323,9 +3323,14 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
         static $whatsmeowGatewayChecked = [];
         if (!isset($whatsmeowGatewayChecked[$instance_id])) {
             $acc = $this->model->db->table('sp_accounts')->where('token', $instance_id)->get()->getRow();
-            $whatsmeowGatewayChecked[$instance_id] = $acc && (int)($acc->login_type ?? 0) === 3;
+            $whatsmeowGatewayChecked[$instance_id] = $acc ? (int)($acc->login_type ?? 0) : 0;
         }
-        if ($whatsmeowGatewayChecked[$instance_id]) {
+        if ($whatsmeowGatewayChecked[$instance_id] === 3) {
+            return \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+        }
+
+        // Cloud API (login_type = 1) → WhatsAppGatewayService
+        if ($whatsmeowGatewayChecked[$instance_id] === 1) {
             return \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
         }
 
