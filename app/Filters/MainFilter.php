@@ -17,6 +17,7 @@ class MainFilter implements FilterInterface
             || strpos($url, 'whatsapp_webhook') !== false
             || strpos($url, 'bot-builder/webhook') !== false
             || strpos($url, 'bot_builder/webhook') !== false
+            || strpos($url, 'cloud_webhook') !== false
         ) {
             return;
         }
