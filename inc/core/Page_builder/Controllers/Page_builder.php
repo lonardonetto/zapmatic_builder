@@ -9,6 +9,10 @@ class Page_builder extends \CodeIgniter\Controller
     public function __construct()
     {
         $this->config = parse_config(include realpath(__DIR__ . "/../Config.php"));
+        // Disable toolbar output for AJAX responses
+        if (is_ajax()) {
+            \Config\Services::toolbar()->stop();
+        }
     }
 
     /**
