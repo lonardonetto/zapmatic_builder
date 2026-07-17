@@ -104,7 +104,9 @@ class Render extends \CodeIgniter\Controller
 
     private function renderHero($d, $s)
     {
-        $bg = $d['background_type'] == 'color' 
+        $d = is_array($d) ? $d : [];
+        $s = is_array($s) ? $s : [];
+        $bg = ($d['background_type'] ?? 'color') == 'color' 
             ? "background-color: {$d['background_color']};" 
             : ($d['background_type'] == 'image' ? "background-image: url({$d['background_image']}); background-size: cover;" : "");
 
@@ -157,10 +159,11 @@ class Render extends \CodeIgniter\Controller
 
     private function renderPricing($d, $s, $plans)
     {
-        $html = '<div class="section pricing m-b-100" id="pricing" style="padding-top:'.$s['padding_top'].'; padding-bottom:'.$s['padding_bottom'].'">
+        $d = is_array($d) ? $d : [];
+        $html = '<div class="section pricing m-b-100" id="pricing" style="padding-top:'.($s['padding_top']??'60px').'; padding-bottom:'.($s['padding_bottom']??'60px').'">
             <div class="container">
-                <div class="title text-center mb-4">'.$d['section_title'].'</div>
-                <p class="text-center text-gray-500 mb-5">'.$d['section_subtitle'].'</p>
+                <div class="title text-center mb-4">'.($d['section_title']??'').'</div>
+                <p class="text-center text-gray-500 mb-5">'.($d['section_subtitle']??'').'</p>
                 <div class="row">';
 
         foreach ($plans as $plan) {
@@ -185,9 +188,10 @@ class Render extends \CodeIgniter\Controller
 
     private function renderFaq($d, $s, $faqs)
     {
-        $html = '<div class="section faq m-b-100" style="padding-top:'.$s['padding_top'].'; padding-bottom:'.$s['padding_bottom'].'">
+        $d = is_array($d) ? $d : [];
+        $html = '<div class="section faq m-b-100" style="padding-top:'.($s['padding_top']??'60px').'; padding-bottom:'.($s['padding_bottom']??'60px').'">
             <div class="container">
-                <div class="title text-center mb-5">'.$d['section_title'].'</div>
+                <div class="title text-center mb-5">'.($d['section_title']??'').'</div>
                 <div class="row justify-content-center"><div class="col-md-8">';
 
         if ($d['faq_origin'] == 'manual' && !empty($d['faqs'])) {
@@ -213,7 +217,8 @@ class Render extends \CodeIgniter\Controller
 
     private function renderCta($d, $s)
     {
-        return '<div class="section cta text-center" style="background:'.$d['cta_bg_color'].'; padding:60px 0">
+        $d = is_array($d) ? $d : [];
+        return '<div class="section cta text-center" style="background:'.($d['cta_bg_color']??'#6C5CE7').'; padding:60px 0">
             <div class="container">
                 <h2 class="text-white mb-3">'.$d['cta_text'].'</h2>
                 <p class="text-white-50 mb-4">'.$d['cta_subtext'].'</p>
@@ -224,10 +229,11 @@ class Render extends \CodeIgniter\Controller
 
     private function renderTestimonials($d, $s)
     {
+        $d = is_array($d) ? $d : [];
         $items = $d['testimonials'] ?? [];
-        $html = '<div class="section testimonials m-b-100" style="padding-top:'.$s['padding_top'].'; padding-bottom:'.$s['padding_bottom'].'">
+        $html = '<div class="section testimonials m-b-100" style="padding-top:'.($s['padding_top']??'60px').'; padding-bottom:'.($s['padding_bottom']??'60px').'">
             <div class="container">
-                <div class="title text-center mb-5">'.$d['section_title'].'</div>
+                <div class="title text-center mb-5">'.($d['section_title']??'').'</div>
                 <div class="row">';
 
         if (is_array($items)) {
@@ -249,6 +255,7 @@ class Render extends \CodeIgniter\Controller
 
     private function renderFooter($d, $s)
     {
+        $d = is_array($d) ? $d : [];
         $links = $d['footer_links'] ?? [];
         $socials = $d['social_links'] ?? [];
 
