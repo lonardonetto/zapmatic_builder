@@ -78,6 +78,8 @@ class Render extends \CodeIgniter\Controller
      */
     private function renderBlock($blockType, $data, $settings, $plans, $faqs)
     {
+        $data = is_array($data) ? $data : [];
+        $settings = is_array($settings) ? $settings : [];
         switch ($blockType) {
             case 'hero':
                 return $this->renderHero($data, $settings);
@@ -127,8 +129,10 @@ class Render extends \CodeIgniter\Controller
 
     private function renderFeatures($d, $s)
     {
+        $d = is_array($d) ? $d : [];
+        $s = is_array($s) ? $s : [];
         $cards = $d['cards'] ?? [];
-        $cols = $d['layout'] == '4' ? 'col-md-3' : 'col-md-4';
+        $cols = ($d['layout'] ?? '3') == '4' ? 'col-md-3' : 'col-md-4';
         $html = '<div class="section features m-b-100" id="features" style="padding-top:'.$s['padding_top'].'; padding-bottom:'.$s['padding_bottom'].'">
             <div class="container">
                 <div class="title text-center mb-4">'.$d['section_title'].'</div>

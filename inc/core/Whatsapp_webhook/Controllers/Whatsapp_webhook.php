@@ -14,18 +14,19 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
             return $port;
         }
 
-        // config.js is in the sibling app_zapmatic_api directory
-        $configPath = ROOTPATH . '../app_zapmatic_api/config.js';
+        // config.js is in the app_zapmatic_api directory (sibling to the project root)
+        // Use dirname to stay within open_basedir constraints
+        $projectRoot = dirname(ROOTPATH, 2);
+        $configPath = $projectRoot . '/app_zapmatic_api/config.js';
         if (is_file($configPath)) {
             $content = file_get_contents($configPath);
-            // Match: port: 9000  (with any whitespace)
             if (preg_match('/\bport\s*:\s*(\d+)/', $content, $m)) {
                 $port = (int) $m[1];
                 return $port;
             }
         }
 
-        // Fallback to default
+        // Fallback
         $port = 9000;
         return $port;
     }
