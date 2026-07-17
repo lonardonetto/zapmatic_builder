@@ -23,6 +23,16 @@ class Home extends \CodeIgniter\Controller
         if ( !get_option("landing_page_status", 1) ) {
             redirect_to( base_url("login") );
         }
+
+        // Page Builder: se existir landing page publicada, renderizar do banco
+        $tb_pages = 'sp_landing_pages';
+        $db = \Config\Database::connect();
+        if ($db->tableExists($tb_pages)) {
+            $landing_page = db_get("*", $tb_pages, ["is_home" => 1, "is_published" => 1]);
+            if (!empty($landing_page)) {
+                return (new \Core\Page_builder\Controllers\Render())->renderHome();
+            }
+        }
         
         if (find_modules("blog_manager")) {
             $blogs = db_fetch("*", TB_BLOGS, ["status" => 1], "id", "DESC", 0, 3);
