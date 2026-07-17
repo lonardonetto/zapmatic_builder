@@ -3319,6 +3319,12 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
             return false;
         }
 
+        // Debug log
+        file_put_contents(WRITEPATH . 'bot_builder_send.log',
+            date('Y-m-d H:i:s') . ' | SEND_WHATSAPP | instance=' . $instance_id . ' | phone=' . $phone . ' | type=' . $type . ' | access_token=' . substr($access_token, 0, 8) . "...\n",
+            FILE_APPEND
+        );
+
         // Redireciona contas Whatsmeow para gateway Go (independente)
         static $whatsmeowGatewayChecked = [];
         if (!isset($whatsmeowGatewayChecked[$instance_id])) {
