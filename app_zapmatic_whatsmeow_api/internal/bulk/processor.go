@@ -153,6 +153,12 @@ func (p *Processor) processCampaign(c *Campaign) {
 		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", time.Now().Unix()+30))
 		UnlockCampaign(c.ID); return
 	}
+
+	// Skip campaigns that don't use whatsmeow — let Node.js/PHP handle them
+	if resolved.Provider != "whatsmeow" {
+		UnlockCampaign(c.ID); return
+	}
+
 	instanceID := resolved.InstanceID
 
 	// Normalize phones
