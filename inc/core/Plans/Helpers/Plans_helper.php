@@ -83,6 +83,27 @@ if(!function_exists('permission')){
                 if($team->permissions != ""){
                     $permissions = json_decode($team->permissions, true);
                 }
+
+                // Auto-sync: se permissões do time não batem com o plano, sincroniza
+                if (!empty($team->pid) && $team->pid > 0) {
+                    $plan = db_get("permissions", TB_PLANS, ["id" => $team->pid]);
+                    if (!empty($plan) && !empty($plan->permissions)) {
+                        $plan_perms = json_decode($plan->permissions, true);
+                        if (is_array($plan_perms)) {
+                            $needs_sync = false;
+                            foreach ($plan_perms as $k => $v) {
+                                if (!isset($permissions[$k]) || $permissions[$k] !== $v) {
+                                    $needs_sync = true;
+                                    break;
+                                }
+                            }
+                            if ($needs_sync) {
+                                $permissions = $plan_perms;
+                                db_update(TB_TEAM, ['permissions' => json_encode($plan_perms)], ["id" => $team_id]);
+                            }
+                        }
+                    }
+                }
             }else{
                 $team_member = db_get("*", TB_TEAM_MEMBER, "team_id = '".$team->id."' AND uid = '".$uid."'");
                 if(empty($team_member)){
