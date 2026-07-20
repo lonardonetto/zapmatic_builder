@@ -62,6 +62,27 @@ class Plans extends \CodeIgniter\Controller
         $permissions['cloud_api_accounts'] = $cloud_api_accounts;
         $permissions['cloud_api_embedded_signup'] = $cloud_api_embedded_signup;
 
+        // Merge: preservar permissões existentes que não têm checkbox no form
+        $existing = db_get("permissions", TB_PLANS, "ids = '{$ids}'");
+        if (!empty($existing) && !empty($existing->permissions)) {
+            $existing_perms = json_decode($existing->permissions, true);
+            if (is_array($existing_perms)) {
+                foreach ($existing_perms as $key => $value) {
+                    if (!isset($permissions[$key])) {
+                        $permissions[$key] = $value;
+                    }
+                }
+            }
+        }
+
+        // Garantir permissões obrigatórias (não têm checkbox no form)
+        $mandatory = ['whatsapp_profiles' => '1'];
+        foreach ($mandatory as $key => $default) {
+            if (!isset($permissions[$key])) {
+                $permissions[$key] = $default;
+            }
+        }
+
         validate('null', __('Name'), $name);
         validate('null', __('Description'), $description);
         validate('null', __('Trial day'), $trial_day);
