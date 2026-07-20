@@ -51,19 +51,27 @@ func (sm *StatsManager) GetOrCreateStats(teamID int) (*TeamStats, error) {
 		return nil, fmt.Errorf("get stats: %w", err)
 	}
 
-	// Get monthly limit from team permissions
-	var monthlyLimit sql.NullInt64
+	// Get monthly limit from sp_team.permissions JSON (field: whatsapp_message_per_month)
+	var permJSON sql.NullString
 	mysqlDB.QueryRow(
-		`SELECT MAX(CAST(p.permission_value AS UNSIGNED))
-		 FROM sp_team_permissions p
-		 JOIN sp_team_member m ON m.team_id = p.team_id
-		 WHERE p.team_id = ? AND p.permission = 'whatsapp_bulk_limit'`, teamID,
-	).Scan(&monthlyLimit)
-	if monthlyLimit.Valid {
-		stats.MonthlyLimit = int(monthlyLimit.Int64)
-	}
-	if stats.MonthlyLimit <= 0 {
-		stats.MonthlyLimit = 10000
+		`SELECT permissions FROM sp_team WHERE id = ?`, teamID,
+	).Scan(&permJSON)
+
+	stats.MonthlyLimit = 10000 // default
+	if permJSON.Valid && permJSON.String != "" {
+		// Parse JSON: {"whatsapp_message_per_month": "9223372036854775807", ...}
+		// Use MySQL JSON_EXTRACT to get the value directly
+		var limitStr sql.NullString
+		mysqlDB.QueryRow(
+			`SELECT JSON_UNQUOTE(JSON_EXTRACT(?, '$.whatsapp_message_per_month'))`, permJSON.String,
+		).Scan(&limitStr)
+		if limitStr.Valid && limitStr.String != "" {
+			var limit int
+			fmt.Sscanf(limitStr.String, "%d", &limit)
+			if limit > 0 {
+				stats.MonthlyLimit = limit
+			}
+		}
 	}
 
 	return stats, nil
