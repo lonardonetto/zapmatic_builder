@@ -730,20 +730,27 @@ class WhatsAppGatewayService
                     $db = \Config\Database::connect();
                     $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
                     if ($tpl) {
-                        $tplButtons = json_decode($tpl['buttons'] ?? '[]', true) ?: [];
-                        $btnBody = $tpl['text'] ?? $tpl['message'] ?? 'Escolha:';
+                        $tplData = json_decode($tpl['data'] ?? '{}', true) ?: [];
+
+                        // Botões podem estar em: templateButtons, buttons, ou interactiveButtons
+                        $tplButtons = $tplData['templateButtons'] ?? $tplData['buttons'] ?? $tplData['interactiveButtons'] ?? [];
+                        $btnBody = $tplData['text'] ?? $tplData['caption'] ?? $tpl['text'] ?? 'Escolha:';
+
                         $buttons = [];
                         foreach (array_slice($tplButtons, 0, 3) as $btn) {
+                            // Formato quickReplyButton: {"index":0,"quickReplyButton":{"displayText":"...","id":"..."}}
+                            $realBtn = $btn['quickReplyButton'] ?? $btn;
                             $buttons[] = [
                                 'type' => 'reply',
                                 'reply' => [
-                                    'id' => $btn['id'] ?? $btn['payload'] ?? uniqid(),
-                                    'title' => substr($btn['text'] ?? 'Opção', 0, 20),
+                                    'id' => $realBtn['id'] ?? $btn['id'] ?? uniqid(),
+                                    'title' => substr($realBtn['displayText'] ?? $realBtn['text'] ?? 'Opção', 0, 20),
                                 ],
                             ];
                         }
+
                         if (!empty($buttons)) {
-                            return [
+                            $msg = [
                                 'messaging_product' => 'whatsapp',
                                 'to' => $phone,
                                 'type' => 'interactive',
@@ -753,10 +760,17 @@ class WhatsAppGatewayService
                                     'action' => ['buttons' => $buttons],
                                 ],
                             ];
+                            if (!empty($tplData['title'])) {
+                                $msg['interactive']['header'] = ['type' => 'text', 'text' => $tplData['title']];
+                            }
+                            if (!empty($tplData['footer'])) {
+                                $msg['interactive']['footer'] = ['text' => $tplData['footer']];
+                            }
+                            return $msg;
                         }
                     }
-                    // Se não conseguiu extrair botões, enviar como texto
-                    $fallbackText = $tpl['text'] ?? $tpl['message'] ?? 'Resposta';
+                    // Fallback: enviar como texto
+                    $fallbackText = $tpl['text'] ?? 'Resposta';
                     return [
                         'messaging_product' => 'whatsapp',
                         'to' => $phone,
