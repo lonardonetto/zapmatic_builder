@@ -1100,7 +1100,18 @@ public function save_bot_settings()
                     $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup, $phone);
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
-                        if ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
+
+                        // Verificar se já existe sessão ativa para este phone+bot
+                        $existing_session = $this->model->get_session($phone, $instance_id_for_lookup);
+                        if ($existing_session && $existing_session->bot_id == $auto_bot->id && !$existing_session->is_completed) {
+                            // Reutilizar sessão existente — continuar fluxo
+                            $this->model->db->table('sp_bb_sessions')
+                                ->where('id', $existing_session->id)
+                                ->update(['autorespond_last_at' => date('Y-m-d H:i:s')]);
+                            $this->run_flow($existing_session, $text, $type, $instance_id_for_send, false);
+                            $handled_count++;
+                        } elseif ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
+                            // Criar nova sessão apenas se não existe nenhuma ativa
                             $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup, $init_ctx);
                             $this->model->db->table('sp_bb_sessions')
                                 ->where('id', $session_id)
