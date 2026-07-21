@@ -1100,18 +1100,49 @@ public function save_bot_settings()
                     $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup, $phone);
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
+                        $timeout = max(60, intval($auto_bot->session_timeout ?? 60)) * 60;
 
-                        // Verificar se já existe sessão ativa para este phone+bot
-                        $existing_session = $this->model->get_session($phone, $instance_id_for_lookup);
-                        if ($existing_session && $existing_session->bot_id == $auto_bot->id && !$existing_session->is_completed) {
-                            // Reutilizar sessão existente — continuar fluxo
-                            $this->model->db->table('sp_bb_sessions')
-                                ->where('id', $existing_session->id)
-                                ->update(['autorespond_last_at' => date('Y-m-d H:i:s')]);
-                            $this->run_flow($existing_session, $text, $type, $instance_id_for_send, false);
+                        // Buscar QUALQUER sessão recente (ativa ou completed)
+                        $db = $this->model->db;
+                        $recent_session = $db->table('sp_bb_sessions')
+                            ->where('bot_id', $auto_bot->id)
+                            ->where('phone', $phone)
+                            ->where('is_completed', 0)
+                            ->orderBy('id', 'DESC')
+                            ->get()->getRow();
+
+                        // Se não encontrou ativa, buscar a mais recente (mesmo completed)
+                        if (!$recent_session) {
+                            $recent_session = $db->table('sp_bb_sessions')
+                                ->where('bot_id', $auto_bot->id)
+                                ->where('phone', $phone)
+                                ->orderBy('id', 'DESC')
+                                ->get()->getRow();
+                        }
+
+                        $use_existing = false;
+                        if ($recent_session && $recent_session->bot_id == $auto_bot->id) {
+                            $age = time() - strtotime($recent_session->updated_at ?? $recent_session->created_at);
+                            if ($age < $timeout) {
+                                $use_existing = true;
+                            }
+                        }
+
+                        if ($use_existing) {
+                            // Reativar sessão existente — manter posição atual do fluxo
+                            $db->table('sp_bb_sessions')
+                                ->where('id', $recent_session->id)
+                                ->update([
+                                    'is_completed' => 0,
+                                    'autorespond_last_at' => date('Y-m-d H:i:s'),
+                                ]);
+                            $recent_session->is_completed = 0;
+                            $recent_session->autorespond_last_at = date('Y-m-d H:i:s');
+                            // NÃO resetar current_block_id — manter onde o fluxo parou
+                            $this->run_flow($recent_session, $text, $type, $instance_id_for_send, false);
                             $handled_count++;
                         } elseif ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
-                            // Criar nova sessão apenas se não existe nenhuma ativa
+                            // Criar nova sessão apenas se não existe nenhuma recente
                             $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup, $init_ctx);
                             $this->model->db->table('sp_bb_sessions')
                                 ->where('id', $session_id)
@@ -1273,16 +1304,17 @@ public function save_bot_settings()
                 }
 
                 $input_lower = preg_replace('/[\x{1F000}-\x{1FFFF}|\x{2600}-\x{27BF}|\x{FE00}-\x{FE0F}|\x{200D}|\x{20E3}|\x{2702}-\x{27B0}|\x{E0020}-\x{E007F}|\x{1FA00}-\x{1FAFF}]/u', '', strtolower(trim($input)));
+                $input_normalized = rtrim($input_lower, '?.!');
                 $btn_id_lower = $button_id ? strtolower(trim($button_id)) : '';
                 $mapped_card_title = $card_title_by_reply[$input_lower] ?? ($btn_id_lower ? ($card_title_by_reply[$btn_id_lower] ?? '') : '');
                 $mapped_card_title_lower = $mapped_card_title ? strtolower(trim($mapped_card_title)) : '';
 
-                // Strategy 1: Exact match on condition_value vs display text (ignorar emojis)
+                // Strategy 1: Exact match on condition_value vs display text (ignorar emojis e pontuação)
                 $emoji_re = '/[\x{1F000}-\x{1FFFF}|\x{2600}-\x{27BF}|\x{FE00}-\x{FE0F}|\x{200D}|\x{20E3}|\x{2702}-\x{27B0}|\x{E0020}-\x{E007F}|\x{1FA00}-\x{1FAFF}]/u';
                 foreach($btn_edges as $e) {
-                    $cv = preg_replace($emoji_re, '', strtolower(trim($e->condition_value)));
-                    $iv = preg_replace($emoji_re, '', $input_lower);
-                    file_put_contents(WRITEPATH . 'button_match_debug.log', date('Y-m-d H:i:s') . " | cv='$cv' iv='$iv' match=" . ($cv === $iv ? 'YES' : 'NO') . " | edge=" . $e->to_block_id . " | raw_cv=" . bin2hex($e->condition_value) . "\n", FILE_APPEND);
+                    $cv = rtrim(preg_replace($emoji_re, '', strtolower(trim($e->condition_value))), '?.!');
+                    $iv = $input_normalized;
+                    @file_put_contents(WRITEPATH . 'button_match_debug.log', date('Y-m-d H:i:s') . " | cv='$cv' iv='$iv' match=" . ($cv === $iv ? 'YES' : 'NO') . " | edge=" . $e->to_block_id . "\n", FILE_APPEND);
                     if($cv === $iv || ($mapped_card_title_lower && $cv === $mapped_card_title_lower)) {
                         $next_id = $e->to_block_id;
                         break;
