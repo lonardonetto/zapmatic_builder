@@ -259,35 +259,19 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                 }
             }
 
-            // 2) Continuar encaminhando MENSAGENS para o Node.js (mantém comportamento atual)
+            // 2) Encaminhar mensagens Cloud API para Bot_builder (keywords + autorespond)
             if (isset($value['metadata']['phone_number_id'])) {
                 $phone_number_id = $value['metadata']['phone_number_id'];
 
                 $db = \Config\Database::connect();
-                // Find account token by phone_number_id in data JSON
                 $sql = "SELECT token FROM sp_accounts WHERE social_network = 'whatsapp' AND login_type = 1 AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.phone_number_id')) = ?";
                 $query = $db->query($sql, [$phone_number_id]);
                 $row = $query->getRow();
 
                 if ($row) {
                     $token = $row->token;
-                    $log_entry .= "Forwarding payload for phone_number_id: $phone_number_id to Node API instance: $token\n";
 
-                    // Forward to Node.js API (port read automatically from config.js)
-                    $baileysPort = $this->getBaileysPort();
-                    $ch = curl_init("http://localhost:{$baileysPort}/webhook/$token");
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_POST, true);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, $input);
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                    $response = curl_exec($ch);
-                    $curl_info = curl_getinfo($ch);
-                    curl_close($ch);
-
-                    $log_entry .= "Node API Response status: " . $curl_info['http_code'] . "\n";
-
-                    // Also forward to Bot_builder webhook (autoresponder, chatbot flows)
+                    // Forward to Bot_builder webhook (keywords + autorespond)
                     if (!empty($value['messages'])) {
                         $bot_payload = [
                             'instance_id' => $token,
