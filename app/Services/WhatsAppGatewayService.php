@@ -724,9 +724,45 @@ class WhatsAppGatewayService
                 ];
 
             case 'buttons':
-                // Se tem _template_id, enviar como template message
+                // Se tem _template_id, extrair botões do template e enviar como interactive
                 if (!empty($payload['_template_id'])) {
-                    return self::buildCloudAPITemplate($phone, $payload);
+                    $templateId = (int)$payload['_template_id'];
+                    $db = \Config\Database::connect();
+                    $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+                    if ($tpl) {
+                        $tplButtons = json_decode($tpl['buttons'] ?? '[]', true) ?: [];
+                        $btnBody = $tpl['text'] ?? $tpl['message'] ?? 'Escolha:';
+                        $buttons = [];
+                        foreach (array_slice($tplButtons, 0, 3) as $btn) {
+                            $buttons[] = [
+                                'type' => 'reply',
+                                'reply' => [
+                                    'id' => $btn['id'] ?? $btn['payload'] ?? uniqid(),
+                                    'title' => substr($btn['text'] ?? 'Opção', 0, 20),
+                                ],
+                            ];
+                        }
+                        if (!empty($buttons)) {
+                            return [
+                                'messaging_product' => 'whatsapp',
+                                'to' => $phone,
+                                'type' => 'interactive',
+                                'interactive' => [
+                                    'type' => 'button',
+                                    'body' => ['text' => $btnBody],
+                                    'action' => ['buttons' => $buttons],
+                                ],
+                            ];
+                        }
+                    }
+                    // Se não conseguiu extrair botões, enviar como texto
+                    $fallbackText = $tpl['text'] ?? $tpl['message'] ?? 'Resposta';
+                    return [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $phone,
+                        'type' => 'text',
+                        'text' => ['body' => $fallbackText],
+                    ];
                 }
 
                 $btnBody = $payload['body'] ?? $payload['text'] ?? 'Escolha:';
