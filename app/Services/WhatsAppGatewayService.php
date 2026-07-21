@@ -584,6 +584,77 @@ class WhatsAppGatewayService
         ];
     }
 
+    /**
+     * Monta payload de template para Cloud API (Meta Graph API v21.0)
+     */
+    private static function buildCloudAPITemplate(string $chatId, array $payload): array
+    {
+        $phone = preg_replace('/[^0-9]/', '', $chatId);
+        $templateId = $payload['_template_id'] ?? 0;
+
+        if (!$templateId) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Template ID ausente'];
+        }
+
+        // Buscar template no banco
+        $db = \Config\Database::connect();
+        $tpl = $db->table('sp_whatsapp_template')->where('id', $templateId)->get()->getRowArray();
+
+        if (!$tpl) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Template não encontrado: ' . $templateId];
+        }
+
+        $templateName = $tpl['name'] ?? $tpl['template_name'] ?? '';
+        if (empty($templateName)) {
+            return ['status' => 'error', 'provider' => 'cloud_api', 'message' => 'Nome do template vazio'];
+        }
+
+        $msg = [
+            'messaging_product' => 'whatsapp',
+            'to' => $phone,
+            'type' => 'template',
+            'template' => [
+                'name' => $templateName,
+                'language' => ['code' => $tpl['language'] ?? 'pt_BR'],
+            ],
+        ];
+
+        // Parâmetros do template
+        $params = [];
+        if (!empty($tpl['params'])) {
+            $p = json_decode($tpl['params'], true) ?: [];
+            foreach ($p as $param) {
+                $params[] = ['type' => 'text', 'text' => $param['value'] ?? $param ?? ''];
+            }
+        }
+        if (!empty($params)) {
+            $msg['template']['components'][] = [
+                'type' => 'body',
+                'parameters' => $params,
+            ];
+        }
+
+        // Botões do template
+        $templateButtons = json_decode($tpl['buttons'] ?? '[]', true) ?: [];
+        if (!empty($templateButtons)) {
+            $buttons = [];
+            foreach ($templateButtons as $btn) {
+                $buttons[] = [
+                    'type' => 'quick_reply',
+                    'payload' => $btn['id'] ?? $btn['payload'] ?? '',
+                ];
+            }
+            $msg['template']['components'][] = [
+                'type' => 'button',
+                'sub_type' => 'quick_reply',
+                'index' => 0,
+                'buttons' => $buttons,
+            ];
+        }
+
+        return $msg;
+    }
+
     private static function buildCloudAPIPayload(string $chatId, string $type, array $payload): array
     {
         $phone = preg_replace('/@.*/', '', $chatId);
@@ -653,9 +724,24 @@ class WhatsAppGatewayService
                 ];
 
             case 'buttons':
+                // Se tem _template_id, enviar como template message
+                if (!empty($payload['_template_id'])) {
+                    return self::buildCloudAPITemplate($phone, $payload);
+                }
+
                 $btnBody = $payload['body'] ?? $payload['text'] ?? 'Escolha:';
                 $buttons = [];
-                foreach (array_slice($payload['buttons'] ?? [], 0, 3) as $btn) {
+
+                // Converter 'options' (string separada por vírgula) para array de botões
+                $rawButtons = $payload['buttons'] ?? [];
+                if (empty($rawButtons) && !empty($payload['options'])) {
+                    $optionList = array_map('trim', explode(',', $payload['options']));
+                    foreach ($optionList as $idx => $opt) {
+                        $rawButtons[] = ['id' => 'btn_' . ($idx + 1), 'text' => $opt];
+                    }
+                }
+
+                foreach (array_slice($rawButtons, 0, 3) as $btn) {
                     $buttons[] = [
                         'type' => 'reply',
                         'reply' => [
@@ -664,6 +750,17 @@ class WhatsAppGatewayService
                         ],
                     ];
                 }
+
+                if (empty($buttons)) {
+                    // Sem botões válidos → enviar como texto simples
+                    return [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $phone,
+                        'type' => 'text',
+                        'text' => ['body' => $btnBody],
+                    ];
+                }
+
                 $msg = [
                     'messaging_product' => 'whatsapp',
                     'to' => $phone,
