@@ -1272,15 +1272,18 @@ public function save_bot_settings()
                     }
                 }
 
-                $input_lower = strtolower(trim($input));
+                $input_lower = preg_replace('/[\x{1F000}-\x{1FFFF}|\x{2600}-\x{27BF}|\x{FE00}-\x{FE0F}|\x{200D}|\x{20E3}|\x{2702}-\x{27B0}|\x{E0020}-\x{E007F}|\x{1FA00}-\x{1FAFF}]/u', '', strtolower(trim($input)));
                 $btn_id_lower = $button_id ? strtolower(trim($button_id)) : '';
                 $mapped_card_title = $card_title_by_reply[$input_lower] ?? ($btn_id_lower ? ($card_title_by_reply[$btn_id_lower] ?? '') : '');
                 $mapped_card_title_lower = $mapped_card_title ? strtolower(trim($mapped_card_title)) : '';
 
-                // Strategy 1: Exact match on condition_value vs display text
+                // Strategy 1: Exact match on condition_value vs display text (ignorar emojis)
+                $emoji_re = '/[\x{1F000}-\x{1FFFF}|\x{2600}-\x{27BF}|\x{FE00}-\x{FE0F}|\x{200D}|\x{20E3}|\x{2702}-\x{27B0}|\x{E0020}-\x{E007F}|\x{1FA00}-\x{1FAFF}]/u';
                 foreach($btn_edges as $e) {
-                    $cv = strtolower(trim($e->condition_value));
-                    if($cv === $input_lower || ($mapped_card_title_lower && $cv === $mapped_card_title_lower)) {
+                    $cv = preg_replace($emoji_re, '', strtolower(trim($e->condition_value)));
+                    $iv = preg_replace($emoji_re, '', $input_lower);
+                    file_put_contents(WRITEPATH . 'button_match_debug.log', date('Y-m-d H:i:s') . " | cv='$cv' iv='$iv' match=" . ($cv === $iv ? 'YES' : 'NO') . " | edge=" . $e->to_block_id . " | raw_cv=" . bin2hex($e->condition_value) . "\n", FILE_APPEND);
+                    if($cv === $iv || ($mapped_card_title_lower && $cv === $mapped_card_title_lower)) {
                         $next_id = $e->to_block_id;
                         break;
                     }

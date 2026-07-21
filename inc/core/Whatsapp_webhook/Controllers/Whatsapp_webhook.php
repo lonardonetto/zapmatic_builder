@@ -288,6 +288,31 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                             $message_body = [];
                             if ($type === 'text') {
                                 $message_body = ['conversation' => $text_body];
+                            } elseif ($type === 'interactive') {
+                                // Button/list reply
+                                $interactive = $msg['interactive'] ?? [];
+                                $i_type = $interactive['type'] ?? '';
+                                if ($i_type === 'button_reply') {
+                                    $reply = $interactive['button_reply'] ?? [];
+                                    $message_body = [
+                                        'buttonsResponseMessage' => [
+                                            'selectedButtonId' => $reply['id'] ?? '',
+                                            'selectedDisplayText' => $reply['title'] ?? $reply['id'] ?? '',
+                                        ]
+                                    ];
+                                } elseif ($i_type === 'list_reply') {
+                                    $reply = $interactive['list_reply'] ?? [];
+                                    $message_body = [
+                                        'listResponseMessage' => [
+                                            'title' => $reply['title'] ?? '',
+                                            'singleSelectReply' => ['selectedRowId' => $reply['id'] ?? ''],
+                                        ]
+                                    ];
+                                } else {
+                                    // Outro tipo interativo — passar como texto
+                                    $text_body = $interactive['body']['text'] ?? json_encode($interactive);
+                                    $message_body = ['conversation' => $text_body];
+                                }
                             }
                             $bot_payload['data']['messages'][] = [
                                 'key' => [
