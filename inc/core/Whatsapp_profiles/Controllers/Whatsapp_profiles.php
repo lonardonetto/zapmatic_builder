@@ -632,6 +632,44 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "baileys_connect_url" => base_url("whatsapp_profiles/generate_instance")
         ];
 
+        // Detecta instâncias whatsmeow (login_type=3) para abrir o drawer correto
+        $is_whatsmeow_instance = false;
+        if (!empty($instance_id)) {
+            $gatewayInfo = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
+            if (($gatewayInfo['provider'] ?? 'baileys') === 'whatsmeow' || strpos($instance_id, 'WMEOW_') === 0) {
+                $is_whatsmeow_instance = true;
+            }
+        }
+
+        if ($is_whatsmeow_instance) {
+            // Instância whatsmeow/Go: abrir drawer do Go, NÃO do Baileys
+            $content_data['show_whatsmeow_qr'] = true;
+            $content_data['show_baileys_qr'] = false;
+            $content_data['instance_id'] = $instance_id;
+            $content_data['whatsmeow_instance_id'] = $instance_id;
+            // Busca TODOS os perfis para exibir a lista
+            $content_data['accounts'] = db_fetch("*", self::TB_ACCOUNTS, [
+                "social_network" => "whatsapp",
+                "category" => "profile",
+                "team_id" => $team_id
+            ]);
+            // Pular o branch Baileys
+            $should_prepare_baileys_session = false;
+
+            $content_data["has_pair"] = false;
+            $content_data["pair_code"] = "";
+            $content_data["error_msg"] = "";
+            $content_data["has_error"] = false;
+
+            $data = [
+                "title" => "Central de Conexão WhatsApp",
+                "desc" => "Gerencie conexões Baileys, Cloud API e Whatsmeow.",
+                "config" => $this->config,
+                "content" => view('Core\Whatsapp_profiles\Views\oauth', $content_data)
+            ];
+            return view('Core\Whatsapp_profiles\Views\index', $data);
+        }
+
         // Busca a conta específica se um instance_id foi fornecido (apenas Baileys)
         $account = db_get("*", self::TB_ACCOUNTS, [
             "social_network" => "whatsapp",
@@ -1400,7 +1438,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 $team_id
             );
         } catch (\Throwable $e) {
-            // Falha silenciosa, continua
+            file_put_contents(WRITEPATH . 'register_error.log', date('Y-m-d H:i:s') . ' | ' . $e->getMessage() . "\n", FILE_APPEND);
         }
 
         // Cria sessão pendente (status=0) igual ao Baileys
@@ -1449,9 +1487,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
         // Detecta se é instância Whatsmeow
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        if (($gateway['provider'] ?? 'baileys') === 'whatsmeow') {
-            $this->get_whatsmeow_qrcode($instance_id);
-            return;
+        if (($gateway['provider'] ?? 'baileys') === 'whatsmeow' || strpos($instance_id, 'WMEOW_') === 0) {
+            return $this->get_whatsmeow_qrcode($instance_id);
         }
 
         $access_token = get_team("ids");
@@ -1519,44 +1556,51 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         curl_close($ch);
 
         if ($error || !$response) {
-            echo json_encode([
+            return $this->jsonResponse([
                 "status" => "error",
                 "message" => "Gateway Whatsmeow offline: $error"
             ]);
-            exit;
         }
 
         $decoded = json_decode($response, true);
         if (!is_array($decoded) || (empty($decoded['qrcode']) && empty($decoded['challenge']))) {
-            echo json_encode([
+            // Already connected? Let's check state
+            if (isset($decoded['state']) && $decoded['state'] === 'connected') {
+                return $this->jsonResponse([
+                    "status" => "success",
+                    "state" => "connected",
+                    "instance_id" => $instance_id
+                ]);
+            }
+            return $this->jsonResponse([
                 "status" => "error",
                 "message" => "Resposta inválida do gateway"
             ]);
-            exit;
         }
 
         if (isset($decoded['method']) && $decoded['method'] === 'passkey') {
-            echo json_encode($decoded);
-            exit;
+            return $this->jsonResponse($decoded);
         }
 
         $qrRaw = $decoded['qrcode'];
         $qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' . urlencode($qrRaw);
 
-        echo json_encode([
+        return $this->jsonResponse([
             "status" => "success",
             "base64" => $qrImgUrl,
             "instance_id" => $instance_id,
         ]);
-        exit;
     }
 
     public function check_whatsmeow_login($instance_id)
     {
+        $logFile = WRITEPATH . 'check_whatsmeow_login.log';
+        file_put_contents($logFile, date('Y-m-d H:i:s') . " | check_whatsmeow_login: $instance_id\n", FILE_APPEND);
+
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
-            echo json_encode(["status" => "error", "message" => "Not a whatsmeow instance"]);
-            exit;
+        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow' && strpos($instance_id, 'WMEOW_') !== 0) {
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Not whatsmeow\n", FILE_APPEND);
+            return $this->jsonResponse(["status" => "error", "message" => "Not a whatsmeow instance"]);
         }
 
         $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
@@ -1572,14 +1616,17 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         $error = curl_error($ch);
         curl_close($ch);
 
+        file_put_contents($logFile, date('Y-m-d H:i:s') . " | /status response: $response | error: $error\n", FILE_APPEND);
+
         if ($error || !$response) {
-            echo json_encode(["status" => "error", "message" => "Gateway offline"]);
-            exit;
+            return $this->jsonResponse(["status" => "error", "message" => "Gateway offline"]);
         }
 
         $status = json_decode($response);
         if ($status && !empty($status->state) && $status->state === 'connected') {
             $team_id = get_team("id");
+
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | state=connected, calling /profile\n", FILE_APPEND);
 
             // Busca profile completo no Go — chamada única
             $profileName = "";
@@ -1590,10 +1637,14 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             $chProfile = curl_init($baseUrl . '/profile?instance_id=' . urlencode($instance_id));
             curl_setopt_array($chProfile, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 35,
+                CURLOPT_TIMEOUT => 45,
             ]);
             $profileResp = curl_exec($chProfile);
+            $profileErr = curl_error($chProfile);
             curl_close($chProfile);
+
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | /profile response: $profileResp | error: $profileErr\n", FILE_APPEND);
+
             if ($profileResp) {
                 $profileData = json_decode($profileResp);
                 if ($profileData && !empty($profileData->push_name)) {
@@ -1610,18 +1661,16 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 }
             }
 
-            // Se ainda não tem push_name, retorna pending — JS continua polling
-            if (empty($profileName)) {
-                echo json_encode(["status" => "pending", "message" => "Aguardando push name"]);
-                exit;
-            }
-
-            // Limpa JID: remove sufixo de dispositivo (:XX@s.whatsapp.net -> @s.whatsapp.net)
+            // Se /profile falhou (timeout) ou push_name ainda não chegou,
+            // usa fallback: telefone do JID. NÃO fica em loop "pending" infinito.
             $cleanJid = preg_replace('/:\d+@/', '@', $profileJid);
 
             // Se push_name veio vazio, usa telefone limpo como nome
             if (empty($profileName) || $profileName === 'Whatsmeow') {
                 $profileName = !empty($profilePhone) ? $profilePhone : preg_replace('/@.*$/', '', $cleanJid);
+                if (empty($profileName)) {
+                    $profileName = $instance_id; // último recurso
+                }
             }
 
             // Fallback avatar: gera com iniciais (igual Baileys usa ui-avatars.com)
@@ -1633,6 +1682,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             }
 
             $pid = !empty($cleanJid) ? $cleanJid : $instance_id;
+
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Updating DB for team_id=$team_id\n", FILE_APPEND);
 
             $account = db_get("*", self::TB_ACCOUNTS, [
                 "token" => $instance_id,
@@ -1675,18 +1726,17 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 db_update(self::TB_WHATSAPP_SESSIONS, ["status" => 1, "data" => $sessionData], ["instance_id" => $instance_id]);
             }
 
-            echo json_encode(["status" => "success", "message" => "Whatsmeow connected"]);
-            exit;
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Returning success\n", FILE_APPEND);
+            return $this->jsonResponse(["status" => "success", "message" => "Whatsmeow connected"]);
         }
 
-        echo json_encode(["status" => "error", "message" => "Aguardando scan do QR"]);
-        exit;
+        return $this->jsonResponse(["status" => "error", "message" => "Aguardando scan do QR"]);
     }
 
     public function refresh_whatsmeow_profile($instance_id)
     {
         $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($instance_id);
-        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow') {
+        if (($gateway['provider'] ?? 'baileys') !== 'whatsmeow' && strpos($instance_id, 'WMEOW_') !== 0) {
             echo json_encode(["status" => "error", "message" => "Not a whatsmeow instance"]);
             exit;
         }
@@ -1867,8 +1917,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
     {
         // Roteia instâncias Whatsmeow para o gateway Go
         if (strpos($instance_id, 'WMEOW_') === 0) {
-            $this->check_whatsmeow_login($instance_id);
-            return;
+            return $this->check_whatsmeow_login($instance_id);
         }
 
         $team_id = get_team("id");
@@ -1942,12 +1991,17 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 exit;
             }
 
-            // Realiza logout na API
+            // Realiza logout na API — roteia conforme o tipo de conexão
             try {
-                $logoutResponse = wa_get_curl("logout", [
-                    "instance_id" => $account->token,
-                    "access_token" => $access_token
-                ]);
+                $login_type = (int)($account->login_type ?? 2);
+                if ($login_type === 3) {
+                    \App\Services\WhatsAppGatewayService::logout($account->token);
+                } else {
+                    wa_get_curl("logout", [
+                        "instance_id" => $account->token,
+                        "access_token" => $access_token
+                    ]);
+                }
             } catch (\Exception $e) {
                 // Ignora erro no logout da API
             }
@@ -2157,12 +2211,17 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 exit;
             }
 
-            // Realiza logout na API
+            // Realiza logout na API — roteia conforme o tipo de conexão
             try {
-                $logoutResponse = wa_get_curl("logout", [
-                    "instance_id" => $account->token,
-                    "access_token" => $access_token
-                ]);
+                $login_type = (int)($account->login_type ?? 2);
+                if ($login_type === 3) {
+                    \App\Services\WhatsAppGatewayService::logout($account->token);
+                } else {
+                    wa_get_curl("logout", [
+                        "instance_id" => $account->token,
+                        "access_token" => $access_token
+                    ]);
+                }
             } catch (\Exception $e) {
                 // Ignora erro no logout da API
             }

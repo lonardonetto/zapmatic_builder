@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -12,6 +13,15 @@ type Payload struct {
 	InstanceID string       `json:"instance_id"`
 	Gateway    string       `json:"gateway"`
 	Data       MessagesData `json:"data"`
+}
+
+// SessionStatusPayload is sent when a session connects, disconnects, pairs, or logs out.
+type SessionStatusPayload struct {
+	InstanceID string `json:"instance_id"`
+	Gateway    string `json:"gateway"`
+	Type       string `json:"type"`            // "session_status"
+	Event      string `json:"event"`           // "connected", "disconnected", "logged_out", "pair_success"
+	JID        string `json:"jid,omitempty"`   // filled on pair_success / connected
 }
 
 type MessagesData struct {
@@ -53,4 +63,29 @@ func Send(url string, body []byte) {
 	if resp.StatusCode >= 300 {
 		logging.Log.Warn().Str("url", url).Int("status", resp.StatusCode).Msg("Webhook returned non-2xx")
 	}
+}
+
+// SendSessionStatus sends a session status event (connected/disconnected/pair_success/logged_out)
+// to the webhook URL so the PHP backend can react without polling.
+func SendSessionStatus(url, instanceID, event, jid string) {
+	if url == "" {
+		return
+	}
+
+	payload := SessionStatusPayload{
+		InstanceID: instanceID,
+		Gateway:    "whatsmeow",
+		Type:       "session_status",
+		Event:      event,
+		JID:        jid,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		logging.Log.Error().Err(err).Str("instance", instanceID).Msg("Failed to marshal session status payload")
+		return
+	}
+
+	logging.Log.Info().Str("instance", instanceID).Str("event", event).Msg("Sending session status webhook")
+	Send(url, body)
 }

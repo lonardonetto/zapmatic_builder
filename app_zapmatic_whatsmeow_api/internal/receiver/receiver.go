@@ -45,12 +45,16 @@ func (r *Receiver) HandleEvent(instanceID string, evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Connected:
 		logging.Log.Info().Str("instance", instanceID).Msg("Device connected")
+		webhook.SendSessionStatus(r.webhookURL, instanceID, "connected", "")
 	case *events.Disconnected:
 		logging.Log.Warn().Str("instance", instanceID).Msg("Device disconnected")
+		webhook.SendSessionStatus(r.webhookURL, instanceID, "disconnected", "")
 	case *events.LoggedOut:
 		logging.Log.Warn().Str("instance", instanceID).Msg("Device logged out")
+		webhook.SendSessionStatus(r.webhookURL, instanceID, "logged_out", "")
 	case *events.PairSuccess:
 		logging.Log.Info().Str("instance", instanceID).Str("jid", v.ID.String()).Msg("Device paired successfully")
+		webhook.SendSessionStatus(r.webhookURL, instanceID, "pair_success", v.ID.String())
 	case *events.Message:
 		r.HandleMessage(instanceID, v)
 	case *events.HistorySync:

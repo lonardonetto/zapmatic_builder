@@ -857,7 +857,45 @@ public function save_bot_settings()
         }
 
         $data = json_decode($json, true);
-        if(!isset($data['instance_id']) || !isset($data['data']['messages'])) {
+        if (!isset($data['instance_id'])) {
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Invalid payload structure\n", FILE_APPEND);
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Payload inválido']);
+        }
+
+        // Session status event from Go/whatsmeow (connected/disconnected/pair_success/logged_out)
+        if (($data['type'] ?? '') === 'session_status') {
+            $instance_id = $data['instance_id'];
+            $event = $data['event'] ?? '';
+            $jid = $data['jid'] ?? '';
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | Session status: instance={$instance_id} event={$event} jid={$jid}\n", FILE_APPEND);
+
+            $db = \Config\Database::connect();
+            $account = $db->table('sp_accounts')->where('token', $instance_id)->get()->getRow();
+
+            if ($account) {
+                if ($event === 'connected' || $event === 'pair_success') {
+                    $db->table('sp_accounts')->where('id', $account->id)->update([
+                        'status' => 1,
+                        'changed' => time(),
+                    ]);
+                    $db->table('sp_whatsapp_sessions')
+                        ->where('instance_id', $instance_id)
+                        ->update(['status' => 1]);
+                } elseif ($event === 'disconnected' || $event === 'logged_out') {
+                    $db->table('sp_accounts')->where('id', $account->id)->update([
+                        'status' => 0,
+                        'changed' => time(),
+                    ]);
+                    $db->table('sp_whatsapp_sessions')
+                        ->where('instance_id', $instance_id)
+                        ->update(['status' => 2]);
+                }
+            }
+
+            return $this->response->setJSON(['status' => 'success', 'message' => "Session status: {$event}"]);
+        }
+
+        if (!isset($data['data']['messages'])) {
             file_put_contents($logFile, date('Y-m-d H:i:s') . " | Invalid payload structure\n", FILE_APPEND);
             return $this->response->setJSON(['status' => 'error', 'message' => 'Payload inválido']);
         }

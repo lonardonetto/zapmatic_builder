@@ -16,17 +16,22 @@ class WhatsAppGatewayService
 
         // Try to find config.json next to app_zapmatic_whatsmeow_api
         $paths = [
+            ROOTPATH . 'app_zapmatic_whatsmeow_api/config.json',
             ROOTPATH . '../app_zapmatic_whatsmeow_api/config.json',
             dirname(__DIR__, 3) . '/app_zapmatic_whatsmeow_api/config.json',
         ];
 
         foreach ($paths as $path) {
-            if (is_file($path)) {
-                $json = json_decode(file_get_contents($path), true);
-                if (isset($json['port'])) {
-                    $baseUrl = 'http://127.0.0.1:' . $json['port'];
-                    return $baseUrl;
+            try {
+                if (@is_file($path)) {
+                    $json = json_decode(file_get_contents($path), true);
+                    if (isset($json['port'])) {
+                        $baseUrl = 'http://127.0.0.1:' . $json['port'];
+                        return $baseUrl;
+                    }
                 }
+            } catch (\Throwable $e) {
+                // Ignore open_basedir errors
             }
         }
 
