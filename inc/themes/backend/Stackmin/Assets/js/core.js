@@ -492,12 +492,12 @@ function Core() {
 
                 //Call After
                 if (call_after != undefined) {
-                    eval(call_after);
+                    try { eval(call_after); } catch(e) { console.error('call_after error:', e); }
                 }
 
                 //Call Success
                 if (call_success != undefined && result.status == 'success') {
-                    eval(call_success);
+                    try { eval(call_success); } catch(e) { console.error('call_success error:', e); }
                 }
 
                 //Remove Element
@@ -646,15 +646,23 @@ function Core() {
                         that.attr('data-loading', 0);
                     }
 
-                    //Call After
-                    if (call_after != undefined) {
+                //Call After
+                if (call_after != undefined) {
+                    try {
                         eval(call_after);
+                    } catch (e) {
+                        console.error('Error executing call_after:', e);
                     }
+                }
 
-                    //Call Success
-                    if (call_success != undefined && result.status == 'success') {
+                //Call Success
+                if (call_success != undefined && result.status == 'success') {
+                    try {
                         eval(call_success);
+                    } catch (e) {
+                        console.error('Error executing call_success:', e);
                     }
+                }
 
                     that.attr('data-page', page + 1);
 
@@ -880,12 +888,12 @@ function Core() {
 
                 //Call After
                 if (call_after != undefined) {
-                    eval(call_after);
+                    try { eval(call_after); } catch(e) { console.error('call_after error:', e); }
                 }
 
                 //Call Success
                 if (call_success != undefined && result.status == 'success') {
-                    eval(call_success);
+                    try { eval(call_success); } catch(e) { console.error('call_success error:', e); }
                 }
 
                 if ($(".paginationjs").length == 0 || total_items != result.total_items) {
@@ -1088,7 +1096,7 @@ function Core() {
 
                         //Call After
                         if (call_after != undefined) {
-                            eval(call_after);
+                            try { eval(call_after); } catch(e) { console.error('call_after error:', e); }
                         }
 
                         //Hide Loading
