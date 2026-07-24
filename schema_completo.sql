@@ -45,7 +45,7 @@ CREATE TABLE `sp_accounts` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=197 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -176,7 +176,7 @@ CREATE TABLE `sp_bb_integrations` (
   UNIQUE KEY `idx_bot_instance` (`bot_id`,`instance_id`),
   KEY `idx_bot` (`bot_id`),
   KEY `idx_instance` (`instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=223 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=230 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -201,7 +201,7 @@ CREATE TABLE `sp_bb_sessions` (
   KEY `idx_phone` (`phone`),
   KEY `idx_bot` (`bot_id`),
   KEY `idx_instance_phone` (`instance_id`,`phone`)
-) ENGINE=InnoDB AUTO_INCREMENT=2557 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2654 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -264,7 +264,7 @@ CREATE TABLE `sp_bb_versions` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_bot` (`bot_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4010 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4087 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -341,7 +341,7 @@ CREATE TABLE `sp_captions` (
   `changed` int(11) NOT NULL,
   `created` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -432,6 +432,57 @@ CREATE TABLE `sp_files` (
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=1037 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_gmscraper_jobs`
+--
+
+DROP TABLE IF EXISTS `sp_gmscraper_jobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_gmscraper_jobs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ids` varchar(32) DEFAULT NULL,
+  `team_id` int(11) DEFAULT NULL,
+  `keyword` varchar(255) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `target_phonebook` varchar(32) DEFAULT NULL,
+  `limit_leads` int(11) DEFAULT '100',
+  `delay_seconds` int(11) DEFAULT '30',
+  `status` int(1) DEFAULT '0' COMMENT '0=pending, 1=running, 2=completed, 3=error, 4=paused',
+  `current_count` int(11) DEFAULT '0',
+  `error_msg` text,
+  `created` int(11) DEFAULT NULL,
+  `changed` int(11) DEFAULT NULL,
+  `ddi` varchar(5) DEFAULT '55',
+  `proxy` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_gmscraper_leads`
+--
+
+DROP TABLE IF EXISTS `sp_gmscraper_leads`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_gmscraper_leads` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `job_id` int(11) DEFAULT NULL,
+  `team_id` int(11) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `rating` varchar(10) DEFAULT NULL,
+  `reviews` varchar(20) DEFAULT NULL,
+  `address` text,
+  `website` varchar(255) DEFAULT NULL,
+  `created` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `job_idx` (`job_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -746,7 +797,7 @@ CREATE TABLE `sp_options` (
   `name` longtext NOT NULL,
   `value` longtext NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=314 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=315 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -817,7 +868,7 @@ CREATE TABLE `sp_plans` (
   `data` mediumtext,
   `status` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -897,7 +948,7 @@ CREATE TABLE `sp_team` (
   `permissions` longtext,
   `data` longtext,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=258 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=259 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -966,7 +1017,7 @@ CREATE TABLE `sp_users` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=257 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=258 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1190,7 +1241,7 @@ CREATE TABLE `sp_whatsapp_contacts` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=116 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=118 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1403,7 +1454,7 @@ CREATE TABLE `sp_whatsapp_gateways` (
   `changed` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `instance_id` (`instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1423,7 +1474,7 @@ CREATE TABLE `sp_whatsapp_history` (
   `status` int(11) NOT NULL,
   `time_post` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4647 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4910 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1472,7 +1523,7 @@ CREATE TABLE `sp_whatsapp_message_status` (
   KEY `idx_schedule` (`schedule_id`,`team_id`),
   KEY `idx_wa_message_id` (`wa_message_id`),
   KEY `idx_status` (`status`,`last_status_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=555 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1518,7 +1569,7 @@ CREATE TABLE `sp_whatsapp_phone_numbers` (
   `params` text,
   `is_valid` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=122758 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=123517 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1584,7 +1635,7 @@ CREATE TABLE `sp_whatsapp_schedules` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=141 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=144 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1603,7 +1654,7 @@ CREATE TABLE `sp_whatsapp_sessions` (
   `status` int(11) DEFAULT NULL,
   `creds` longtext,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=1412 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=1420 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1628,7 +1679,7 @@ CREATE TABLE `sp_whatsapp_stats` (
   `wa_time_reset` int(11) DEFAULT NULL,
   `next_update` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1657,7 +1708,7 @@ CREATE TABLE `sp_whatsapp_subscriber` (
   `lastMessage` text,
   `lastMessageTime` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7283 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7703 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1727,4 +1778,4 @@ CREATE TABLE `sp_whatsapp_webhook` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-23  2:20:33
+-- Dump completed on 2026-07-24 16:55:57
