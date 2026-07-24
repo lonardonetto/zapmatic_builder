@@ -145,7 +145,21 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
 
             $result = $this->fetch_groups($account, $access_token);
             if($result->status == "error"){
-                echo '<div class="alert alert-danger">Erro: ' . htmlspecialchars($result->message) . '</div>';
+                $friendly_msg = $result->message;
+                
+                // Mapeamento de mensagens técnicas para amigáveis
+                $errLower = strtolower($result->message);
+                if (strpos($errLower, 'client not found') !== false || strpos($errLower, 'instance not found') !== false) {
+                    $friendly_msg = "Sua conta do WhatsApp está desconectada do servidor. Por favor, reconecte escaneando o QR Code novamente.";
+                } elseif (strpos($errLower, 'not connected') !== false) {
+                    $friendly_msg = "A conexão com o WhatsApp foi perdida ou o aparelho está offline. Verifique o celular e reconecte se necessário.";
+                } elseif (strpos($errLower, 'rate-overlimit') !== false || strpos($errLower, 'status 429') !== false) {
+                    $friendly_msg = "O WhatsApp bloqueou temporariamente a leitura de grupos para este número por excesso de acessos. Por favor, aguarde cerca de 1 a 2 horas e tente novamente.";
+                } elseif (strpos($errLower, 'timeout') !== false) {
+                    $friendly_msg = "O WhatsApp demorou muito para responder com a lista de grupos. Tente novamente.";
+                }
+
+                echo '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i> ' . htmlspecialchars($friendly_msg) . '</div>';
                 return;
             } else {
                 $data = [

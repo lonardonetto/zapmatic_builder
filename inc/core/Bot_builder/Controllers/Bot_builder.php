@@ -2744,50 +2744,63 @@ private function get_group_name($group_id, $instance_id)
 {
     if (empty($group_id) || empty($instance_id)) return '';
     
-    // Cache de 1 hora para nome de grupo para evitar rate limit (429) no WhatsApp
+    // Cache da lista de grupos completa por 1 hora para evitar rate limit (429) no WhatsApp
     $cache = \Config\Services::cache();
-    $cacheKey = 'group_name_' . md5($instance_id . '_' . $group_id);
-    if ($cachedName = $cache->get($cacheKey)) {
-        return $cachedName;
+    $cacheKey = 'all_groups_list_' . md5($instance_id);
+    
+    $group_list = $cache->get($cacheKey);
+    
+    if (!$group_list) {
+        $group_list = [];
+        // Try GO gateway first
+        try {
+            $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 5,
+            ]);
+            $resp = curl_exec($ch);
+            curl_close($ch);
+            if ($resp) {
+                $data = json_decode($resp, true);
+                if (isset($data['groups'])) {
+                    foreach ($data['groups'] as $g) {
+                        $group_list[$g['jid']] = $g['name'];
+                    }
+                    $cache->save($cacheKey, $group_list, 3600); // Salva por 1 hora se obteve sucesso
+                } else {
+                    // Se falhou (ex: 429), salva array vazio por 5 minutos para esfriar a API
+                    $cache->save($cacheKey, [], 300);
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // Se a lista de grupos ainda estiver vazia, tenta o fallback do Baileys
+        if (empty($group_list)) {
+            try {
+                if (function_exists('wa_get_curl')) {
+                    $grp = wa_get_curl('get_groups', ['instance_id' => $instance_id]);
+                    if ($grp && isset($grp->data) && is_array($grp->data)) {
+                        foreach ($grp->data as $g) {
+                            $id = $g->id ?? '';
+                            $name = $g->name ?? ($g->subject ?? '');
+                            $group_list[$id] = $name;
+                            $group_list[str_replace('@g.us', '', $id)] = $name;
+                        }
+                        $cache->save($cacheKey, $group_list, 3600);
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
     }
     
-    // Try GO gateway first (reads port from config.json)
-    try {
-        $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-        ]);
-        $resp = curl_exec($ch);
-        curl_close($ch);
-        if ($resp) {
-            $data = json_decode($resp, true);
-            if (isset($data['groups'])) {
-                foreach ($data['groups'] as $g) {
-                    if ($g['jid'] === $group_id) {
-                        $cache->save($cacheKey, $g['name'], 3600); // Salva por 1 hora
-                        return $g['name'];
-                    }
-                }
-            }
-        }
-    } catch (\Throwable $e) {}
-
-    // Fallback: Baileys/Waziper Node.js API
-    try {
-        if (function_exists('wa_get_curl')) {
-            $grp = wa_get_curl('get_groups', ['instance_id' => $instance_id]);
-            if ($grp && isset($grp->data) && is_array($grp->data)) {
-                foreach ($grp->data as $g) {
-                    if (($g->id ?? '') === $group_id || ($g->id ?? '') === $group_id . '@g.us') {
-                        $name = $g->name ?? ($g->subject ?? '');
-                        $cache->save($cacheKey, $name, 3600); // Salva por 1 hora
-                        return $name;
-                    }
-                }
-            }
-        }
-    } catch (\Throwable $e) {}
+    // Procura na lista (com ou sem sufixo)
+    if (isset($group_list[$group_id])) {
+        return $group_list[$group_id];
+    }
+    if (isset($group_list[$group_id . '@g.us'])) {
+        return $group_list[$group_id . '@g.us'];
+    }
 
     return '';
 }
