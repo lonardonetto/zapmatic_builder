@@ -2744,6 +2744,13 @@ private function get_group_name($group_id, $instance_id)
 {
     if (empty($group_id) || empty($instance_id)) return '';
     
+    // Cache de 1 hora para nome de grupo para evitar rate limit (429) no WhatsApp
+    $cache = \Config\Services::cache();
+    $cacheKey = 'group_name_' . md5($instance_id . '_' . $group_id);
+    if ($cachedName = $cache->get($cacheKey)) {
+        return $cachedName;
+    }
+    
     // Try GO gateway first (reads port from config.json)
     try {
         $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
@@ -2757,7 +2764,10 @@ private function get_group_name($group_id, $instance_id)
             $data = json_decode($resp, true);
             if (isset($data['groups'])) {
                 foreach ($data['groups'] as $g) {
-                    if ($g['jid'] === $group_id) return $g['name'];
+                    if ($g['jid'] === $group_id) {
+                        $cache->save($cacheKey, $g['name'], 3600); // Salva por 1 hora
+                        return $g['name'];
+                    }
                 }
             }
         }
@@ -2770,7 +2780,9 @@ private function get_group_name($group_id, $instance_id)
             if ($grp && isset($grp->data) && is_array($grp->data)) {
                 foreach ($grp->data as $g) {
                     if (($g->id ?? '') === $group_id || ($g->id ?? '') === $group_id . '@g.us') {
-                        return $g->name ?? ($g->subject ?? '');
+                        $name = $g->name ?? ($g->subject ?? '');
+                        $cache->save($cacheKey, $name, 3600); // Salva por 1 hora
+                        return $name;
                     }
                 }
             }
