@@ -19,10 +19,14 @@ $hash = csrf_hash();
 <body>
 
 <div class="bot-builder-wrapper">
+    <!-- MOBILE ADD BUTTON -->
+    <div class="mobile-add-btn" onclick="document.querySelector('.sidebar-blocks').classList.toggle('show-mobile')"><i class="fas fa-plus"></i></div>
+
     <!-- LEFT SIDEBAR -->
     <div class="sidebar-blocks">
-        <div class="sidebar-header">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
             <h3><i class="fad fa-robot"></i> <span>Blocos</span></h3>
+            <button class="btn btn-sm btn-light d-md-none" onclick="document.querySelector('.sidebar-blocks').classList.remove('show-mobile')"><i class="fas fa-times"></i></button>
         </div>
         <div class="sidebar-search">
             <input type="text" id="block-search" placeholder="Buscar blocos..." oninput="filterBlocks()">
@@ -1234,6 +1238,7 @@ $hash = csrf_hash();
     });
 </script>
 
+<script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/touch-polyfill.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/utils.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/history.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/canvas-core.js') ?>?v=<?php echo time() ?>"></script>
@@ -1244,6 +1249,43 @@ $hash = csrf_hash();
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/simulator-ui.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/simulator.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/publish-modal.js') ?>?v=<?php echo time() ?>"></script>
+<script>
+// ==========================================
+// MOBILE TOUCH SUPPORT ADAPTER
+// Permite arrastar blocos e a tela no celular
+// ==========================================
+(function() {
+    function touchToMouse(e) {
+        if(e.touches.length > 1) return; // Allow pinch zoom natively
+        var touch = e.changedTouches[0];
+        var type = "";
+        switch(e.type) {
+            case "touchstart": type = "mousedown"; break;
+            case "touchmove":  type = "mousemove"; break;
+            case "touchend":   type = "mouseup";   break;
+            default: return;
+        }
+        var simulatedEvent = document.createEvent("MouseEvent");
+        simulatedEvent.initMouseEvent(type, true, true, window, 1, 
+            touch.screenX, touch.screenY, touch.clientX, touch.clientY, 
+            false, false, false, false, 0, null);
+        touch.target.dispatchEvent(simulatedEvent);
+        
+        // Prevent default only on drag areas so we don't break side-panel scrolling or text inputs
+        var isDragArea = e.target.closest('.node-header') || e.target.closest('.handle') || e.target === document.getElementById('builder-canvas-container') || e.target.id === 'builder-canvas' || e.target.tagName === 'svg' || e.target.closest('.drag-connection-line');
+        if(isDragArea && type !== "mouseup") {
+            e.preventDefault();
+        }
+    }
+    
+    var container = document.getElementById('builder-canvas-container');
+    if(container) {
+        container.addEventListener("touchstart", touchToMouse, {passive: false});
+        container.addEventListener("touchmove", touchToMouse, {passive: false});
+        container.addEventListener("touchend", touchToMouse, {passive: false});
+    }
+})();
+</script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/inspector-core.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/inspector-templates.js') ?>?v=<?php echo time() ?>"></script>
 <script src="<?php echo base_url('inc/core/Bot_builder/Assets/js/builder/inspector-variables.js') ?>?v=<?php echo time() ?>"></script>
