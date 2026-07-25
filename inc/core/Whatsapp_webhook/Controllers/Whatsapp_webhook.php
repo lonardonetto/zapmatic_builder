@@ -288,6 +288,15 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                             $message_body = [];
                             if ($type === 'text') {
                                 $message_body = ['conversation' => $text_body];
+                            } elseif ($type === 'button') {
+                                // Novo formato Meta: template buttons vêm como "type":"button" com "button.text" e "button.payload"
+                                $button = $msg['button'] ?? [];
+                                $message_body = [
+                                    'buttonsResponseMessage' => [
+                                        'selectedButtonId' => $button['payload'] ?? $button['text'] ?? '',
+                                        'selectedDisplayText' => $button['text'] ?? $button['payload'] ?? '',
+                                    ]
+                                ];
                             } elseif ($type === 'interactive') {
                                 // Button/list reply
                                 $interactive = $msg['interactive'] ?? [];
