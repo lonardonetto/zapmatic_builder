@@ -262,17 +262,17 @@ $hash = csrf_hash();
                 </div>
             </div>
 
-            <div class="top-bar-center">
+            <div class="top-bar-center hide-mobile">
                 <button class="tb-tool-btn" id="btn-undo" onclick="undo()" title="Desfazer (⌘Z)" disabled><i class="fas fa-undo"></i></button>
                 <button class="tb-tool-btn" id="btn-redo" onclick="redo()" title="Refazer (⌘⇧Z)" disabled><i class="fas fa-redo"></i></button>
             </div>
 
             <div class="top-bar-right">
-                <div id="save-status" class="saved"><i class="fas fa-check-circle"></i> Salvo</div>
+                <div id="save-status" class="saved"><i class="fas fa-check-circle"></i> <span class="hide-mobile">Salvo</span></div>
                 <button class="tb-btn" onclick="exportFlow()" title="Exportar JSON"><i class="fas fa-download"></i></button>
-                <button class="tb-btn" onclick="toggleValidationPanel()"><i class="fas fa-check-double"></i> Validar</button>
-                <button class="tb-btn" onclick="togglePreview()"><i class="fas fa-play"></i> Prévia</button>
-                <button class="tb-btn tb-btn-success" onclick="openPublishModal()"><i class="fas fa-rocket"></i> Publicar</button>
+                <button class="tb-btn" onclick="toggleValidationPanel()" title="Validar"><i class="fas fa-check-double"></i> <span class="hide-mobile">Validar</span></button>
+                <button class="tb-btn" onclick="togglePreview()" title="Prévia"><i class="fas fa-play"></i> <span class="hide-mobile">Prévia</span></button>
+                <button class="tb-btn tb-btn-success" onclick="openPublishModal()" title="Publicar"><i class="fas fa-rocket"></i> <span class="hide-mobile">Publicar</span></button>
             </div>
         </div>
 
@@ -1276,9 +1276,9 @@ $hash = csrf_hash();
         var isDragArea = t.closest('.node-header') || 
                          t.closest('.handle') || 
                          t.closest('.drag-connection-line') ||
-                         t.id === 'builder-canvas-container' || 
-                         t.id === 'builder-canvas' || 
-                         t.id === 'connections-layer' || 
+                         t.id === 'bot-canvas-container' || 
+                         t.id === 'bot-canvas' || 
+                         t.id === 'connections' || 
                          t.closest('svg');
         
         if(isDragArea && type !== "mouseup") {
@@ -1286,7 +1286,7 @@ $hash = csrf_hash();
         }
     }
     
-    var container = document.getElementById('builder-canvas-container');
+    var container = document.getElementById('bot-canvas-container');
     if(container) {
         container.addEventListener("touchstart", touchToMouse, {passive: false});
         container.addEventListener("touchmove", touchToMouse, {passive: false});

@@ -2089,8 +2089,9 @@ select.form-control {
         min-width: 300px; 
         transition: right 0.3s ease; 
         box-shadow: -2px 0 10px rgba(0,0,0,0.2); 
+        display: flex !important; /* Sobrescreve o display:none do .hidden */
     }
-    .sidebar-inspector.show { right: 0; }
+    .sidebar-inspector:not(.hidden) { right: 0; }
     
     .minimap { display: none; }
     
