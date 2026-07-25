@@ -2066,6 +2066,24 @@ select.form-control {
 @media (max-width: 768px) {
     .hide-mobile { display: none !important; }
     
+    .top-bar {
+        padding: 0 4px;
+        gap: 4px;
+    }
+    
+    .tb-btn {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .bot-name-input {
+        max-width: 100px !important;
+        padding: 4px;
+        font-size: 14px;
+    }
+    
+    .hide-mobile-strict { display: none !important; }
+    
     .sidebar-blocks { 
         position: fixed; 
         left: -100%; 

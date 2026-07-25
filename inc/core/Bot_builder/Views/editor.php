@@ -269,8 +269,8 @@ $hash = csrf_hash();
 
             <div class="top-bar-right">
                 <div id="save-status" class="saved"><i class="fas fa-check-circle"></i> <span class="hide-mobile">Salvo</span></div>
-                <button class="tb-btn" onclick="exportFlow()" title="Exportar JSON"><i class="fas fa-download"></i></button>
-                <button class="tb-btn" onclick="toggleValidationPanel()" title="Validar"><i class="fas fa-check-double"></i> <span class="hide-mobile">Validar</span></button>
+                <button class="tb-btn hide-mobile-strict" onclick="exportFlow()" title="Exportar JSON"><i class="fas fa-download"></i></button>
+                <button class="tb-btn hide-mobile-strict" onclick="toggleValidationPanel()" title="Validar"><i class="fas fa-check-double"></i> <span class="hide-mobile">Validar</span></button>
                 <button class="tb-btn" onclick="togglePreview()" title="Prévia"><i class="fas fa-play"></i> <span class="hide-mobile">Prévia</span></button>
                 <button class="tb-btn tb-btn-success" onclick="openPublishModal()" title="Publicar"><i class="fas fa-rocket"></i> <span class="hide-mobile">Publicar</span></button>
             </div>
