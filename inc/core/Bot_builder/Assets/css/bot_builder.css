@@ -2061,7 +2061,11 @@ select.form-control {
 }
 
 /* ===================== RESPONSIVE ===================== */
+.mobile-add-btn { display: none; }
+
 @media (max-width: 768px) {
+    .hide-mobile { display: none !important; }
+    
     .sidebar-blocks { 
         position: fixed; 
         left: -100%; 
@@ -2094,21 +2098,20 @@ select.form-control {
         display: flex !important;
         position: fixed;
         bottom: 20px;
-        left: 20px;
-        width: 50px;
-        height: 50px;
-        border-radius: 25px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
         background: var(--primary);
         color: white;
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         z-index: 999;
         cursor: pointer;
     }
 }
-.mobile-add-btn { display: none; }
 
 /* ===================== UTILITY CLASSES ===================== */
 .hidden { display: none !important; }

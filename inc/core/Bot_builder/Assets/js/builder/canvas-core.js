@@ -50,7 +50,7 @@ function setupCanvasPan() {
     var ctx = c();
     var panning = false, sx, sy;
     ctx.canvasContainer.addEventListener('mousedown', function(e) {
-        if(e.button === 1 || (e.button === 0 && (e.target === ctx.canvasContainer || e.target === ctx.canvas || e.target.tagName === 'svg'))) {
+        if(e.button === 1 || (e.button === 0 && (e.target === ctx.canvasContainer || e.target === ctx.canvas || e.target.closest('svg')))) {
             panning = true;
             sx = e.clientX; sy = e.clientY;
             ctx.canvasContainer.style.cursor = 'grabbing';

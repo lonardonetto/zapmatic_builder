@@ -1272,7 +1272,15 @@ $hash = csrf_hash();
         touch.target.dispatchEvent(simulatedEvent);
         
         // Prevent default only on drag areas so we don't break side-panel scrolling or text inputs
-        var isDragArea = e.target.closest('.node-header') || e.target.closest('.handle') || e.target === document.getElementById('builder-canvas-container') || e.target.id === 'builder-canvas' || e.target.tagName === 'svg' || e.target.closest('.drag-connection-line');
+        var t = e.target;
+        var isDragArea = t.closest('.node-header') || 
+                         t.closest('.handle') || 
+                         t.closest('.drag-connection-line') ||
+                         t.id === 'builder-canvas-container' || 
+                         t.id === 'builder-canvas' || 
+                         t.id === 'connections-layer' || 
+                         t.closest('svg');
+        
         if(isDragArea && type !== "mouseup") {
             e.preventDefault();
         }
