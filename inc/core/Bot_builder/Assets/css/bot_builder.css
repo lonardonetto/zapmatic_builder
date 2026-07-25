@@ -61,6 +61,7 @@ body, html {
     display: flex;
     width: 100vw;
     height: 100vh;
+    height: 100dvh; /* iOS Safari fix: dynamic viewport height */
     overflow: hidden;
     position: relative;
 }
@@ -2094,6 +2095,8 @@ select.form-control {
         min-width: 260px; 
         transition: left 0.3s ease; 
         box-shadow: 2px 0 10px rgba(0,0,0,0.2); 
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     .sidebar-blocks.show-mobile { left: 0; }
     
