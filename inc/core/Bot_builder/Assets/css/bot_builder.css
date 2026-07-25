@@ -2144,6 +2144,25 @@ select.form-control {
     }
 }
 
+/* ===================== LANDSCAPE MOBILE FIX ===================== */
+@media (max-width: 950px) and (orientation: landscape) {
+    .canvas-controls {
+        bottom: 12px;
+        left: 12px;
+        transform: scale(0.8);
+        transform-origin: bottom left;
+    }
+    
+    .mobile-add-btn {
+        bottom: 12px;
+        right: 12px;
+        width: 46px;
+        height: 46px;
+        border-radius: 23px;
+        font-size: 20px;
+    }
+}
+
 /* ===================== UTILITY CLASSES ===================== */
 .hidden { display: none !important; }
 .gap-2 { gap: 8px; }
