@@ -30,6 +30,7 @@ window.BotBuilderNodeDefs = {
     input:        { icon:'fad fa-keyboard',         label:'Entrada do usuário',   defaults:{question:'Qual é o seu nome?',variable:'name',input_type:'text'} },
     condition:    { icon:'fad fa-filter',            label:'Condição',    defaults:{variable:'input',operator:'==',expected:''} },
     delay:        { icon:'fad fa-hourglass-half',    label:'Esperar',         defaults:{seconds:3} },
+    reenviar:     { icon:'fad fa-redo',             label:'REENVIAR',         defaults:{seconds:180,max_retries:0,retry_message:'⚠️ Ainda aguardando resposta...',exit_message:'Atendimento encerrado por inatividade.'} },
     ai_reply:     { icon:'fad fa-sparkles',         label:'Resposta com IA',     defaults:{provider:'auto',mode:'once',prompt:'{{last_message}}',system_prompt:'Você é um assistente útil. Responda em português brasileiro, de forma clara, curta e natural. Não mostre raciocínio interno.',knowledge_base:'',knowledge_files:'[]',model:'',temperature:0.7,max_tokens:500,variable:'ai_reply'} },
     webhook:      { icon:'fad fa-globe',            label:'Webhook',      defaults:{url:'',method:'POST',headers:'{}',body:'{}',variable:'webhook_response'} },
     set_variable: { icon:'fad fa-pen-fancy',        label:'Definir variável', defaults:{variable:'',value:''} },

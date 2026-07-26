@@ -912,6 +912,62 @@ public function save_bot_settings()
         ]);
     }
 
+    /**
+     * Cron endpoint: check sessions with expired reenviar timeouts
+     * Call via: curl https://zapmatic.tec.br/index.php/bot-builder/check_timeouts
+     */
+    public function check_timeouts()
+    {
+        $logFile = WRITEPATH . 'bot_builder_webhook.log';
+        $now = time();
+        
+        $sessions = $this->model->db->table('sp_bb_sessions')
+            ->where('is_completed', 0)
+            ->where('timeout_at IS NOT NULL')
+            ->where('timeout_at >', 0)
+            ->where('timeout_at <', $now)
+            ->get()->getResult();
+        
+        $count = 0;
+        foreach ($sessions as $s) {
+            $retries_done = intval($s->timeout_retries_done ?? 0);
+            $max_retries = intval($s->timeout_max_retries ?? 3);
+            $is_unlimited = ($max_retries === 0);
+            $retry_msg = $s->timeout_retry_msg;
+            $exit_msg = $s->timeout_exit_msg;
+            $instance_id = $s->timeout_instance_id;
+            $phone = $s->reply_phone ?? $s->phone;
+            
+            if (!$is_unlimited && $retries_done >= $max_retries) {
+                if ($exit_msg && $instance_id) {
+                    $this->send_whatsapp($instance_id, $phone, 'text', ['text' => $exit_msg]);
+                }
+                $this->model->db->table('sp_bb_sessions')->where('id', $s->id)->update([
+                    'is_completed' => 1,
+                    'timeout_at' => null,
+                    'timeout_retries_done' => 0,
+                ]);
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🛑 check_timeouts: sessao #{$s->id} esgotada ({$retries_done}/{$max_retries})\n", FILE_APPEND);
+            } else {
+                if ($retry_msg && $instance_id) {
+                    $this->send_whatsapp($instance_id, $phone, 'text', ['text' => $retry_msg]);
+                }
+                $this->model->db->table('sp_bb_sessions')->where('id', $s->id)->update([
+                    'timeout_at' => time() + 180,
+                    'timeout_retries_done' => $retries_done + 1,
+                ]);
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ check_timeouts: reenvio #{$s->id} (" . ($retries_done+1) . ($is_unlimited ? "/ilimitado" : "/{$max_retries}") . ")\n", FILE_APPEND);
+            }
+            $count++;
+        }
+        
+        return $this->response->setJSON([
+            'status' => 'success',
+            'processed' => $count,
+            'timestamp' => date('Y-m-d H:i:s', $now),
+        ]);
+    }
+
     private function process_webhook($data)
     {
         $logFile = WRITEPATH . 'bot_builder_webhook.log';
@@ -1034,6 +1090,15 @@ public function save_bot_settings()
 
             // ★ Expire old sessions (Timeout)
             if ($session) {
+                // Clear timeout when user responds (reenviar node timeout)
+                if (!empty($session->timeout_at) && $session->timeout_at > 0) {
+                    $this->model->db->table('sp_bb_sessions')->where('id', $session->id)->update([
+                        'timeout_at' => null,
+                        'timeout_retries_done' => 0,
+                    ]);
+                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ Timeout cleared: user responded to session #{$session->id}\n", FILE_APPEND);
+                }
+                
                 $session_bot = $this->model->get_bot($session->bot_id);
                 $timeout_minutes = max(1, intval($session_bot->session_timeout ?? 60));
                 $last_update = strtotime($session->updated_at ?? $session->created_at ?? date('Y-m-d H:i:s'));
@@ -1774,6 +1839,54 @@ public function save_bot_settings()
                         file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⚠️ Delay {$seconds}s ignorado (fora do range 1-300) | Session #{$session->id}\n", FILE_APPEND);
                     }
                     $next_id = $this->find_next_node($edges, $current_block->id);
+                    break;
+
+                case 'reenviar':
+                    $seconds = intval($bData->seconds ?? 180);
+                    $max_retries = intval($bData->max_retries ?? 3);
+                    $retry_msg = $this->replace_vars($bData->retry_message ?? '⚠️ Ainda aguardando resposta...', $context);
+                    $exit_msg = $this->replace_vars($bData->exit_message ?? 'Atendimento encerrado por inatividade.', $context);
+                    
+                    $retries_done = intval($this->model->db->table('sp_bb_sessions')
+                        ->select('timeout_retries_done')->where('id', $session->id)->get()->getRow()->timeout_retries_done ?? 0);
+                    
+                    // max_retries=0 = ilimitado (reenvia até alguém responder, ideal para grupos)
+                    $is_unlimited = ($max_retries === 0);
+                    
+                    if ($retries_done > 0 && $retry_msg) {
+                        $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $retry_msg]);
+                    }
+                    
+                    if (!$is_unlimited && $retries_done >= $max_retries) {
+                        if ($exit_msg) {
+                            $this->send_whatsapp($instance_id, $session->phone, 'text', ['text' => $exit_msg]);
+                        }
+                        $this->model->db->table('sp_bb_sessions')->where('id', $session->id)->update([
+                            'is_completed' => 1,
+                            'timeout_at' => null,
+                            'timeout_retries_done' => 0,
+                        ]);
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', 
+                            date('Y-m-d H:i:s') . " | 🛑 Reenviar esgotado ({$retries_done}/{$max_retries}) sessao #{$session->id} fechada\n", FILE_APPEND);
+                        $next_id = null;
+                        break;
+                    }
+                    
+                    $this->model->db->table('sp_bb_sessions')->where('id', $session->id)->update([
+                        'timeout_at' => time() + $seconds,
+                        'timeout_retries_done' => $retries_done + 1,
+                        'timeout_max_retries' => $max_retries,
+                        'timeout_retry_msg' => $retry_msg,
+                        'timeout_exit_msg' => $exit_msg,
+                        'timeout_instance_id' => $instance_id,
+                        'current_block_id' => $current_block->id,
+                    ]);
+                    
+                    file_put_contents(WRITEPATH . 'bot_builder_webhook.log', 
+                        date('Y-m-d H:i:s') . " | ⏱️ Reenviar: timeout={$seconds}s, retry={$retries_done}" . ($is_unlimited ? "/ilimitado" : "/{$max_retries}") . " | Sessao #{$session->id}\n", FILE_APPEND);
+                    
+                    // Pause flow - wait for user or timeout
+                    $next_id = null;
                     break;
 
                 case 'ai_reply':

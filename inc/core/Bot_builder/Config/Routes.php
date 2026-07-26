@@ -63,6 +63,9 @@ $bot_builder_routes = function($routes) {
     // Bot Settings (keywords, enable/disable)
     $routes->post('save-bot-settings', 'Bot_builder::save_bot_settings');
     $routes->get('get-bot-settings/(:num)', 'Bot_builder::get_bot_settings/$1');
+    
+    // Timeout checker (cron)
+    $routes->get('check_timeouts', 'Bot_builder::check_timeouts');
 };
 
 $routes->group('bot_builder', ['namespace' => 'Core\Bot_builder\Controllers'], $bot_builder_routes);

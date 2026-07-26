@@ -226,6 +226,13 @@ function openInspector(id) {
     if(node.type === 'delay') {
         html += M.field('input', 'conf-seconds', 'Espera (segundos)', d.seconds, '3');
     }
+    if(node.type === 'reenviar') {
+        html += M.field('input', 'conf-seconds', 'Timeout (segundos)', d.seconds, '180');
+        html += M.field('input', 'conf-max_retries', 'Tentativas (0 = ilimitado)', d.max_retries, '0');
+        html += M.field('textarea', 'conf-retry_message', 'Mensagem de reenvio', d.retry_message, '⚠️ Ainda aguardando resposta...', 2);
+        html += M.field('textarea', 'conf-exit_message', 'Mensagem ao encerrar', d.exit_message, 'Atendimento encerrado por inatividade.', 2);
+        html += '<div class="form-hint"><b>0 tentativas = ilimitado</b> (ideal para grupos, reenvia até alguém clicar).<br><b>N tentativas</b>: reenvia N vezes, depois encerra a sessão.</div>';
+    }
     if(node.type === 'ai_reply') {
         html += '<div class="insp-alert info"><i class="fas fa-brain"></i>Este bloco usa a Central de IA global. Configure as chaves em <b>Central de IA</b>.</div>';
         html += M.select('conf-provider', 'Provider', d.provider, ['auto','openrouter','openai','anthropic','mistral','groq','deepseek','perplexity','together']);

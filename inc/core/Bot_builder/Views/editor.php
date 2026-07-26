@@ -114,6 +114,9 @@ $hash = csrf_hash();
             <div class="block-item" draggable="true" data-type="delay">
                 <div class="block-icon bi-orange"><i class="fas fa-hourglass-half"></i></div><span>Esperar</span>
             </div>
+            <div class="block-item" draggable="true" data-type="reenviar">
+                <div class="block-icon bi-purple"><i class="fas fa-redo"></i></div><span>REENVIAR</span>
+            </div>
             <div class="block-item" draggable="true" data-type="ab_test">
                 <div class="block-icon bi-pink"><i class="fas fa-random"></i></div><span>AB Test</span>
             </div>
