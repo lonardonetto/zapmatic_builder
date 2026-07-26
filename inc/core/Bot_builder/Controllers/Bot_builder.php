@@ -1014,18 +1014,21 @@ public function save_bot_settings()
             }
             // ===================================================================
 
-            $session = $this->model->get_session($phone, $instance_id_for_lookup);
-            if(!$session && $reply_phone !== $phone) {
+            // Session key: for groups, use the real individual phone so each person gets their own session
+            $session_key = (strpos($phone, '@g.us') !== false) ? ($clean_phone . '@s.whatsapp.net') : $phone;
+
+            $session = $this->model->get_session($session_key, $instance_id_for_lookup);
+            if(!$session && $reply_phone !== $session_key) {
                 $session = $this->model->get_session($reply_phone, $instance_id_for_lookup);
                 if($session) {
-                    $this->model->update_session($session->id, ['phone' => $phone]);
-                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | Sessão legada promovida para identidade canônica: {$phone}\n", FILE_APPEND);
+                    $this->model->update_session($session->id, ['phone' => $session_key]);
+                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | Sessão legada promovida para identidade canônica: {$session_key}\n", FILE_APPEND);
                 }
             }
 
             if ($session && empty($session->current_block_id)) {
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⚠️ Invalid active session #{$session->id} with empty current_block_id. Closing and trying keyword again.\n", FILE_APPEND);
-                $this->model->end_sessions_for_phone($phone, $session->bot_id);
+                $this->model->end_sessions_for_phone($session_key, $session->bot_id);
                 $session = null;
             }
 
@@ -1078,7 +1081,7 @@ public function save_bot_settings()
                 if($stop_matched) {
                     // End the session and notify user
                     $bot = $this->model->get_bot($session->bot_id);
-                    $this->model->end_sessions_for_phone($phone, $session->bot_id);
+                    $this->model->end_sessions_for_phone($session_key, $session->bot_id);
                     $stop_msg = 'Bot interrompido. Você pode iniciar novamente enviando a palavra-chave de ativação.';
                     if($bot && !empty($bot->enable_keyword)) {
                         $stop_msg = 'Bot interrompido. Envie "' . trim(explode(',', $bot->enable_keyword)[0]) . '" para iniciar novamente.';
@@ -1091,7 +1094,7 @@ public function save_bot_settings()
                     continue;
                 }
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | Found active session #{$session->id} for bot #{$session->bot_id} | Block: {$session->current_block_id}\n", FILE_APPEND);
-                $session->canonical_phone = $phone;
+                $session->canonical_phone = $session_key;
                 $session->phone = $reply_phone;
                 $this->run_flow($session, $text, $type, $instance_id_for_send, false, $button_id);
                 $handled_count++;
@@ -1112,13 +1115,13 @@ public function save_bot_settings()
                 $bot = $this->model->find_bot_by_trigger($text, $instance_id_for_lookup, $phone);
                 if ($bot) {
                     file_put_contents($logFile, date('Y-m-d H:i:s') . " | ✅ Keyword matched! Bot #{$bot->id} ({$bot->name}) | Start: {$bot->start_block_id}\n", FILE_APPEND);
-                    $session_id = $this->model->create_session($bot->id, $phone, $instance_id_for_lookup, $init_ctx);
+                    $session_id = $this->model->create_session($bot->id, $session_key, $instance_id_for_lookup, $init_ctx);
                     $session = (object)[
                         'id' => $session_id,
                         'bot_id' => $bot->id,
                         'phone' => $reply_phone,
                         'reply_phone' => $reply_phone,
-                        'canonical_phone' => $phone,
+                        'canonical_phone' => $session_key,
                         'context' => $init_ctx,
                         'current_block_id' => $bot->start_block_id
                     ];
@@ -1132,7 +1135,7 @@ public function save_bot_settings()
                 // 2. Try Command triggers (blocks of type 'command' across all bots)
                 $command_match = $this->find_command_trigger($text, $instance_id_for_lookup, $phone);
                 if ($command_match) {
-                    $session_id = $this->model->create_session($command_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
+                    $session_id = $this->model->create_session($command_match['bot_id'], $session_key, $instance_id_for_lookup, $init_ctx);
                     $session = (object)[
                         'id' => $session_id,
                         'bot_id' => $command_match['bot_id'],
@@ -1149,7 +1152,7 @@ public function save_bot_settings()
                 // 3. Try Reply triggers (blocks of type 'reply' across all bots)
                 $reply_match = $this->find_reply_trigger($text, $instance_id_for_lookup, $phone);
                 if ($reply_match) {
-                    $session_id = $this->model->create_session($reply_match['bot_id'], $phone, $instance_id_for_lookup, $init_ctx);
+                    $session_id = $this->model->create_session($reply_match['bot_id'], $session_key, $instance_id_for_lookup, $init_ctx);
                     $this->model->update_session($session_id, ['current_block_id' => $reply_match['block_id']]);
                     $session = (object)[
                         'id' => $session_id,
