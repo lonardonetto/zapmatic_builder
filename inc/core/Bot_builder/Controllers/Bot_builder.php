@@ -1033,6 +1033,11 @@ public function save_bot_settings()
                     $updated_ctx = true;
                 }
                 if (!empty($text)) { $ctx_array["msg"] = $text; $updated_ctx = true; }
+                // Update timestamp on every interaction
+                $ctx_array["now"] = (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i:s'); $updated_ctx = true;
+                // Inject instance info
+                if (empty($ctx_array['wa_instance_name'])) { $ctx_array['wa_instance_name'] = $account->name ?? ''; $updated_ctx = true; }
+                if (empty($ctx_array['wa_instance_token'])) { $ctx_array['wa_instance_token'] = $wa_instance_id ?? ''; $updated_ctx = true; }
                 // Inject group ID if message is from a group
                 if (strpos($phone, '@g.us') !== false && empty($ctx_array['wa_group_id'])) {
                     $ctx_array['wa_group_id'] = explode('@', $phone)[0];
@@ -1070,12 +1075,15 @@ public function save_bot_settings()
                 $handled_count++;
             } else {
                 $init_ctx = json_encode([
+                    'now' => (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i:s'),
                     'wa_name' => $push_name,
                     'wa_phone' => $clean_phone,
                     'wa_phone_formatted' => $formatted_phone,
                     'msg' => $text,
                     'wa_group_id' => (strpos($phone, '@g.us') !== false) ? explode('@', $phone)[0] : '',
                     'wa_group_name' => (strpos($phone, '@g.us') !== false) ? $this->get_group_name(explode('@', $phone)[0], $instance_id_for_send) : '',
+                    'wa_instance_name' => $account->name ?? '',
+                    'wa_instance_token' => $wa_instance_id ?? '',
                 ]);
 
                 // 1. Try keyword trigger first
@@ -2757,7 +2765,7 @@ private function get_group_name($group_id, $instance_id)
             $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 5,
+                CURLOPT_TIMEOUT => 8,
             ]);
             $resp = curl_exec($ch);
             curl_close($ch);
@@ -2769,8 +2777,8 @@ private function get_group_name($group_id, $instance_id)
                     }
                     $cache->save($cacheKey, $group_list, 3600); // Salva por 1 hora se obteve sucesso
                 } else {
-                    // Se falhou (ex: 429), salva array vazio por 5 minutos para esfriar a API
-                    $cache->save($cacheKey, [], 300);
+                    // Se falhou (ex: 429), salva array vazio por 30 segundos para esfriar a API
+                    $cache->save($cacheKey, [], 30);
                 }
             }
         } catch (\Throwable $e) {}
