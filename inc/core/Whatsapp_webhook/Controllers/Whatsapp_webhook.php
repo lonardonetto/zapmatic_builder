@@ -341,7 +341,7 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                         curl_setopt($bot_ch, CURLOPT_POST, true);
                         curl_setopt($bot_ch, CURLOPT_POSTFIELDS, json_encode($bot_payload));
                         curl_setopt($bot_ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 10);
+                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 120);
                         $bot_response = curl_exec($bot_ch);
                         $bot_http = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);
                         curl_close($bot_ch);

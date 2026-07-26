@@ -1741,7 +1741,13 @@ public function save_bot_settings()
 
                 case 'delay':
                     $seconds = intval($bData->seconds ?? 3);
-                    if($seconds > 0 && $seconds <= 30) sleep($seconds);
+                    if($seconds > 0 && $seconds <= 300) {
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⏱️ Delay {$seconds}s iniciado | Session #{$session->id}\n", FILE_APPEND);
+                        sleep($seconds);
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⏱️ Delay {$seconds}s finalizado | Session #{$session->id}\n", FILE_APPEND);
+                    } else {
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⚠️ Delay {$seconds}s ignorado (fora do range 1-300) | Session #{$session->id}\n", FILE_APPEND);
+                    }
                     $next_id = $this->find_next_node($edges, $current_block->id);
                     break;
 
