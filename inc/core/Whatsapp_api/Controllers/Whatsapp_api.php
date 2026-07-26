@@ -199,8 +199,14 @@ class Whatsapp_api extends Controller
         $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
 
         if (!$session) {
-
-            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
+            db_insert( TB_WHATSAPP_SESSIONS, [
+                "ids" => ids(),
+                "instance_id" => $instance_id,
+                "team_id" => $team_id,
+                "data" => NULL,
+                "status" => 0
+            ] );
+            $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
         }
 
         if ($session->status == 1) {
