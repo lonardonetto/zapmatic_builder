@@ -14,6 +14,7 @@ import (
 
 type GroupParticipantInfo struct {
 	ID    string `json:"id"`
+	LID   string `json:"lid"`
 	Admin bool   `json:"admin"`
 }
 
@@ -72,6 +73,7 @@ func (r *Router) handleListGroups(w http.ResponseWriter, req *http.Request) {
 				}
 				participants = append(participants, GroupParticipantInfo{
 					ID:    phone,
+					LID:   p.LID.User,
 					Admin: p.IsAdmin || p.IsSuperAdmin,
 				})
 			}
@@ -155,6 +157,7 @@ func (r *Router) handleFindMemberGroups(w http.ResponseWriter, req *http.Request
 			}
 			participants = append(participants, GroupParticipantInfo{
 				ID:    ph,
+				LID:   p.LID.User,
 				Admin: p.IsAdmin || p.IsSuperAdmin,
 			})
 			if ph == cleanPhone || p.JID.User == cleanPhone {

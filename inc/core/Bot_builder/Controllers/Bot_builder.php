@@ -940,6 +940,18 @@ public function save_bot_settings()
         foreach ($messages as $message) {
             if (isset($message['key']['fromMe']) && $message['key']['fromMe']) continue;
 
+            // Dedup: ignora webhooks reenviados pela Meta (retry do mesmo clique)
+            $msg_id_raw = $message['key']['id'] ?? null;
+            if ($msg_id_raw) {
+                $dedup_cache = \Config\Services::cache();
+                $dedup_key = 'bb_dedup_' . md5($msg_id_raw);
+                if ($dedup_cache->get($dedup_key)) {
+                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🔄 Duplicate message skipped: {$msg_id_raw}\n", FILE_APPEND);
+                    continue;
+                }
+                $dedup_cache->save($dedup_key, true, 120);
+            }
+
             $identity = $this->resolve_message_identity($message);
             $phone = $identity['session_phone'];
             $reply_phone = $identity['reply_phone'];
@@ -958,6 +970,16 @@ public function save_bot_settings()
                 $sender_jid = $message['_wa_id'] . '@s.whatsapp.net';
             }
             $clean_phone = explode('@', $sender_jid)[0];
+            
+            // Resolve LID (WhatsApp internal ID) to real phone number in groups
+            if (strlen($clean_phone) > 12 && strpos($phone, '@g.us') !== false) {
+                $real_phone = $this->resolve_lid_to_phone($phone, $clean_phone, $instance_id_for_send);
+                if ($real_phone) {
+                    $clean_phone = $real_phone;
+                    $sender_jid = $real_phone . '@s.whatsapp.net';
+                }
+            }
+            
             $formatted_phone = $clean_phone;
             if (strlen($clean_phone) >= 12 && substr($clean_phone, 0, 2) === '55') {
                 $ddd = substr($clean_phone, 2, 2);
@@ -2817,6 +2839,50 @@ private function get_group_name($group_id, $instance_id)
     }
 
     return '';
+}
+
+/**
+ * Resolve LID (WhatsApp internal participant ID) to real phone number
+ * Uses cached group participant list
+ */
+private function resolve_lid_to_phone($group_id, $lid, $instance_id)
+{
+    if (empty($group_id) || empty($lid) || empty($instance_id)) return null;
+    if (strpos($group_id, '@g.us') !== false) $group_id = str_replace('@g.us', '', $group_id);
+    
+    $cache = \Config\Services::cache();
+    $cacheKey = 'group_lid_map_' . md5($instance_id . '_' . $group_id);
+    
+    $lidMap = $cache->get($cacheKey);
+    
+    if (!$lidMap) {
+        $lidMap = [];
+        // Try Go API first (gets LID from new handler_groups.go)
+        try {
+            $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8]);
+            $resp = curl_exec($ch);
+            curl_close($ch);
+            if ($resp) {
+                $data = json_decode($resp, true);
+                if (isset($data['groups'])) {
+                    foreach ($data['groups'] as $g) {
+                        foreach ($g['participants'] ?? [] as $p) {
+                            if (!empty($p['lid']) && !empty($p['id'])) {
+                                $lidMap[$p['lid']] = $p['id'];
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+        
+        if (!empty($lidMap)) {
+            $cache->save($cacheKey, $lidMap, 3600);
+        }
+    }
+    
+    return $lidMap[$lid] ?? null;
 }
 
 private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
