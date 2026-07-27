@@ -996,18 +996,6 @@ public function save_bot_settings()
         foreach ($messages as $message) {
             if (isset($message['key']['fromMe']) && $message['key']['fromMe']) continue;
 
-            // Dedup: ignora webhooks reenviados pela Meta (retry do mesmo clique)
-            $msg_id_raw = $message['key']['id'] ?? null;
-            if ($msg_id_raw) {
-                $dedup_cache = \Config\Services::cache();
-                $dedup_key = 'bb_dedup_' . md5($msg_id_raw);
-                if ($dedup_cache->get($dedup_key)) {
-                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🔄 Duplicate message skipped: {$msg_id_raw}\n", FILE_APPEND);
-                    continue;
-                }
-                $dedup_cache->save($dedup_key, true, 120);
-            }
-
             $identity = $this->resolve_message_identity($message);
             $phone = $identity['session_phone'];
             $reply_phone = $identity['reply_phone'];
@@ -1017,15 +1005,43 @@ public function save_bot_settings()
             // ★ Also extract the raw button ID for fallback matching
             $button_id = $this->extract_button_id($message);
 
+            // Ignore empty stub messages that have no content or media
+            if (empty($text) && empty($button_id) && !in_array($type, ['image', 'video', 'document', 'audio', 'location', 'contact'])) {
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏭️ Ignorando mensagem vazia (stub) do WhatsMeow: " . ($message['key']['id'] ?? 'unknown') . "\n", FILE_APPEND);
+                continue;
+            }
+
+            // Dedup: ignora webhooks reenviados pela Meta (retry do mesmo clique)
+            $msg_id_raw = $message['key']['id'] ?? null;
+            // Apenas aplica dedup se tivermos um ID e a mensagem não for vazia (para evitar que mensagens vazias de stub do whatsmeow bloqueiem a real)
+            if ($msg_id_raw) {
+                $dedup_cache = \Config\Services::cache();
+                $dedup_key = 'bb_dedup_' . md5($instance_id_for_lookup . '_' . $msg_id_raw);
+                if ($dedup_cache->get($dedup_key)) {
+                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🔄 Duplicate message skipped: {$msg_id_raw}\n", FILE_APPEND);
+                    continue;
+                }
+                $dedup_cache->save($dedup_key, true, 120);
+            }
+
             // ★ Extract the pushName (wa_name)
             $push_name = trim($message['pushName'] ?? $message['profile']['name'] ?? '');
 
             // ★ Extract the actual sender's phone number (wa_phone)
             $sender_jid = !empty($message['key']['participant']) ? $message['key']['participant'] : ($message['key']['remoteJid'] ?? '');
+            
+            // USE participantAlt if available (Baileys puts the real phone number here)
+            if (!empty($message['key']['participantAlt'])) {
+                $sender_jid = $message['key']['participantAlt'];
+            }
+            
             if (!empty($message['_wa_id'])) {
                 $sender_jid = $message['_wa_id'] . '@s.whatsapp.net';
             }
+            
+            // REMOVE device ID (e.g. :13 or :62) from participant
             $clean_phone = explode('@', $sender_jid)[0];
+            $clean_phone = explode(':', $clean_phone)[0];
             
             // Resolve LID (WhatsApp internal ID) to real phone number in groups
             if (strlen($clean_phone) > 12 && strpos($phone, '@g.us') !== false) {
@@ -3606,6 +3622,9 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
         }
         if(isset($m['message']['listResponseMessage']['singleSelectReply']['selectedRowId'])) {
             return $m['message']['listResponseMessage']['singleSelectReply']['selectedRowId'];
+        }
+        if(isset($m['message']['templateButtonReplyMessage']['selectedId'])) {
+            return $m['message']['templateButtonReplyMessage']['selectedId'];
         }
 	        if(isset($m['message']['interactiveResponseMessage'])) {
 	            $interactive = $m['message']['interactiveResponseMessage'];

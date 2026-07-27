@@ -3520,6 +3520,8 @@ const WAZIPER = {
 			add(context.transportJid);
 			addNumberForms(context.cloudTo);
 			addNumberForms(message?._wa_id);
+			add(message?.key?.participant);
+			add(message?.key?.participantAlt);
 			add(message?._bsuid);
 			if (message?._bsuid && !String(message._bsuid).includes('@')) {
 				add(`${message._bsuid}@s.whatsapp.net`);

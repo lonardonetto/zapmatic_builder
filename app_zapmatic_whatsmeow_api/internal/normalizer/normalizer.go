@@ -83,6 +83,25 @@ func NormalizeMessage(instanceID string, msg *events.Message) NormalizedPayload 
 					"selectedId":          btnReply.GetSelectedID(),
 				},
 			}
+		} else if intResp := msg.Message.GetInteractiveResponseMessage(); intResp != nil {
+			var paramsJson string
+			if nflow := intResp.GetNativeFlowResponseMessage(); nflow != nil {
+				paramsJson = nflow.GetParamsJSON()
+			}
+			var bodyText string
+			if body := intResp.GetBody(); body != nil {
+				bodyText = body.GetText()
+			}
+			messagePayload = map[string]interface{}{
+				"interactiveResponseMessage": map[string]interface{}{
+					"nativeFlowResponseMessage": map[string]interface{}{
+						"paramsJson": paramsJson,
+					},
+					"body": map[string]interface{}{
+						"text": bodyText,
+					},
+				},
+			}
 		} else {
 			messagePayload = map[string]interface{}{
 				"conversation": "",
