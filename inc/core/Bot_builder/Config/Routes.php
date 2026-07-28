@@ -66,6 +66,7 @@ $bot_builder_routes = function($routes) {
     
     // Timeout checker (cron)
     $routes->get('check_timeouts', 'Bot_builder::check_timeouts');
+    $routes->get('process_buffer', 'Bot_builder::process_buffer');
 };
 
 $routes->group('bot_builder', ['namespace' => 'Core\Bot_builder\Controllers'], $bot_builder_routes);

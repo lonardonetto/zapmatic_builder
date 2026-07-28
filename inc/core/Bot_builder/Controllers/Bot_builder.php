@@ -604,6 +604,9 @@ public function save_bot_settings()
         if($this->request->getPost('session_timeout') !== null) {
             $update['session_timeout'] = max(1, intval($this->request->getPost('session_timeout')));
         }
+        if($this->request->getPost('debounce_seconds') !== null) {
+            $update['debounce_seconds'] = intval($this->request->getPost('debounce_seconds'));
+        }
 
         if(!empty($update)) {
             $this->model->db->table('sp_bot_builders')->where('id', $bot_id)->update($update);
@@ -635,6 +638,7 @@ public function save_bot_settings()
                 'autorespond' => $bot->autorespond ?? 0,
                 'autorespond_delay' => $bot->autorespond_delay ?? 60,
                 'session_timeout' => $bot->session_timeout ?? 60,
+                'debounce_seconds' => $bot->debounce_seconds ?? 0,
             ]
         ]);
     }
@@ -913,6 +917,73 @@ public function save_bot_settings()
     }
 
     /**
+     * Cron endpoint: process message buffers for debounce
+     * Call via: curl https://zapmatic.tec.br/index.php/bot-builder/process_buffer
+     * Run every 1 second (via loop or precise cron)
+     */
+    public function process_buffer()
+    {
+        $logFile = WRITEPATH . 'bot_builder_webhook.log';
+        $now_ts = time();
+        
+        // Fetch ALL buffers — time comparison done in PHP to avoid MySQL timezone issues
+        $buffers = $this->model->db->table('sp_bb_message_buffer')->get()->getResult();
+
+        $count = 0;
+        foreach ($buffers as $b) {
+            $last_ts = strtotime($b->last_at);
+            $first_ts = strtotime($b->first_at);
+            $elapsed_last = $now_ts - $last_ts;
+            $elapsed_first = $now_ts - $first_ts;
+            
+            // Check if buffer expired: wait time passed OR max time hit
+            if ($elapsed_last < intval($b->debounce_seconds) && $elapsed_first < intval($b->debounce_max_seconds)) {
+                continue; // Not expired yet
+            }
+            
+            $messages = json_decode($b->messages, true) ?: [];
+            $combined_text = implode("\n", $messages);
+            
+            // Reconstruct the message payload
+            $first_message = json_decode($b->first_message, true);
+            
+            // Ovverride the text with the combined text
+            // BUT keep original first message conversation for keyword matching (exact match)
+            $original_text = $messages[0] ?? '';
+            if (isset($first_message['message']['conversation'])) {
+                // Keep original conversation as-is for keyword matching
+                // Add combined text as separate field for flow input
+                $first_message['_buffer_combined'] = $combined_text;
+            } elseif (isset($first_message['message']['extendedTextMessage']['text'])) {
+                $first_message['_buffer_combined'] = $combined_text;
+            } else {
+                // Force it as a conversation if original was something else
+                $first_message['message'] = ['conversation' => $original_text, '_buffer_combined' => $combined_text];
+            }
+            
+            // Fake a webhook payload to process this combined message
+            $payload = [
+                'instance_id' => $b->instance_id,
+                'gateway' => 'internal_buffer',
+                'data' => [
+                    'messages' => [$first_message]
+                ]
+            ];
+            
+            file_put_contents($logFile, date('Y-m-d H:i:s') . " | 📦 [DEBOUNCE] Processando buffer para {$b->phone} (Bot #{$b->bot_id}, " . count($messages) . " msgs unificadas)\n", FILE_APPEND);
+            
+            // Delete buffer BEFORE processing to prevent race conditions
+            $this->model->db->table('sp_bb_message_buffer')->where('id', $b->id)->delete();
+            
+            // Process the combined message
+            $this->process_webhook($payload, true); // true = skip_debounce
+            $count++;
+        }
+        
+        return $this->response->setJSON(['status' => 'success', 'processed' => $count]);
+    }
+
+    /**
      * Cron endpoint: check sessions with expired reenviar timeouts
      * Call via: curl https://zapmatic.tec.br/index.php/bot-builder/check_timeouts
      */
@@ -968,7 +1039,7 @@ public function save_bot_settings()
         ]);
     }
 
-    private function process_webhook($data)
+    private function process_webhook($data, $skip_debounce = false)
     {
         $logFile = WRITEPATH . 'bot_builder_webhook.log';
         $wa_instance_id = $data['instance_id']; // This is sp_accounts.token (waserver uses this)
@@ -1011,9 +1082,9 @@ public function save_bot_settings()
                 continue;
             }
 
-            // Dedup: ignora webhooks reenviados pela Meta (retry do mesmo clique)
+            // Dedup: only register the key AFTER debounce check, so buffered messages
+            // can be processed again by process_buffer without being blocked.
             $msg_id_raw = $message['key']['id'] ?? null;
-            // Apenas aplica dedup se tivermos um ID e a mensagem não for vazia (para evitar que mensagens vazias de stub do whatsmeow bloqueiem a real)
             if ($msg_id_raw) {
                 $dedup_cache = \Config\Services::cache();
                 $dedup_key = 'bb_dedup_' . md5($instance_id_for_lookup . '_' . $msg_id_raw);
@@ -1021,7 +1092,6 @@ public function save_bot_settings()
                     file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🔄 Duplicate message skipped: {$msg_id_raw}\n", FILE_APPEND);
                     continue;
                 }
-                $dedup_cache->save($dedup_key, true, 120);
             }
 
             // ★ Extract the pushName (wa_name)
@@ -1065,6 +1135,100 @@ public function save_bot_settings()
 
             file_put_contents($logFile, date('Y-m-d H:i:s') . " | Phone: {$phone} | Sender: {$clean_phone} | Name: {$push_name} | Text: {$text} | Type: {$type}" . ($button_id ? " | ButtonId: {$button_id}" : '') . "\n", FILE_APPEND);
 
+            // Session key: for groups, use the real individual phone so each person gets their own session
+            $session_key = (strpos($phone, '@g.us') !== false) ? ($clean_phone . '@s.whatsapp.net') : $phone;
+
+            // ==================== DEBOUNCE MESSAGE BUFFERING ====================
+            // Instant types NEVER get buffered
+            $instant_types = ['button_reply', 'list_reply', 'template_reply', 'interactive_reply'];
+            $is_instant = false;
+            
+            if (in_array($type, $instant_types) || !empty($button_id)) {
+                $is_instant = true;
+            }
+            if (isset($message['message']['buttonsResponseMessage']) || 
+                isset($message['message']['listResponseMessage']) || 
+                isset($message['message']['templateButtonReplyMessage']) || 
+                isset($message['message']['interactiveResponseMessage'])) {
+                $is_instant = true;
+            }
+
+            if (!$skip_debounce && !$is_instant && $account_id) {
+                // Find active session to know which bot we are interacting with
+                $session = $this->model->get_session($session_key, $instance_id_for_lookup);
+                $active_bot_id = $session ? $session->bot_id : null;
+
+                // Only buffer when there's an ACTIVE session (user already in flow)
+                // If no session, the keyword trigger should be INSTANT (not buffered)
+                if ($active_bot_id) {
+                    // Stop keyword should NEVER be buffered - process immediately
+                    $stop_bot = $this->model->get_bot($active_bot_id);
+                    if ($stop_bot && $this->model->check_stop_keyword($text, $active_bot_id)) {
+                        // Will be handled by the stop keyword logic below
+                        // Skip debounce entirely
+                    } else {
+                    // Check if this bot has debounce enabled
+                    $bot_settings = $this->model->db->table('sp_bot_builders')->where('id', $active_bot_id)->get()->getRow();
+                    $debounce_seconds = isset($bot_settings->debounce_seconds) ? intval($bot_settings->debounce_seconds) : 0;
+
+                    if ($debounce_seconds > 0) {
+                        $debounce_max_seconds = max(30, $debounce_seconds * 10); // max = 10x o valor configurado (ex: 30s = 5min, 40s = 6.6min)
+                        $timezone = new \DateTimeZone('America/Sao_Paulo');
+                        $now = (new \DateTime('now', $timezone))->format('Y-m-d H:i:s');
+                        
+                        // Check if buffer exists
+                        $buffer = $this->model->db->table('sp_bb_message_buffer')
+                            ->where('instance_id', $instance_id_for_send)
+                            ->where('phone', $session_key)
+                            ->get()->getRow();
+
+                        if ($buffer) {
+                            // Append to existing buffer
+                            $buffered_messages = json_decode($buffer->messages, true) ?: [];
+                            $buffered_messages[] = $text;
+                            
+                            $this->model->db->table('sp_bb_message_buffer')
+                                ->where('id', $buffer->id)
+                                ->update([
+                                    'messages' => json_encode($buffered_messages, JSON_UNESCAPED_UNICODE),
+                                    'last_at' => $now
+                                ]);
+                                
+                            file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ [DEBOUNCE] Mensagem adicionada ao buffer do Bot #{$active_bot_id} para {$session_key}\n", FILE_APPEND);
+                            return 1; // Handled (buffered)
+                        } else {
+                            // Create new buffer
+                            $first_message = $message;
+                            
+                            $this->model->db->table('sp_bb_message_buffer')->insert([
+                                'instance_id' => $instance_id_for_send,
+                                'account_id' => $account_id,
+                                'bot_id' => $active_bot_id,
+                                'phone' => $session_key,
+                                'reply_phone' => $reply_phone,
+                                'messages' => json_encode([$text], JSON_UNESCAPED_UNICODE),
+                                'first_message' => json_encode($first_message, JSON_UNESCAPED_UNICODE),
+                                'first_at' => $now,
+                                'last_at' => $now,
+                                'push_name' => $push_name,
+                                'debounce_seconds' => $debounce_seconds,
+                                'debounce_max_seconds' => $debounce_max_seconds
+                            ]);
+                            
+                            file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ [DEBOUNCE] Novo buffer criado para Bot #{$active_bot_id} (esperando {$debounce_seconds}s)\n", FILE_APPEND);
+                            return 1; // Handled (buffered)
+                        }
+                    }
+                    }
+                }
+            }
+            // ====================================================================
+
+            // Register dedup key NOW that we've passed the debounce gate
+            if ($msg_id_raw) {
+                $dedup_cache->save($dedup_key, true, 120);
+            }
+
             // ==================== WOOCOMMERCE SHOP BOT HOOK ====================
             if ($account && isset($account->team_id)) {
                 try {
@@ -1085,6 +1249,10 @@ public function save_bot_settings()
                 }
             }
             // ===================================================================
+
+            // If this message came from debounce buffer, use combined text for flow input
+            // while keeping original conversation text for keyword matching (exact match)
+            $flow_text = $message['_buffer_combined'] ?? $text;
 
             // Session key: for groups, use the real individual phone so each person gets their own session
             $session_key = (strpos($phone, '@g.us') !== false) ? ($clean_phone . '@s.whatsapp.net') : $phone;
@@ -1177,7 +1345,7 @@ public function save_bot_settings()
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | Found active session #{$session->id} for bot #{$session->bot_id} | Block: {$session->current_block_id}\n", FILE_APPEND);
                 $session->canonical_phone = $session_key;
                 $session->phone = $reply_phone;
-                $this->run_flow($session, $text, $type, $instance_id_for_send, false, $button_id);
+                $this->run_flow($session, $flow_text, $type, $instance_id_for_send, false, $button_id);
                 $handled_count++;
             } else {
                 $init_ctx = json_encode([
@@ -1206,7 +1374,7 @@ public function save_bot_settings()
                         'context' => $init_ctx,
                         'current_block_id' => $bot->start_block_id
                     ];
-                    $this->run_flow($session, $text, $type, $instance_id_for_send, true);
+                    $this->run_flow($session, $flow_text, $type, $instance_id_for_send, true);
                     $handled_count++;
                     continue;
                 }
@@ -1225,7 +1393,7 @@ public function save_bot_settings()
                         'context' => $init_ctx,
                         'current_block_id' => $command_match['block_id']
                     ];
-                    $this->run_flow($session, $text, $type, $instance_id_for_send, true);
+                    $this->run_flow($session, $flow_text, $type, $instance_id_for_send, true);
                     $handled_count++;
                     continue;
                 }
@@ -1243,7 +1411,7 @@ public function save_bot_settings()
                         'context' => $init_ctx,
                         'current_block_id' => $reply_match['block_id']
                     ];
-                    $this->run_flow($session, $text, $type, $instance_id_for_send, true);
+                    $this->run_flow($session, $flow_text, $type, $instance_id_for_send, true);
                     $handled_count++;
                 }
 
@@ -1308,7 +1476,7 @@ public function save_bot_settings()
                                 'context' => $init_ctx,
                                 'current_block_id' => $auto_bot->start_block_id
                             ];
-                            $this->run_flow($session, $text, $type, $instance_id_for_send, true);
+                            $this->run_flow($session, $flow_text, $type, $instance_id_for_send, true);
                             $handled_count++;
                         }
                     }

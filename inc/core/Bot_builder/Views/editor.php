@@ -509,6 +509,15 @@ $hash = csrf_hash();
                 <input type="number" class="pm-input" id="pm-session-timeout" value="60" min="1" max="10080" placeholder="60">
             </div>
 
+            <!-- Debounce (Message Buffering) -->
+            <div class="pm-input-row" style="margin-top:14px; margin-bottom:12px;">
+                <label style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;display:block;">
+                    📥 Agrupar mensagens (Segundos)
+                </label>
+                <p class="pm-setting-desc" style="margin-bottom:8px;">Tempo que o bot espera para juntar várias mensagens de texto em uma só antes de responder. <b>0 desativa. (Recomendado: 3 ou 5)</b>. Ignorado ao clicar em botões.</p>
+                <input type="number" class="pm-input" id="pm-debounce-seconds" value="0" min="0" max="15" placeholder="0">
+            </div>
+
             <!-- Save Settings Button -->
             <div style="margin-top:12px;text-align:right;">
                 <button class="pm-btn pm-btn-outline" id="pm-save-settings-btn" onclick="saveBotSettings()">
@@ -1214,7 +1223,8 @@ $hash = csrf_hash();
         chat_type: '<?php echo addslashes($bot->chat_type ?? 'all') ?>',
         autorespond: <?php echo (isset($bot->autorespond) ? (int)$bot->autorespond : 0) ?>,
         autorespond_delay: <?php echo (isset($bot->autorespond_delay) ? (int)$bot->autorespond_delay : 60) ?>,
-        session_timeout: <?php echo (isset($bot->session_timeout) ? (int)$bot->session_timeout : 60) ?>
+        session_timeout: <?php echo (isset($bot->session_timeout) ? (int)$bot->session_timeout : 60) ?>,
+        debounce_seconds: <?php echo (isset($bot->debounce_seconds) ? (int)$bot->debounce_seconds : 0) ?>
     };
     window.initialNodes = <?php echo !empty($blocks) ? json_encode($blocks) : '[]' ?>;
     window.initialEdges = <?php echo !empty($edges) ? json_encode($edges) : '[]' ?>;
@@ -1230,6 +1240,7 @@ $hash = csrf_hash();
         }
         document.getElementById('pm-autorespond-delay').value = window.initialBotSettings.autorespond_delay || 60;
         document.getElementById('pm-session-timeout').value = window.initialBotSettings.session_timeout || 60;
+        document.getElementById('pm-debounce-seconds').value = window.initialBotSettings.debounce_seconds || 0;
 
         const arToggle = document.getElementById('pm-autorespond');
         const arDelayRow = document.getElementById('pm-autorespond-delay-row');

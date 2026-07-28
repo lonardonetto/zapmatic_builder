@@ -71,9 +71,11 @@ function appendBotSettings(fd, includeMatchAndChat) {
         const autorespond = document.getElementById('pm-autorespond');
         const autorespondDelay = document.getElementById('pm-autorespond-delay');
         const sessionTimeout = document.getElementById('pm-session-timeout');
+        const debounceSeconds = document.getElementById('pm-debounce-seconds');
         if(autorespond) fd.append('autorespond', autorespond.checked ? '1' : '0');
         if(autorespondDelay) fd.append('autorespond_delay', autorespondDelay.value || '60');
         if(sessionTimeout) fd.append('session_timeout', sessionTimeout.value || '60');
+        if(debounceSeconds) fd.append('debounce_seconds', debounceSeconds.value || '0');
     }
 }
 
