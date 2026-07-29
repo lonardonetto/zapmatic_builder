@@ -3157,22 +3157,22 @@ private function resolve_lid_to_phone($group_id, $lid, $instance_id)
     
     if (!$lidMap) {
         $lidMap = [];
-        // Try Go API first (gets LID from new handler_groups.go)
+        // Fast endpoint: resolve a single LID in a specific group
+        // OLD: /groups/list carregava 104 grupos (lento)
+        // NEW: /groups/participant carrega 1 grupo (rápido)
         try {
-            $ch = curl_init(\App\Services\WhatsAppGatewayService::getGoBaseUrl() . "/groups/list?instance_id=" . urlencode($instance_id));
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8]);
+            $baseUrl = \App\Services\WhatsAppGatewayService::getGoBaseUrl();
+            $url = $baseUrl . "/groups/participant?instance_id=" . urlencode($instance_id)
+                 . "&group_id=" . urlencode($group_id)
+                 . "&lid=" . urlencode($lid);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
             $resp = curl_exec($ch);
             curl_close($ch);
             if ($resp) {
                 $data = json_decode($resp, true);
-                if (isset($data['groups'])) {
-                    foreach ($data['groups'] as $g) {
-                        foreach ($g['participants'] ?? [] as $p) {
-                            if (!empty($p['lid']) && !empty($p['id'])) {
-                                $lidMap[$p['lid']] = $p['id'];
-                            }
-                        }
-                    }
+                if (isset($data['status']) && $data['status'] === 'success' && !empty($data['phone'])) {
+                    $lidMap[$lid] = $data['phone'];
                 }
             }
         } catch (\Throwable $e) {}

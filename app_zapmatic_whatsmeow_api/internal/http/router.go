@@ -49,6 +49,7 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r.mux.HandleFunc("/bulk/validate", r.corsMiddleware(r.authGuard(r.handleBulkValidate)))
 	r.mux.HandleFunc("/groups/list", r.corsMiddleware(r.authGuard(r.handleListGroups)))
 	r.mux.HandleFunc("/groups/find-member", r.corsMiddleware(r.authGuard(r.handleFindMemberGroups)))
+	r.mux.HandleFunc("/groups/participant", r.corsMiddleware(r.authGuard(r.handleResolveParticipant)))
 	return r
 }
 
