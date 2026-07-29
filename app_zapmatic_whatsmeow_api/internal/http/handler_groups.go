@@ -202,10 +202,6 @@ func (r *Router) handleResolveParticipant(w http.ResponseWriter, req *http.Reque
 	cleanLid := strings.Split(lid, "@")[0]
 
 	groupID := req.URL.Query().Get("group_id")
-	if groupID == "" {
-		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "group_id required"})
-		return
-	}
 	cleanGroupID := strings.Split(groupID, "@")[0]
 
 	inst := r.rt.Session().GetInstance(instanceID)
@@ -219,34 +215,55 @@ func (r *Router) handleResolveParticipant(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	// Get group info (single group only - fast)
-	groupJID := types.NewJID(cleanGroupID, types.GroupServer)
-	ctx, cancel := context.WithTimeout(req.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(req.Context(), 30*time.Second)
 	defer cancel()
 
-	groupInfo, err := client.GetGroupInfo(ctx, groupJID)
-	if err != nil {
-		logging.Log.Error().Err(err).Str("instance", instanceID).Str("group", cleanGroupID).Msg("Failed to get group info for LID resolve")
-		r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "group not found"})
+	// If group_id is provided, search only that group (fast)
+	if cleanGroupID != "" {
+		groupJID := types.NewJID(cleanGroupID, types.GroupServer)
+		groupInfo, err := client.GetGroupInfo(ctx, groupJID)
+		if err != nil {
+			logging.Log.Error().Err(err).Str("instance", instanceID).Str("group", cleanGroupID).Msg("Failed to get group info for LID resolve")
+			r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "group not found"})
+			return
+		}
+		for _, p := range groupInfo.Participants {
+			if p.LID.User == cleanLid {
+				phone := p.PhoneNumber.User
+				if phone == "" {
+					phone = p.JID.User
+				}
+				logging.Log.Info().Str("instance", instanceID).Str("lid", cleanLid).Str("phone", phone).Msg("LID resolved via group")
+				r.writeJSON(w, http.StatusOK, map[string]string{"status": "success", "phone": phone})
+				return
+			}
+		}
+		logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in group participants")
+		r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "lid not found in group"})
 		return
 	}
 
-	// Search for the LID in this group's participants
-	for _, p := range groupInfo.Participants {
-		if p.LID.User == cleanLid {
-			phone := p.PhoneNumber.User
-			if phone == "" {
-				phone = p.JID.User
+	// No group_id provided: search ALL groups (fallback for private messages)
+	joinedGroups, err := client.GetJoinedGroups(ctx)
+	if err != nil {
+		logging.Log.Error().Err(err).Str("instance", instanceID).Msg("Failed to get joined groups for LID resolve (all)")
+		r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "failed to fetch groups"})
+		return
+	}
+	for _, g := range joinedGroups {
+		for _, p := range g.Participants {
+			if p.LID.User == cleanLid {
+				phone := p.PhoneNumber.User
+				if phone == "" {
+					phone = p.JID.User
+				}
+				logging.Log.Info().Str("instance", instanceID).Str("lid", cleanLid).Str("phone", phone).Str("group", g.Name).Msg("LID resolved via all-groups fallback")
+				r.writeJSON(w, http.StatusOK, map[string]string{"status": "success", "phone": phone})
+				return
 			}
-			logging.Log.Info().Str("instance", instanceID).Str("lid", cleanLid).Str("phone", phone).Msg("LID resolved")
-			r.writeJSON(w, http.StatusOK, map[string]string{
-				"status": "success",
-				"phone":  phone,
-			})
-			return
 		}
 	}
 
-	logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in group participants")
+	logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in any group")
 	r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "lid not found"})
 }

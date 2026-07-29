@@ -1113,9 +1113,11 @@ public function save_bot_settings()
             $clean_phone = explode('@', $sender_jid)[0];
             $clean_phone = explode(':', $clean_phone)[0];
             
-            // Resolve LID (WhatsApp internal ID) to real phone number in groups
-            if (strlen($clean_phone) > 12 && strpos($phone, '@g.us') !== false) {
-                $real_phone = $this->resolve_lid_to_phone($phone, $clean_phone, $instance_id_for_send);
+            // Resolve LID (WhatsApp internal ID) to real phone number in groups or private chats
+            if (strlen($clean_phone) > 12 && (strpos($phone, '@g.us') !== false || strpos($phone, '@lid') !== false)) {
+                // For groups, pass the group JID. For private, pass empty (search all groups)
+                $search_group = strpos($phone, '@g.us') !== false ? $phone : '';
+                $real_phone = $this->resolve_lid_to_phone($search_group, $clean_phone, $instance_id_for_send);
                 if ($real_phone) {
                     $clean_phone = $real_phone;
                     $sender_jid = $real_phone . '@s.whatsapp.net';
@@ -3149,23 +3151,24 @@ private function get_group_name($group_id, $instance_id)
  */
 private function resolve_lid_to_phone($group_id, $lid, $instance_id)
 {
-    if (empty($group_id) || empty($lid) || empty($instance_id)) return null;
-    if (strpos($group_id, '@g.us') !== false) $group_id = str_replace('@g.us', '', $group_id);
+    if (empty($lid) || empty($instance_id)) return null;
+    
+    if ($group_id) {
+        if (strpos($group_id, '@g.us') !== false) $group_id = str_replace('@g.us', '', $group_id);
+        if (strpos($group_id, '@lid') !== false) $group_id = str_replace('@lid', '', $group_id);
+    }
     
     $cache = \Config\Services::cache();
-    $cacheKey = 'group_lid_map_' . md5($instance_id . '_' . $group_id);
+    $cacheKey = 'group_lid_map_' . md5($instance_id . '_' . ($group_id ?: 'all'));
     
     $lidMap = $cache->get($cacheKey);
     
     if (!$lidMap) {
         $lidMap = [];
-        // Fast endpoint: resolve a single LID in a specific group
-        // OLD: /groups/list carregava 104 grupos (lento)
-        // NEW: /groups/participant carrega 1 grupo (rápido)
         try {
             $baseUrl = \App\Services\WhatsAppGatewayService::getGoBaseUrl();
             $url = $baseUrl . "/groups/participant?instance_id=" . urlencode($instance_id)
-                 . "&group_id=" . urlencode($group_id)
+                 . "&group_id=" . urlencode($group_id ?: '')
                  . "&lid=" . urlencode($lid);
             $ch = curl_init($url);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
