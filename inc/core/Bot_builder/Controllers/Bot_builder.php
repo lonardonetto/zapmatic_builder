@@ -1312,6 +1312,7 @@ public function save_bot_settings()
                 // Inject instance info
                 if (empty($ctx_array['wa_instance_name'])) { $ctx_array['wa_instance_name'] = $account->name ?? ''; $updated_ctx = true; }
                 if (empty($ctx_array['wa_instance_token'])) { $ctx_array['wa_instance_token'] = $wa_instance_id ?? ''; $updated_ctx = true; }
+                if (empty($ctx_array['wa_instance_phone'])) { $ctx_array['wa_instance_phone'] = $account ? explode('@', $account->pid ?? '')[0] : ''; $updated_ctx = true; }
                 // Inject group ID if message is from a group
                 if (strpos($phone, '@g.us') !== false && empty($ctx_array['wa_group_id'])) {
                     $ctx_array['wa_group_id'] = explode('@', $phone)[0];
@@ -1358,6 +1359,7 @@ public function save_bot_settings()
                     'wa_group_name' => (strpos($phone, '@g.us') !== false) ? $this->get_group_name(explode('@', $phone)[0], $instance_id_for_send) : '',
                     'wa_instance_name' => $account->name ?? '',
                     'wa_instance_token' => $wa_instance_id ?? '',
+                    'wa_instance_phone' => $account ? explode('@', $account->pid ?? '')[0] : '',
                 ]);
 
                 // 1. Try keyword trigger first
