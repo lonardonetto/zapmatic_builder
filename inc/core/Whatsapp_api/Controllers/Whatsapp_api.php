@@ -254,6 +254,16 @@ class Whatsapp_api extends Controller
 
         $normalized_recipient = function_exists('wa_meta_normalize_recipient') ? wa_meta_normalize_recipient($number) : preg_replace('/[^0-9]/', '', $number);
         $chat_id = ($normalized_recipient !== '' ? $normalized_recipient : $number) . "@s.whatsapp.net";
+        
+        // Normalizacao do nono digito para numeros brasileiros (55 + DDD + 9 + numero)
+        // Alguns numeros do WhatsApp nao tem o nono digito no JID
+        $alt_chat_id = null;
+        $clean = preg_replace('/[^0-9]/', '', $chat_id);
+        if (strlen($clean) === 17 && substr($clean, 0, 2) === '55' && $clean[4] === '9') {
+            // Remove o nono digito: 55 86 9 94482065 → 55 86 94482065
+            $alt = substr($clean, 0, 4) . substr($clean, 5);
+            $alt_chat_id = $alt . "@s.whatsapp.net";
+        }
 
         if (!empty($media_url)) {
             $sendType = 'image';
@@ -263,12 +273,12 @@ class Whatsapp_api extends Controller
             $sendPayload = ['text' => $message, 'preview' => false];
         }
         
-        // Tenta enviar com presença primeiro (para estabelecer contato antes da mensagem)
-        try {
-            @\App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, 'text', ['text' => '', 'presenceTime' => 1, 'presenceType' => 'composing']);
-        } catch (\Throwable $e) {}
-        
         $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $sendType, $sendPayload);
+        
+        // Se falhou e tem alternativa sem nono digito, tenta com ela
+        if (($response['status'] ?? '') !== 'success' && $alt_chat_id !== null) {
+            $response = \App\Services\WhatsAppGatewayService::send($instance_id, $alt_chat_id, $sendType, $sendPayload);
+        }
 
         $this->logSendPedido([
             "event" => "response",
