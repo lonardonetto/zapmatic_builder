@@ -273,12 +273,10 @@ class Whatsapp_api extends Controller
             $sendPayload = ['text' => $message, 'preview' => false];
         }
         
-        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $sendType, $sendPayload);
-        
-        // Se falhou e tem alternativa sem nono digito, tenta com ela
-        if (($response['status'] ?? '') !== 'success' && $alt_chat_id !== null) {
-            $response = \App\Services\WhatsAppGatewayService::send($instance_id, $alt_chat_id, $sendType, $sendPayload);
-        }
+        // Envia SEMPRE sem o nono digito quando detectado (formato real do JID no WhatsApp)
+        // O Go gateway retorna "success" mesmo para JIDs que nao existem, entao fallback nao funciona
+        $primary_chat_id = $alt_chat_id ?? $chat_id;
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $primary_chat_id, $sendType, $sendPayload);
 
         $this->logSendPedido([
             "event" => "response",
