@@ -255,8 +255,14 @@ class Whatsapp_api extends Controller
         $normalized_recipient = function_exists('wa_meta_normalize_recipient') ? wa_meta_normalize_recipient($number) : preg_replace('/[^0-9]/', '', $number);
         $chat_id = ($normalized_recipient !== '' ? $normalized_recipient : $number) . "@s.whatsapp.net";
 
-        $sendPayload = ['url' => $media_url, 'caption' => $message, 'filename' => $filename];
-        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, 'image', $sendPayload);
+        if (!empty($media_url)) {
+            $sendType = 'image';
+            $sendPayload = ['url' => $media_url, 'caption' => $message, 'filename' => $filename];
+        } else {
+            $sendType = 'text';
+            $sendPayload = ['message' => $message];
+        }
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $sendType, $sendPayload);
 
         $this->logSendPedido([
             "event" => "response",
