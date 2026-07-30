@@ -262,6 +262,12 @@ class Whatsapp_api extends Controller
             $sendType = 'text';
             $sendPayload = ['text' => $message, 'preview' => false];
         }
+        
+        // Tenta enviar com presença primeiro (para estabelecer contato antes da mensagem)
+        try {
+            @\App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, 'text', ['text' => '', 'presenceTime' => 1, 'presenceType' => 'composing']);
+        } catch (\Throwable $e) {}
+        
         $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $sendType, $sendPayload);
 
         $this->logSendPedido([
