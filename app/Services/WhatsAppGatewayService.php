@@ -312,9 +312,15 @@ class WhatsAppGatewayService
             'type' => $type,
         ];
 
+        // Garantir que payload.text exista (Go gateway espera text, não message)
+        if (!empty($payload['message']) && empty($payload['text'])) {
+            $payload['text'] = $payload['message'];
+        }
+
+        $body['payload'] = $payload;
+
         if (in_array($type, ['image', 'audio', 'video', 'document'])) {
             $endpoint = '/send/media';
-            $body['payload'] = $payload;
         } elseif ($type === 'carousel') {
             $templateId = $payload['_template_id'] ?? $payload['template'] ?? 0;
             if (!$templateId && empty($payload['cards'])) {

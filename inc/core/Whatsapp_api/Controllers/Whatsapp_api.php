@@ -260,7 +260,7 @@ class Whatsapp_api extends Controller
             $sendPayload = ['url' => $media_url, 'caption' => $message, 'filename' => $filename];
         } else {
             $sendType = 'text';
-            $sendPayload = ['message' => $message];
+            $sendPayload = ['text' => $message, 'preview' => false];
         }
         $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $sendType, $sendPayload);
 
