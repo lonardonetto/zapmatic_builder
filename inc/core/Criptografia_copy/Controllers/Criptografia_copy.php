@@ -248,8 +248,8 @@ class Criptografia_copy extends Controller
         }
 
         db_delete(TB_ACCOUNTS, ["id" => $account->id]);
-        db_delete(TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $instance_id]);
-        db_delete(TB_WHATSAPP_CHATBOT, ["instance_id" => $instance_id]);
+        // db_delete(TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $instance_id]);
+        // db_delete(TB_WHATSAPP_CHATBOT, ["instance_id" => $instance_id]);
         db_delete(TB_WHATSAPP_SESSIONS, ["instance_id" => $instance_id]);
         db_delete(TB_WHATSAPP_WEBHOOK, ["instance_id" => $instance_id]);
 

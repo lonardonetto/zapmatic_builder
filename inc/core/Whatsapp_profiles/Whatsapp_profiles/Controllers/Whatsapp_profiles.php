@@ -377,8 +377,8 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             db_delete(self::TB_ACCOUNTS, ["ids" => $ids]);
             
             // Tenta excluir registros relacionados, ignorando erros
-            try { db_delete(self::TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $account->token]); } catch (\Exception $e) {}
-            try { db_delete(self::TB_WHATSAPP_CHATBOT, ["instance_id" => $account->token]); } catch (\Exception $e) {}
+            try { // db_delete(self::TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $account->token]); } catch (\Exception $e) {}
+            try { // db_delete(self::TB_WHATSAPP_CHATBOT, ["instance_id" => $account->token]); } catch (\Exception $e) {}
             try { db_delete(self::TB_WHATSAPP_SESSIONS, ["instance_id" => $account->token]); } catch (\Exception $e) {}
             try { db_delete(self::TB_WHATSAPP_WEBHOOK, ["instance_id" => $account->token]); } catch (\Exception $e) {}
 

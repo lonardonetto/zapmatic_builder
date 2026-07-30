@@ -273,16 +273,8 @@ class Whatsapp_api extends Controller
         $normalized_recipient = function_exists('wa_meta_normalize_recipient') ? wa_meta_normalize_recipient($number) : preg_replace('/[^0-9]/', '', $number);
         $chat_id = ($normalized_recipient !== '' ? $normalized_recipient : $number) . "@s.whatsapp.net";
 
-        $response = wa_post_curl("send_message", [
-            "instance_id" => $instance_id, 
-            "access_token" => $access_token,
-            "type" => 1
-        ], [
-            "media_url" => $media_url,
-            "chat_id" => $chat_id,
-            "caption" => $message,
-            "filename" => $filename
-        ] );
+        $sendPayload = ['url' => $media_url, 'caption' => $message, 'filename' => $filename];
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, 'image', $sendPayload);
 
         $this->logSendPedido([
             "event" => "response",
@@ -444,8 +436,8 @@ class Whatsapp_api extends Controller
         }
 
         db_delete(TB_ACCOUNTS, ["id" => $account->id]);
-        db_delete(TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $instance_id]);
-        db_delete(TB_WHATSAPP_CHATBOT, ["instance_id" => $instance_id]);
+        // db_delete(TB_WHATSAPP_AUTORESPONDER)
+        // db_delete(TB_WHATSAPP_CHATBOT)
         db_delete(TB_WHATSAPP_SESSIONS, ["instance_id" => $instance_id]);
         db_delete(TB_WHATSAPP_WEBHOOK, ["instance_id" => $instance_id]);
 
@@ -1031,24 +1023,15 @@ if (isset($response->status) && $response->status === 'success') {
         $access_token = $team->ids;
         $instance_id = self::get_instance_id($instance_id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
-
-        if (!$session) {
-            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-        }
-
-        if ($session->status == 0) {
-            return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
-        }
-
-        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
+        // Refatorado: Bypass do TB_WHATSAPP_SESSIONS. Validamos diretamente na tabela core sp_accounts.
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id, "social_network" => "whatsapp"]);
 
         if (!$account) {
-            return $this->respond(["status" => "error", "message" => __("Account does not exist")]);
+            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated / Account does not exist")]);
         }
 
         if ($account->status == 0) {
-            return $this->respond(["status" => "error", "message" => "This WhatsApp account relogin required"]);
+            return $this->respond(["status" => "error", "message" => "This WhatsApp account relogin required. Instance not activated."]);
         }
 
         $number = trim((string)$number);
@@ -1169,7 +1152,36 @@ if (isset($response->status) && $response->status === 'success') {
         
         
 
-        $response = wa_post_curl("send_message", $creds, $params);
+        // Rota via WhatsAppGatewayService (Whatsmeow/Go ou Cloud API)
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
+        $provider = 'text';
+        $sendPayload = [];
+
+        if (isset($type) && $type == "media") {
+            $provider = 'image';
+            $sendPayload = ['url' => $media_url, 'caption' => $message, 'filename' => $filename];
+        } elseif (isset($type) && $type == "text") {
+            $provider = 'text';
+            $sendPayload = ['message' => $message];
+        } elseif (isset($type) && $type == "button") {
+            $provider = 'buttons';
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 2, "ids" => $template, "team_id" => $team_id]);
+            $sendPayload = ['_template_id' => $item->id ?? 0, 'body' => $message ?: ($item->data ? json_decode($item->data, true)['text'] ?? '' : '')];
+        } elseif (isset($type) && $type == "list") {
+            $provider = 'list';
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 1, "ids" => $template, "team_id" => $team_id]);
+            $sendPayload = ['_template_id' => $item->id ?? 0];
+        } elseif (isset($type) && $type == "carousel") {
+            $provider = 'carousel';
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 5, "ids" => $template, "team_id" => $team_id]);
+            $sendPayload = ['_template_id' => $item->id ?? 0];
+        } elseif (isset($type) && $type == "poll") {
+            $provider = 'text';
+            $item = db_get("*", TB_WHATSAPP_TEMPLATE, ["type" => 3, "ids" => $template, "team_id" => $team_id]);
+            $sendPayload = ['message' => $item->name ?? 'Enquete'];
+        }
+
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $chat_id, $provider, $sendPayload);
 
         return $this->respond((array)$response);
     }
@@ -1205,24 +1217,15 @@ if (isset($response->status) && $response->status === 'success') {
         $access_token = $team->ids;
         $instance_id = self::get_instance_id($instance_id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
-
-        if (!$session) {
-            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-        }
-
-        if ($session->status == 0) {
-            return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
-        }
-
-        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
+        // Refatorado: Bypass do TB_WHATSAPP_SESSIONS. Validamos diretamente na tabela core sp_accounts.
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id, "social_network" => "whatsapp"]);
 
         if (!$account) {
-            return $this->respond(["status" => "error", "message" => __("Account does not exist")]);
+            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated / Account does not exist")]);
         }
 
         if ($account->status == 0) {
-            return $this->respond(["status" => "error", "message" => "This WhatsApp account relogin required"]);
+            return $this->respond(["status" => "error", "message" => "This WhatsApp account relogin required. Instance not activated."]);
         }
         
         if(isset($type) && $type == "media"){

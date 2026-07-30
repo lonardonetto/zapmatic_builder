@@ -26,9 +26,7 @@
                     <div class="wa-connection-switchboard-text"><?php _e('Escolha o tipo de conexão e abra o fluxo em um painel lateral, sem empurrar os perfis para baixo.') ?></div>
                 </div>
                 <div class="wa-connection-switchboard-actions">
-                    <button type="button" class="btn btn-success rounded-pill px-4 js-open-connection-drawer" data-connection-drawer-target="baileys">
-                        <i class="fas fa-qrcode me-2"></i><?php _e('Baileys') ?>
-                    </button>
+                    
 
                     <a href="<?php _ec(base_url('whatsapp_profiles/oauth?open=whatsmeow')) ?>" class="btn btn-info rounded-pill px-4 js-progress-navigation" data-progress-title="<?php _e('Abrindo Whatsmeow') ?>" data-progress-detail="<?php _e('Nenhuma instância será criada até iniciar a conexão.') ?>" data-progress-duration="800">
                         <i class="fab fa-golang me-2"></i><?php _e('Whatsmeow') ?>
@@ -63,9 +61,7 @@
             </div>
 
             <div class="wa-connection-drawer-tabs">
-                <button type="button" class="wa-connection-drawer-tab js-open-connection-drawer" data-connection-drawer-target="baileys">
-                    <i class="fas fa-qrcode me-2"></i><?php _e('Baileys') ?>
-                </button>
+                
                 <button type="button" class="wa-connection-drawer-tab js-open-connection-drawer" data-connection-drawer-target="whatsmeow">
                     <i class="fab fa-golang me-2"></i><?php _e('Whatsmeow') ?>
                 </button>
@@ -395,7 +391,7 @@
                                 <div class="wa-filter-pills" id="waConnectionFilters">
                                     <button type="button" class="wa-filter-pill active" data-filter="all"><?php _e('Todas') ?></button>
                                     <button type="button" class="wa-filter-pill" data-filter="cloud"><?php _e('Cloud API') ?></button>
-                                    <button type="button" class="wa-filter-pill" data-filter="baileys"><?php _e('Baileys') ?></button>
+                                    
                                     <button type="button" class="wa-filter-pill" data-filter="whatsmeow"><?php _e('Whatsmeow') ?></button>
                                     <button type="button" class="wa-filter-pill" data-filter="attention"><?php _e('Com alerta') ?></button>
                                 </div>
@@ -1701,7 +1697,7 @@ function openConnectionDrawer(view, options) {
     }
 
     options = options || {};
-    var targetView = view || drawer.attr('data-default-view') || 'baileys';
+    var targetView = view || drawer.attr('data-default-view') || 'whatsmeow';
     setConnectionDrawerView(targetView);
     drawer.addClass('is-open');
     $('body').addClass('wa-drawer-open');

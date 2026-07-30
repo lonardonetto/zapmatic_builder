@@ -2033,11 +2033,11 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
             // Tenta excluir registros relacionados, ignorando erros
             try {
-                db_delete(self::TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $account->token]);
+                // db_delete(self::TB_WHATSAPP_AUTORESPONDER)
             } catch (\Exception $e) {
             }
             try {
-                db_delete(self::TB_WHATSAPP_CHATBOT, ["instance_id" => $account->token]);
+                // db_delete(self::TB_WHATSAPP_CHATBOT)
             } catch (\Exception $e) {
             }
             try {

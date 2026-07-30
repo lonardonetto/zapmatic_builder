@@ -51,7 +51,7 @@ class WhatsAppGatewayService
         }
 
         $gateway = self::gatewayForInstance($instanceId);
-        $provider = $override ?? ($gateway['provider'] ?? 'baileys');
+        $provider = $override ?? ($gateway['provider'] ?? 'whatsmeow');
 
         if ($provider === 'whatsmeow') {
             return self::sendViaWhatsmeow($gateway, $instanceId, $chatId, $type, $payload);
@@ -240,7 +240,7 @@ class WhatsAppGatewayService
             'id' => ['type' => 'INT', 'constraint' => 11, 'auto_increment' => true],
             'team_id' => ['type' => 'INT', 'constraint' => 11, 'null' => true],
             'instance_id' => ['type' => 'VARCHAR', 'constraint' => 100],
-            'provider' => ['type' => 'VARCHAR', 'constraint' => 30, 'default' => 'baileys'],
+            'provider' => ['type' => 'VARCHAR', 'constraint' => 30, 'default' => 'whatsmeow'],
             'base_url' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'api_key' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'status' => ['type' => 'INT', 'constraint' => 1, 'default' => 1],
@@ -262,7 +262,7 @@ class WhatsAppGatewayService
             ->get()
             ->getRowArray();
 
-        return $row ?: ['provider' => 'baileys'];
+        return $row ?: ['provider' => 'whatsmeow'];
     }
 
     private static function sendViaBaileys($instanceId, string $chatId, string $type, array $payload): array

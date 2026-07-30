@@ -66,51 +66,8 @@ class WhatsappModel extends Model
         $bulks = db_fetch("*", TB_WHATSAPP_SCHEDULES, ["team_id" => $team_id], "id", "DESC", 0, 20);
 
         $autoresponders = false;
-        $db = \Config\Database::connect();
-        $builder = $db->table(TB_WHATSAPP_AUTORESPONDER." as a");
-        $builder->select("a.*, b.id as account_id, b.name as account_name, b.username as account_username");
-        $builder->join(TB_ACCOUNTS. " as b", "a.instance_id = b.token");
-        $builder->where("a.team_id", $team_id);
-        $builder->orderBy("b.id", "ASC");
-        $autoresponder_query = $builder->get();
-        if($autoresponder_query){
-            $autoresponders = $autoresponder_query->getResult();
-        }
 
-        $chatbots = [];
-        $chatbot_items = false;
-        $db = \Config\Database::connect();
-        $builder = $db->table(TB_WHATSAPP_CHATBOT." as a");
-        $builder->select("
-            a.instance_id,
-            a.id,
-            a.ids,
-            a.name,
-            a.keywords,
-            a.sent, 
-            a.failed, 
-            b.id as account_id, 
-            b.name as account_name, 
-            b.username as account_username
-        ");
-        $builder->join(TB_ACCOUNTS. " as b", "a.instance_id = b.token");
-        $builder->where("a.team_id", $team_id);
-        $builder->orderBy("b.id", "ASC");
-        $chatbot_query = $builder->get();
-        if($chatbot_query){
-            $chatbot_items = $chatbot_query->getResult();
-
-            if($chatbot_items){
-                foreach ($chatbot_items as $key => $value) {
-                    if ( !isset($chatbots[$value->instance_id]) ) {
-                        $chatbots[$value->instance_id] = $value;
-                    }else{
-                        $chatbots[$value->instance_id]->sent += $value->sent;
-                        $chatbots[$value->instance_id]->failed += $value->failed;
-                    }
-                }
-            }
-        }
+        $chatbots = []; $chatbot_items = false;
 
         $data = [
             "wa_total_sent" => $wa_total_sent,

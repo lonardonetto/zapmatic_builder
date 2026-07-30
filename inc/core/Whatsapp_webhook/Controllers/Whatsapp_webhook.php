@@ -115,6 +115,10 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
 
     protected function reconcileCloudParallelScheduleCounters($db, int $scheduleId): void
     {
+        return;
+    }
+    protected function old_reconcileCloudParallelScheduleCounters($db, int $scheduleId): void
+    {
         if ($scheduleId <= 0) {
             return;
         }
@@ -204,7 +208,10 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
             $log_entry .= "POST Body: " . $input . "\n";
 
             $data = json_decode($input, true);
-            $value = $data['entry'][0]['changes'][0]['value'] ?? [];
+            if (function_exists('fastcgi_finish_request')) { echo 'OK'; fastcgi_finish_request(); }
+            foreach($data['entry'] as $entryItem) {
+                foreach($entryItem['changes'] as $changeItem) {
+                    $value = $changeItem['value'] ?? [];
 
             // 1) Processar STATUS da Cloud API diretamente no PHP (atualiza sp_whatsapp_message_status)
             if (!empty($value['statuses']) && is_array($value['statuses'])) {
@@ -352,9 +359,11 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                 }
             }
 
-            file_put_contents($log_file, $log_entry, FILE_APPEND);
+                            }
+            }
+            file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
 
-            echo 'OK';
+            if(!function_exists('fastcgi_finish_request')) echo 'OK';
             exit;
         }
 

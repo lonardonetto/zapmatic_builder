@@ -17,15 +17,7 @@ if(!empty($module_paths))
 		        'name' => 'WA Profiles'
 		    ]
 		],
-		"Whatsapp_autoresponder" => [
-			"path" => "inc/core/Whatsapp_autoresponder",
-			"config" => [
-		        'tab' => 2,
-		        'type' => 'top',
-		        'position' => 1085,
-		        'name' => 'WA Autoresponder'
-		    ]
-		],
+		
 
 		"Whatsapp_callresponder" => [
 			"path" => "inc/core/Whatsapp_callresponder",
@@ -36,15 +28,7 @@ if(!empty($module_paths))
 		        'name' => 'WA Call Responder'
 		    ]
 		],
-		"Whatsapp_chatbot" => [
-			"path" => "inc/core/Whatsapp_chatbot",
-			"config" => [
-		        'tab' => 2,
-		        'type' => 'top',
-		        'position' => 1075,
-		        'name' => 'WA Chatbot'
-		    ]
-		],
+		
 		"Bot_builder" => [
 			"path" => "inc/core/Bot_builder",
 			"config" => [

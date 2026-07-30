@@ -43,7 +43,7 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         if (!empty($account) || $ids == "all") {
             $result = false;
             if (!empty($account)) {
-                $result = db_get("*", TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $account->token, "team_id" => $team_id]);
+                $result = false; // Legacy Autoresponder removed
             }
 
             $data = [

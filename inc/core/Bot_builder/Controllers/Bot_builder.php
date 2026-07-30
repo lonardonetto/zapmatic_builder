@@ -980,7 +980,9 @@ public function save_bot_settings()
             $count++;
         }
         
-        return $this->response->setJSON(['status' => 'success', 'processed' => $count]);
+        if (!is_cli()) {
+            return $this->response->setJSON(['status' => 'success', 'processed' => $count]);
+        }
     }
 
     /**
@@ -1266,6 +1268,12 @@ public function save_bot_settings()
                     $this->model->update_session($session->id, ['phone' => $session_key]);
                     file_put_contents($logFile, date('Y-m-d H:i:s') . " | Sessão legada promovida para identidade canônica: {$session_key}\n", FILE_APPEND);
                 }
+            }
+
+            if ($session && isset($session->bot_status) && $session->bot_status === 'human_handoff') {
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " | 👨💻 Handoff Ativo. Mensagem ignorada pelo bot.\n", FILE_APPEND);
+                $handled_count++;
+                continue;
             }
 
             if ($session && empty($session->current_block_id)) {
@@ -2019,14 +2027,34 @@ public function save_bot_settings()
 
                 case 'delay':
                     $seconds = intval($bData->seconds ?? 3);
-                    if($seconds > 0 && $seconds <= 300) {
-                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⏱️ Delay {$seconds}s iniciado | Session #{$session->id}\n", FILE_APPEND);
-                        sleep($seconds);
-                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⏱️ Delay {$seconds}s finalizado | Session #{$session->id}\n", FILE_APPEND);
-                    } else {
-                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⚠️ Delay {$seconds}s ignorado (fora do range 1-300) | Session #{$session->id}\n", FILE_APPEND);
-                    }
                     $next_id = $this->find_next_node($edges, $current_block->id);
+                    
+                    if($seconds > 0 && $seconds <= 300) {
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⏱️ Delay {$seconds}s enfileirado (Async) | Session #{$session->id}\n", FILE_APPEND);
+                        
+                        if ($next_id) {
+                            $this->save_state($session->id, $next_id, $context);
+                            $queue_payload = json_encode([
+                                'next_block_id' => $next_id,
+                                'instance_id' => $instance_id
+                            ], JSON_UNESCAPED_UNICODE);
+                            
+                            $this->model->db->table('sp_message_queue')->insert([
+                                'session_id' => $session->id,
+                                'bot_id' => $bot_id,
+                                'action_type' => 'delay_resume',
+                                'payload' => $queue_payload,
+                                'status' => 'pending',
+                                'send_at' => time() + $seconds
+                            ]);
+                        } else {
+                            $this->model->update_session($session->id, ['is_completed' => 1]);
+                        }
+                        
+                        return; // End gracefully, async worker will resume
+                    } else {
+                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | ⚠️ Delay {$seconds}s ignorado (fora do range) | Session #{$session->id}\n", FILE_APPEND);
+                    }
                     break;
 
                 case 'reenviar':
