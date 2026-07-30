@@ -164,13 +164,13 @@ class Criptografia_copy extends Controller
             return $this->respond(["status" => "error", "message" => __("Webhook URL is not a valid URL")]);
         }
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -210,13 +210,13 @@ class Criptografia_copy extends Controller
             return $this->respond(["status" => "error", "message" => "Instance ID Invalidated"]);
         }
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -250,7 +250,7 @@ class Criptografia_copy extends Controller
         db_delete(TB_ACCOUNTS, ["id" => $account->id]);
         // db_delete(TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $instance_id]);
         // db_delete(TB_WHATSAPP_CHATBOT, ["instance_id" => $instance_id]);
-        db_delete(TB_WHATSAPP_SESSIONS, ["instance_id" => $instance_id]);
+        // Legacy session delete removed
         db_delete(TB_WHATSAPP_WEBHOOK, ["instance_id" => $instance_id]);
 
         return $this->respond(["status" => "success", "message" => "Reset Instance ID was successful"]);
@@ -263,13 +263,13 @@ class Criptografia_copy extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id();
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -292,13 +292,13 @@ class Criptografia_copy extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id($instance_id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -360,13 +360,13 @@ class Criptografia_copy extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id($instance_id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -430,13 +430,13 @@ class Criptografia_copy extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id($instance_id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 

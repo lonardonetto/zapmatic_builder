@@ -61,7 +61,7 @@ class WhatsAppGatewayService
             return self::sendViaCloudAPI($instanceId, $chatId, $type, $payload);
         }
 
-        return self::sendViaBaileys($instanceId, $chatId, $type, $payload);
+        return self::sendViaWhatsmeow($gateway, $instanceId, $chatId, $type, $payload);
     }
 
     public static function register($instanceId, string $baseUrl, ?string $apiKey = null, ?int $teamId = null): array
@@ -265,27 +265,7 @@ class WhatsAppGatewayService
         return $row ?: ['provider' => 'whatsmeow'];
     }
 
-    private static function sendViaBaileys($instanceId, string $chatId, string $type, array $payload): array
-    {
-        $access_token = self::resolveAccessToken($instanceId);
-
-        $params = ['instance_id' => $instanceId];
-        if ($access_token) $params['access_token'] = $access_token;
-
-        $body = [
-            'chat_id' => $chatId,
-            'message_type' => $type === 'text' ? 'text' : $type,
-            'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ];
-
-        $response = wa_post_curl('bot_builder_send', $params, $body);
-        $decoded = is_string($response) ? json_decode($response, true) : json_decode(json_encode($response), true);
-
-        return is_array($decoded)
-            ? $decoded + ['provider' => 'baileys']
-            : ['status' => 'success', 'provider' => 'baileys', 'raw' => $response];
-    }
-
+    
     private static function resolveAccessToken($instanceId): ?string
     {
         $db = \Config\Database::connect();
@@ -890,8 +870,8 @@ class WhatsAppGatewayService
         $available = [];
 
         foreach ($accounts as $acc) {
-            $provider = 'baileys';
-            $loginType = (int)($acc['login_type'] ?? 2);
+            $provider = 'whatsmeow';
+            $loginType = (int)($acc['login_type'] ?? 3);
 
             if ($loginType === 3) {
                 // whatsmeow/go - verificar se tem gateway registrado

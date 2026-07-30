@@ -1034,11 +1034,13 @@ public function save_bot_settings()
             $count++;
         }
         
-        return $this->response->setJSON([
-            'status' => 'success',
-            'processed' => $count,
-            'timestamp' => date('Y-m-d H:i:s', $now),
-        ]);
+        if (!is_cli()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'processed' => $count,
+                'timestamp' => date('Y-m-d H:i:s', $now),
+            ]);
+        }
     }
 
     private function process_webhook($data, $skip_debounce = false)

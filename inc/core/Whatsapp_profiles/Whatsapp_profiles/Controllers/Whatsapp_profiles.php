@@ -79,7 +79,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             $session = db_get("*", self::TB_WHATSAPP_SESSIONS,["status" => 0, "team_id" => $team_id]);
             if(empty($session)){
                 $instance_id = strtoupper(uniqid());
-                db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
+                // Legacy session delete removed
                 db_insert( self::TB_WHATSAPP_SESSIONS, [
                     "ids" => ids(),
                     "instance_id" => $instance_id,
@@ -181,7 +181,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
     // Exclui sessões anteriores inativas do mesmo time e gera uma nova instância se necessário
     if (empty($account)) {
-        db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
+        // Legacy session delete removed
 
         // Gera um novo ID de instância e PIN
         $instance_id = strtoupper(uniqid());
@@ -377,9 +377,9 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             db_delete(self::TB_ACCOUNTS, ["ids" => $ids]);
             
             // Tenta excluir registros relacionados, ignorando erros
-            try { // db_delete(self::TB_WHATSAPP_AUTORESPONDER, ["instance_id" => $account->token]); } catch (\Exception $e) {}
-            try { // db_delete(self::TB_WHATSAPP_CHATBOT, ["instance_id" => $account->token]); } catch (\Exception $e) {}
-            try { db_delete(self::TB_WHATSAPP_SESSIONS, ["instance_id" => $account->token]); } catch (\Exception $e) {}
+            /* Legacy autoresponder delete removed */
+            /* Legacy chatbot delete removed */
+            // Legacy session delete removed
             try { db_delete(self::TB_WHATSAPP_WEBHOOK, ["instance_id" => $account->token]); } catch (\Exception $e) {}
 
             // Limpa cache da sessão se existir
@@ -436,7 +436,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             $instance_id = strtoupper(uniqid());
             
             // Remove qualquer sessão antiga inativa
-            db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
+            // Legacy session delete removed
 
             // Cria o perfil
             $profile_data = [

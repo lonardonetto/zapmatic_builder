@@ -5,7 +5,7 @@
         <div class="col-md-7">
             <div class="card mb-4 mb-xl-10">
                 <div class="card-header border-0 pt-0">
-                    <h5><i class="fas fa-qrcode me-2 text-success"></i><?php _e("WhatsApp Web (Baileys)")?></h5>
+                    
                 </div>
                 <div class="card-body">
                         <!-- Baileys Content -->
@@ -158,7 +158,7 @@ DEBUG-PROFILE-VIEW
                                                 <?php
                                                     $lt = (int) ($value->login_type ?? 0);
                                                     $badge_class = $lt === 1 ? 'success' : ($lt === 3 ? 'info' : 'primary');
-                                                    $badge_label = $lt === 1 ? 'Cloud API' : ($lt === 3 ? 'Go / Whatsmeow' : 'Baileys');
+                                                    $badge_label = $lt === 1 ? 'Cloud API' : 'Go / Whatsmeow';
                                                 ?>
                                                 <span class="badge badge-light-<?php echo $badge_class ?> fs-10 ml-2">
                                                     <?php echo $badge_label ?>

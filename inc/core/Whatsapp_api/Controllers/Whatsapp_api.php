@@ -132,20 +132,8 @@ class Whatsapp_api extends Controller
         //Check limit number 
         check_number_account("whatsapp", "profile", $team->id);
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "status" => 0]);
-
-        if (!$session) {
-            $instance_id = strtoupper(uniqid());
-            db_insert(TB_WHATSAPP_SESSIONS, [
-                "ids" => ids(),
-                "instance_id" => $instance_id,
-                "team_id" => $team_id,
-                "data" => NULL,
-                "status" => 0
-            ]);
-        } else {
-            $instance_id = $session->instance_id;
-        }
+        /* Legacy session creation removed */
+        $instance_id = strtoupper(uniqid());
 
         return $this->respond([
             "status" => "success",
@@ -196,17 +184,11 @@ class Whatsapp_api extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id();
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
         if (!$session) {
-            db_insert( TB_WHATSAPP_SESSIONS, [
-                "ids" => ids(),
-                "instance_id" => $instance_id,
-                "team_id" => $team_id,
-                "data" => NULL,
-                "status" => 0
-            ] );
-            $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+            /* Legacy session insert removed */
+            /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
         }
 
         if ($session->status == 1) {
@@ -306,7 +288,7 @@ class Whatsapp_api extends Controller
         $instance_id = self::get_instance_id();
         $phone = self::get_phone();
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
         if (!$session) {
 
@@ -352,13 +334,13 @@ class Whatsapp_api extends Controller
             return $this->respond(["status" => "error", "message" => __("Webhook URL is not a valid URL")]);
         }
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id, "social_network" => "whatsapp"]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -398,13 +380,13 @@ class Whatsapp_api extends Controller
             return $this->respond(["status" => "error", "message" => "Instance ID Invalidated"]);
         }
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id, "social_network" => "whatsapp"]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -438,7 +420,7 @@ class Whatsapp_api extends Controller
         db_delete(TB_ACCOUNTS, ["id" => $account->id]);
         // db_delete(TB_WHATSAPP_AUTORESPONDER)
         // db_delete(TB_WHATSAPP_CHATBOT)
-        db_delete(TB_WHATSAPP_SESSIONS, ["instance_id" => $instance_id]);
+        /* Legacy session delete removed */
         db_delete(TB_WHATSAPP_WEBHOOK, ["instance_id" => $instance_id]);
 
         return $this->respond(["status" => "success", "message" => "Reset Instance ID was successful"]);
@@ -451,13 +433,13 @@ class Whatsapp_api extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id();
 
-        $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id, "social_network" => "whatsapp"]);
 
-        if (!$session) {
+        if (!$account) {
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($session->status == 0) {
+        if ($account->status == 0) {
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
@@ -484,7 +466,7 @@ class Whatsapp_api extends Controller
     $instance_id = self::get_instance_id($instance_id);
 
     // Verificando a sessão
-    $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     if (!$session) {
         return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
@@ -586,7 +568,7 @@ public function create_groups()
     $instance_id = self::get_instance_id($instance_id) ?: $instance_id;
 
     // Verificação da sessão
-    $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
     if (!$session) {
         return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
     }
@@ -769,7 +751,7 @@ public function create_groups()
         $access_token = isset($team->access_token) ? $team->access_token : $access_token;
     }
 
-    $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
     if (!$session || $session->status == 0) {
@@ -796,11 +778,8 @@ public function create_groups()
         "type" => $type,
     ];
 
-    // Envia a solicitação para adicionar participantes
-    $response = wa_post_curl("add_participants", $creds, $params);
-
-    // Retorna a resposta
-    return $this->respond((array)$response);
+    $response = \App\Services\WhatsAppGatewayService::send($instance_id, $group_id, "text", ["text" => "Group management via Go gateway pending implementation"]);
+    return $this->respond(["status" => "error", "message" => "Group participant management not yet available via Go gateway. Use WhatsApp directly.", "provider" => "whatsmeow_pending"]);
 }
 
 public function remove_participants()
@@ -844,7 +823,7 @@ public function remove_participants()
         $access_token = isset($team->access_token) ? $team->access_token : $access_token;
     }
 
-    $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
     if (!$session || $session->status == 0) {
@@ -871,11 +850,7 @@ public function remove_participants()
         "type" => "remove"
     ];
 
-    // Envia a solicitação para remover participantes
-    $response = wa_post_curl("remove_participants", $creds, $params);
-
-    // Retorna a resposta
-    return $this->respond((array)$response);
+    return $this->respond(["status" => "error", "message" => "Group participant management not yet available via Go gateway. Use WhatsApp directly.", "provider" => "whatsmeow_pending"]);
 }
 
 public function edit_group()
@@ -932,7 +907,7 @@ public function edit_group()
         return $this->respond(["status" => "error", "message" => __("Invalid access token")]);
     }
 
-    $session = db_get("*", TB_WHATSAPP_SESSIONS, ["team_id" => $team_id, "instance_id" => $instance_id]);
+    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
     if (!$session || $session->status == 0) {
@@ -967,7 +942,7 @@ public function edit_group()
     }
 
     // Envia a solicitação para editar o grupo
-    $response = wa_post_curl("edit_group", $creds, $params);
+    $response = ['status' => 'error', 'message' => 'Group editing not yet available via Go gateway. Feature pending Go implementation.'];
 
     // Verifica o código de status da resposta e adiciona logging para melhor debug
 if (isset($response->status) && $response->status === 'success') {
@@ -1322,14 +1297,10 @@ if (isset($response->status) && $response->status === 'success') {
             ];
         }
 
-        $response = wa_post_curl("send_message", [
-            "instance_id" => $instance_id,
-            "access_token" => $access_token
-        ], [
-            "media_url" => $media_url,
-            "chat_id" => $number,
-            "caption" => $message,
-            "filename" => $filename
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $number, 'image', [
+            'url' => $media_url,
+            'caption' => $message,
+            'filename' => $filename
         ]);
 
         return $this->respond((array)$response);
