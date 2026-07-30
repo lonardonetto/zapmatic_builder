@@ -259,7 +259,7 @@ class Whatsapp_api extends Controller
         // Alguns numeros do WhatsApp nao tem o nono digito no JID
         $alt_chat_id = null;
         $clean = preg_replace('/[^0-9]/', '', $chat_id);
-        if (strlen($clean) === 17 && substr($clean, 0, 2) === '55' && $clean[4] === '9') {
+        if (strlen($clean) === 13 && substr($clean, 0, 2) === '55' && $clean[4] === '9') {
             // Remove o nono digito: 55 86 9 94482065 → 55 86 94482065
             $alt = substr($clean, 0, 4) . substr($clean, 5);
             $alt_chat_id = $alt . "@s.whatsapp.net";
