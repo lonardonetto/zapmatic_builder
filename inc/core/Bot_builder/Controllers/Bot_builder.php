@@ -1118,9 +1118,13 @@ public function save_bot_settings()
             $clean_phone = explode(':', $clean_phone)[0];
             
             // Resolve LID (WhatsApp internal ID) to real phone number in groups or private chats
-            if (strlen($clean_phone) > 12 && (strpos($phone, '@g.us') !== false || strpos($phone, '@lid') !== false)) {
+            $is_group = (strpos($phone, '@g.us') !== false);
+            $is_lid_jid = (strpos($phone, '@lid') !== false);
+            $looks_like_lid = (strlen($clean_phone) > 12 && preg_match('/^\d{13,}$/', $clean_phone));
+            
+            if ($is_group || $is_lid_jid || $looks_like_lid) {
                 // For groups, pass the group JID. For private, pass empty (search all groups)
-                $search_group = strpos($phone, '@g.us') !== false ? $phone : '';
+                $search_group = $is_group ? $phone : '';
                 $real_phone = $this->resolve_lid_to_phone($search_group, $clean_phone, $instance_id_for_send);
                 if ($real_phone) {
                     $clean_phone = $real_phone;
