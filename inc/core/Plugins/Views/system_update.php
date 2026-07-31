@@ -74,9 +74,13 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
                 <strong><i class="fad fa-download"></i> Atualização disponível: v<?php echo htmlspecialchars($latest_stable ?? '') ?></strong>
                 <div class="small text-muted">Um backup é criado automaticamente antes de atualizar.</div>
             </div>
-            <button class="btn btn-success b-r-10 su-update-btn" onclick="suApply('<?php echo htmlspecialchars($latest_stable ?? '') ?>')">
-                <i class="fad fa-rocket"></i> Atualizar agora
-            </button>
+            <form method="POST" action="<?php _e(base_url('plugins/system_updater_apply')) ?>" style="display:inline">
+                <input type="hidden" name="target_version" value="<?php echo htmlspecialchars($latest_stable ?? '') ?>">
+                <input type="hidden" name="channel" value="<?php echo htmlspecialchars($channel ?? 'stable') ?>">
+                <button type="submit" class="btn btn-success b-r-10 su-update-btn">
+                    <i class="fad fa-rocket"></i> Atualizar agora
+                </button>
+            </form>
         </div>
         <?php else: ?>
         <div class="alert alert-light border rounded-12">

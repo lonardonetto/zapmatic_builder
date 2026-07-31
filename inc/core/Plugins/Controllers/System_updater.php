@@ -105,17 +105,94 @@ class System_updater extends Controller
         $progress_file = WRITEPATH . 'logs/update_progress_' . $update_id . '.json';
         @unlink($progress_file);
 
-        ms([
-            'status' => 'success',
-            'message' => 'Atualização enfileirada.',
-            'update_id' => $update_id,
-            'csrf_hash' => csrf_hash(),
-        ]);
+        // Se for requisicao AJAX, retorna JSON (UI moderna)
+        $request = \Config\Services::request();
+        if ($request->isAJAX()) {
+            ms([
+                'status' => 'success',
+                'message' => 'Atualização enfileirada.',
+                'update_id' => $update_id,
+                'csrf_hash' => csrf_hash(),
+            ]);
+        }
+
+        // Se for navegacao completa (form), redireciona para a pagina de progresso
+        // (cookies sao enviados automaticamente, sem problemas de sessao)
+        redirect_to(base_url('plugins/system_updater_progress_page/' . $update_id));
     }
 
     // ──────────────────────────────────────────────
-    // Progresso da atualização (AJAX polling)
+    // Página de progresso (navegação completa, sem AJAX)
     // ──────────────────────────────────────────────
+    public function progress_page(int $update_id = 0)
+    {
+        if ($update_id <= 0) {
+            redirect_to(base_url('plugins'));
+        }
+
+        echo '<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atualizando o sistema...</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body { background:#0f172a; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#1e293b; border-radius:16px; color:#fff; max-width:520px; width:100%; }
+    .progress { height:25px; border-radius:12px; background:#334155; }
+    .progress-bar { background:linear-gradient(90deg,#10b981,#3b82f6); transition:width .5s ease; }
+    .msg { color:#94a3b8; }
+    .done { color:#34d399; }
+    .error { color:#f87171; }
+</style>
+</head>
+<body>
+<div class="card p-4 shadow-lg">
+    <h5 class="mb-3" id="title"><span class="spinner-border spinner-border-sm me-2"></span>Atualizando o sistema...</h5>
+    <div class="progress mb-3">
+        <div id="bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"><span id="pct" class="fw-bold">0%</span></div>
+    </div>
+    <div id="msg" class="msg small">Iniciando...</div>
+    <div id="note" class="msg small mt-2" style="opacity:0.6;">NÃO feche esta página</div>
+</div>
+<script>
+var updateId = ' . (int)$update_id . ';
+function poll() {
+    fetch("' . base_url('writable/logs/update_progress_') . '" + updateId + ".json", {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+        if(!p || typeof p.percent === "undefined") return;
+        var bar = document.getElementById("bar");
+        var pct = document.getElementById("pct");
+        var msg = document.getElementById("msg");
+        var title = document.getElementById("title");
+        bar.style.width = Math.max(0, p.percent) + "%";
+        pct.textContent = Math.max(0, p.percent) + "%";
+        msg.textContent = p.message || "";
+        if(p.done){
+            clearInterval(timer);
+            var note = document.getElementById("note");
+            if(p.percent < 0){
+                title.innerHTML = "❌ Falha na atualização";
+                title.className = "error mb-3";
+                note.textContent = "Você pode fechar esta página";
+            } else {
+                title.innerHTML = "✅ Atualização concluída!";
+                title.className = "done mb-3";
+                note.textContent = "Redirecionando automaticamente...";
+            }
+            setTimeout(function(){ location.href = "' . base_url('plugins') . '"; }, 2500);
+        }
+    }).catch(function(){});
+}
+var timer = setInterval(poll, 1000);
+poll();
+</script>
+</body>
+</html>';
+        exit(0);
+    }
     public function progress()
     {
         $update_id = (int) post("update_id");

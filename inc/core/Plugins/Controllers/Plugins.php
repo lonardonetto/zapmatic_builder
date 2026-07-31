@@ -465,6 +465,12 @@ class Plugins extends \CodeIgniter\Controller
         return $updater->apply();
     }
 
+    public function system_updater_progress_page($update_id = 0)
+    {
+        $updater = new \Core\Plugins\Controllers\System_updater();
+        return $updater->progress_page($update_id);
+    }
+
     public function system_updater_progress()
     {
         $updater = new \Core\Plugins\Controllers\System_updater();
