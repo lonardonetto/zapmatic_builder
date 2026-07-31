@@ -494,8 +494,10 @@ class System_updater extends Controller
         // Backup antes (feito pelo caller, mas garantia dupla)
         $backup_file = $this->create_backup($target);
 
-        // Rsync do código extraído sobre o sistema (--delete remove módulos antigos)
-        $cmd = "rsync -avz --delete --no-times " . implode(' ', $excludes) . " {$src}/ {$repo_dir}/ 2>&1";
+        // Rsync do código extraído sobre o sistema
+        // SEM --delete: nunca remove arquivos existentes (evita perda de dados
+        // se a extração falhar ou o processo morrer no meio)
+        $cmd = "rsync -avz --no-times " . implode(' ', $excludes) . " {$src}/ {$repo_dir}/ 2>&1";
         $this->run_shell($cmd);
 
         // Garantir permissões

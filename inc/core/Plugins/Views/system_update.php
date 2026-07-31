@@ -220,6 +220,26 @@ function suApply(version) {
         setTimeout(hideOverlay, 3000);
     });
 }
+function showOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function hideOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function setProgressUI(percent, message) {
+    percent = Math.max(0, parseInt(percent) || 0);
+    var bar = document.getElementById('su-progress-bar');
+    var pct = document.getElementById('su-progress-pct');
+    var msg = document.getElementById('su-progress-msg');
+    if (bar) bar.style.width = percent + '%';
+    if (pct) pct.textContent = percent + '%';
+    if (msg) msg.textContent = message || '';
+}
+
 function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 
