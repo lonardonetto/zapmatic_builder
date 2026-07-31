@@ -111,7 +111,10 @@ class System_updater extends Controller
         // 4. Rodar migrações SQL pendentes
         $migrations_run = $this->run_pending_migrations();
 
-        // 5. Atualizar version.json
+        // 5. Reiniciar processos (workers PM2 + Go gateway)
+        $this->restart_processes();
+
+        // 6. Atualizar version.json
         $this->write_version($target, $channel);
 
         // 6. Marcar como aplicado
@@ -161,6 +164,24 @@ class System_updater extends Controller
         } catch (\Throwable $e) {
             ms(['status' => 'error', 'message' => 'Falha no rollback: ' . $e->getMessage()]);
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Reiniciar processos após atualização
+    // ──────────────────────────────────────────────
+    private function restart_processes(): void
+    {
+        // Reiniciar workers PM2 (tenta vários nomes possíveis por sistema)
+        $this->run_shell("pm2 restart bot-worker-all 2>/dev/null || true");
+        $this->run_shell("pm2 restart renovo-bot-worker-all 2>/dev/null || true");
+        $this->run_shell("pm2 restart bot-worker-debounce bot-worker-queue bot-worker-sessions campaign-worker-dispatch 2>/dev/null || true");
+
+        // Reiniciar Go gateway (tenta nomes de serviço possíveis)
+        $this->run_shell("sudo systemctl restart zapmatic-whatsmeow 2>/dev/null || true");
+        $this->run_shell("sudo systemctl restart zapmatic-whatsmeow-renovo 2>/dev/null || true");
+        $this->run_shell("sudo systemctl restart zapmatic-whatsmeow-main 2>/dev/null || true");
+
+        log_message('info', "[SystemUpdater] Processos reiniciados após atualização");
     }
 
     // ──────────────────────────────────────────────
