@@ -5,6 +5,14 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
 <?php echo $this->section('content') ?>
 
 <div class="main-wrapper flex-grow-1 n-scroll">
+    <!-- Overlay de progresso -->
+    <div id="su-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; flex-direction:column; color:#fff;">
+        <div class="spinner-border text-light" style="width:3rem; height:3rem;" role="status"></div>
+        <div class="mt-3 fw-bold" style="font-size:1.1rem;">Atualizando o sistema...</div>
+        <div class="text-light small mt-1">Baixando arquivos, aplicando migrações e reiniciando processos</div>
+        <div class="text-light small mt-2" style="opacity:0.7;">NÃO feche esta página</div>
+    </div>
+
     <div class="container my-5">
         <div class="w-100 m-r-0 d-flex align-items-center justify-content-between mb-4">
             <h3 class="fw-bolder m-b-0 text-gray-800"><i class="fad fa-sync-alt text-primary"></i> Atualização do Sistema</h3>
@@ -58,7 +66,7 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
                 <strong><i class="fad fa-download"></i> Atualização disponível: v<?php echo htmlspecialchars($latest_stable ?? '') ?></strong>
                 <div class="small text-muted">Um backup é criado automaticamente antes de atualizar.</div>
             </div>
-            <button class="btn btn-success b-r-10" onclick="suApply('<?php echo htmlspecialchars($latest_stable ?? '') ?>')">
+            <button class="btn btn-success b-r-10 su-update-btn" onclick="suApply('<?php echo htmlspecialchars($latest_stable ?? '') ?>')">
                 <i class="fad fa-rocket"></i> Atualizar agora
             </button>
         </div>
@@ -137,17 +145,41 @@ function suApply(version) {
     if (!confirm('Atualizar o sistema para v' + version + '?\n\nUm backup será criado automaticamente antes da atualização.\nO sistema pode ficar indisponível por alguns segundos.')) return;
 
     var channel = document.getElementById('su-channel').value;
+
+    // Encontrar e desabilitar o botão, mostrando animação
+    var btn = document.querySelector('.su-update-btn');
+    var btnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Atualizando... (pode levar alguns segundos)';
+    }
+
+    // Bloquear a página com overlay de progresso
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
     $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
         target_version: version,
         channel: channel
     }, function(resp) {
         if (resp.status === 'success') {
             toastr.success(resp.message);
-            setTimeout(() => location.reload(), 2000);
+            setTimeout(() => location.reload(), 2500);
         } else {
             toastr.error(resp.message || 'Erro ao atualizar');
+            if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+            if (overlay) overlay.style.display = 'none';
         }
-    }, 'json');
+    }).fail(function(xhr) {
+        var msg = 'Erro na requisição';
+        try {
+            var j = JSON.parse(xhr.responseText);
+            if (j.message) msg = j.message;
+        } catch(e) {}
+        toastr.error(msg);
+        if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+        if (overlay) overlay.style.display = 'none';
+    });
 }
 
 function suRollback(id) {
