@@ -100,41 +100,42 @@ class System_updater extends Controller
         ]);
         $update_id = $db->insertID();
 
-        // 2. Backup do estado atual (arquivos críticos)
-        $backup_file = $this->create_backup($from_version);
-
-        // 3. Aplicar via git (se for repo) ou download de ZIP
-        try {
-            $this->apply_git_update($target, $channel);
-        } catch (\Throwable $e) {
-            $db->table('sp_system_updates')->where('id', $update_id)->update([
-                'status' => 'failed',
-                'backup_file' => $backup_file,
-            ]);
-            ms(['status' => 'error', 'message' => 'Falha na atualização: ' . $e->getMessage()]);
-        }
-
-        // 4. Rodar migrações SQL pendentes
-        $migrations_run = $this->run_pending_migrations();
-
-        // 5. Reiniciar processos (workers PM2 + Go gateway)
-        $this->restart_processes();
-
-        // 6. Atualizar version.json
-        $this->write_version($target, $channel);
-
-        // 6. Marcar como aplicado
-        $db->table('sp_system_updates')->where('id', $update_id)->update([
-            'status' => 'applied',
-            'backup_file' => $backup_file,
-            'applied_at' => date('Y-m-d H:i:s'),
-        ]);
+        // 2. Lançar processo em background (não bloqueia a requisição)
+        $repo = rtrim(FCPATH, '/');
+        $cmd = "cd {$repo} && nohup php spark system:update --id={$update_id} --version={$target} --channel={$channel} > /dev/null 2>&1 &";
+        @exec($cmd);
 
         ms([
             'status' => 'success',
-            'message' => "Sistema atualizado para v{$target}!" . ($migrations_run > 0 ? " ({$migrations_run} migrações aplicadas)" : ""),
-            'backup' => $backup_file
+            'message' => 'Atualização iniciada em segundo plano.',
+            'update_id' => $update_id,
         ]);
+    }
+
+    // ──────────────────────────────────────────────
+    // Progresso da atualização (AJAX polling)
+    // ──────────────────────────────────────────────
+    public function progress()
+    {
+        $update_id = (int) post("update_id");
+        $progress_file = WRITEPATH . 'logs/update_progress_' . $update_id . '.json';
+
+        if (file_exists($progress_file)) {
+            $data = json_decode(file_get_contents($progress_file), true);
+            ms(['status' => 'success', 'progress' => $data]);
+        }
+
+        // Sem arquivo: verificar status no banco
+        $db = db_connect();
+        $row = $db->table('sp_system_updates')->where('id', $update_id)->get()->getRow();
+        if ($row && $row->status === 'applied') {
+            ms(['status' => 'success', 'progress' => ['percent' => 100, 'stage' => 'done', 'message' => 'Atualização concluída', 'done' => true]]);
+        }
+        if ($row && $row->status === 'failed') {
+            ms(['status' => 'success', 'progress' => ['percent' => -1, 'stage' => 'error', 'message' => 'Falha na atualização', 'done' => true]]);
+        }
+
+        ms(['status' => 'success', 'progress' => ['percent' => 0, 'stage' => 'starting', 'message' => 'Iniciando...', 'done' => false]]);
     }
 
     // ──────────────────────────────────────────────

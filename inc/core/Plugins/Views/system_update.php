@@ -6,11 +6,19 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
 
 <div class="main-wrapper flex-grow-1 n-scroll">
     <!-- Overlay de progresso -->
-    <div id="su-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; flex-direction:column; color:#fff;">
-        <div class="spinner-border text-light" style="width:3rem; height:3rem;" role="status"></div>
-        <div class="mt-3 fw-bold" style="font-size:1.1rem;">Atualizando o sistema...</div>
-        <div class="text-light small mt-1">Baixando arquivos, aplicando migrações e reiniciando processos</div>
-        <div class="text-light small mt-2" style="opacity:0.7;">NÃO feche esta página</div>
+    <div id="su-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; flex-direction:column; color:#fff; padding:20px;">
+        <div class="text-center" style="max-width:500px; width:100%;">
+            <div class="fw-bold" style="font-size:1.2rem; margin-bottom:20px;" id="su-progress-title">
+                <i class="fad fa-cog fa-spin"></i> Atualizando o sistema...
+            </div>
+            <div class="progress" style="height:25px; background:rgba(255,255,255,0.15); border-radius:12px; overflow:hidden;">
+                <div id="su-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%; background:linear-gradient(90deg,#10b981,#3b82f6); transition:width 0.5s ease;">
+                    <span id="su-progress-pct" style="font-weight:bold;">0%</span>
+                </div>
+            </div>
+            <div id="su-progress-msg" class="text-light small mt-3" style="opacity:0.9;">Iniciando...</div>
+            <div class="text-light small mt-2" style="opacity:0.6;">NÃO feche esta página</div>
+        </div>
     </div>
 
     <div class="container my-5">
@@ -141,45 +149,81 @@ function suCheck() {
     }, 'json');
 }
 
+var suPollTimer = null;
+var suUpdateId = 0;
+
 function suApply(version) {
     if (!confirm('Atualizar o sistema para v' + version + '?\n\nUm backup será criado automaticamente antes da atualização.\nO sistema pode ficar indisponível por alguns segundos.')) return;
 
     var channel = document.getElementById('su-channel').value;
 
-    // Encontrar e desabilitar o botão, mostrando animação
     var btn = document.querySelector('.su-update-btn');
     var btnHtml = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Atualizando... (pode levar alguns segundos)';
-    }
-
-    // Bloquear a página com overlay de progresso
-    var overlay = document.getElementById('su-overlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Iniciando...'; }
 
     $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
         target_version: version,
         channel: channel
     }, function(resp) {
         if (resp.status === 'success') {
-            toastr.success(resp.message);
-            setTimeout(() => location.reload(), 2500);
+            suUpdateId = resp.update_id || 0;
+            showOverlay();
+            suPollTimer = setInterval(suPoll, 2000);
+            suPoll(); // primeira checagem imediata
         } else {
-            toastr.error(resp.message || 'Erro ao atualizar');
+            toastr.error(resp.message || 'Erro ao iniciar atualização');
             if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
-            if (overlay) overlay.style.display = 'none';
         }
-    }).fail(function(xhr) {
-        var msg = 'Erro na requisição';
-        try {
-            var j = JSON.parse(xhr.responseText);
-            if (j.message) msg = j.message;
-        } catch(e) {}
-        toastr.error(msg);
+    }).fail(function() {
+        toastr.error('Erro ao iniciar a atualização');
         if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
-        if (overlay) overlay.style.display = 'none';
     });
+}
+
+function suPoll() {
+    if (!suUpdateId) return;
+
+    $.post('<?php _e(base_url('plugins/system_updater_progress')) ?>', {
+        update_id: suUpdateId
+    }, function(resp) {
+        if (resp.status !== 'success' || !resp.progress) return;
+
+        var p = resp.progress;
+        var percent = Math.max(0, parseInt(p.percent) || 0);
+
+        // Atualizar barra
+        var bar = document.getElementById('su-progress-bar');
+        var pct = document.getElementById('su-progress-pct');
+        var msg = document.getElementById('su-progress-msg');
+        var title = document.getElementById('su-progress-title');
+
+        if (bar) bar.style.width = percent + '%';
+        if (pct) pct.textContent = percent + '%';
+        if (msg) msg.textContent = p.message || '';
+        if (bar) bar.classList.remove('progress-bar-animated');
+        if (bar) bar.classList.add('progress-bar-animated');
+
+        if (p.done) {
+            if (suPollTimer) clearInterval(suPollTimer);
+            if (p.stage === 'error' || percent < 0) {
+                if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
+                toastr.error(p.message || 'Erro na atualização');
+            } else {
+                if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
+                toastr.success(p.message || 'Sistema atualizado com sucesso!');
+            }
+            setTimeout(() => location.reload(), 3000);
+        }
+    }).fail(function() {
+        // Se a requisição falhar mas o update foi aplicado, recarrega
+        if (suPollTimer) clearInterval(suPollTimer);
+        setTimeout(() => location.reload(), 1500);
+    });
+}
+
+function showOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'flex';
 }
 
 function suRollback(id) {
