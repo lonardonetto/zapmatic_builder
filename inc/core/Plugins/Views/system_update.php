@@ -197,13 +197,14 @@ function suApply(version) {
 function suPoll() {
     if (!suUpdateId) return;
 
-    $.post('<?php _e(base_url("plugins/system_updater_progress")) ?>', {
-        update_id: suUpdateId,
-        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
-    }, function(resp) {
-        if (resp.status !== 'success' || !resp.progress) return;
-        var p = resp.progress;
-        
+    // LER O ARQUIVO DE PROGRESSO DIRETO (sem framework, sem CSRF, nunca falha)
+    // O arquivo esta em writable/ que o rsync NAO toca
+    var url = '<?php echo base_url("writable/logs/update_progress_") ?>' + suUpdateId + '.json';
+    fetch(url, { cache: 'no-store' })
+    .then(function(r) { return r.json(); })
+    .then(function(p) {
+        if (!p || typeof p.percent === 'undefined') return;
+
         setProgressUI(p.percent, p.message || '');
         var bar = document.getElementById('su-progress-bar');
         if (bar) bar.classList.add('progress-bar-animated');
@@ -212,7 +213,6 @@ function suPoll() {
             clearInterval(suPollTimer);
             var title = document.getElementById('su-progress-title');
             var note = document.getElementById('su-overlay-note');
-            
             if (p.percent < 0 || p.stage === 'error') {
                 if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
                 if (note) note.textContent = 'Você pode fechar esta página';
@@ -225,32 +225,11 @@ function suPoll() {
                 setTimeout(function(){ location.reload(); }, 2500);
             }
         }
-    }).fail(function() {
-        // Durante o rsync os arquivos PHP sao substituidos, o poll pode falhar.
-        // Nao faz nada: o setInterval continua tentando e recupera sozinho.
+    })
+    .catch(function() {
+        // Arquivo ainda nao existe ou erro transiente - o setInterval continua tentando
     });
-}
-function showOverlay() {
-    var overlay = document.getElementById('su-overlay');
-    if (overlay) overlay.style.display = 'flex';
-}
-
-function hideOverlay() {
-    var overlay = document.getElementById('su-overlay');
-    if (overlay) overlay.style.display = 'none';
-}
-
-function setProgressUI(percent, message) {
-    percent = Math.max(0, parseInt(percent) || 0);
-    var bar = document.getElementById('su-progress-bar');
-    var pct = document.getElementById('su-progress-pct');
-    var msg = document.getElementById('su-progress-msg');
-    if (bar) bar.style.width = percent + '%';
-    if (pct) pct.textContent = percent + '%';
-    if (msg) msg.textContent = message || '';
-}
-
-function suRollback(id) {
+}function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 
     $.post('<?php _e(base_url('plugins/system_updater_rollback')) ?>', {

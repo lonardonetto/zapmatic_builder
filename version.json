@@ -1,8 +1,8 @@
 {
-    "version": "8.3.12",
+    "version": "8.3.13",
     "channel": "stable",
-    "build_date": "2026-07-31T10:25:00-03:00",
+    "build_date": "2026-07-31T10:30:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Progresso granular + polling resiliente"
+    "notes": "Polling direto do arquivo (sem framework) - nao falha durante rsync"
 }
