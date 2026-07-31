@@ -306,21 +306,42 @@ class System_updater extends Controller
         $current = $this->get_current_version();
         $current_version = $current['version'] ?? '0.0.0';
 
-        $tags = $this->fetch_github_tags();
-        $stable = $this->pick_latest($tags, 'stable');
-        $test = $this->pick_latest($tags, 'test');
+        // Buscar versões direto do raw.githubusercontent.com (SEM rate limit da API)
+        $stable = $this->fetch_raw_version('main');
+        $test = $this->fetch_raw_version('beta');
 
         $target = ($channel === 'test' && $test) ? $test : $stable;
-        $update_available = $target && version_compare($target['version'], $current_version, '>');
+        $update_available = $target && version_compare($target, $current_version, '>');
 
         return [
             'current_version' => $current_version,
-            'latest_stable' => $stable['version'] ?? null,
-            'latest_test' => $test['version'] ?? null,
-            'latest_version' => $target['version'] ?? $current_version,
+            'latest_stable' => $stable,
+            'latest_test' => $test,
+            'latest_version' => $target ?? $current_version,
             'update_available' => (bool) $update_available,
             'channel' => $channel,
         ];
+    }
+
+    // ──────────────────────────────────────────────
+    // Buscar versão do version.json na branch (raw, sem rate limit)
+    // ──────────────────────────────────────────────
+    private function fetch_raw_version(string $branch): ?string
+    {
+        $url = 'https://raw.githubusercontent.com/lonardonetto/zapmatic_builder/' . $branch . '/version.json';
+
+        $ctx = stream_context_create(['http' => [
+            'header' => "User-Agent: Zapmatic-Updater\r\n",
+            'timeout' => 15,
+        ]]);
+
+        $result = @file_get_contents($url, false, $ctx);
+        if (!$result) return null;
+
+        $data = json_decode($result, true);
+        if (!is_array($data) || empty($data['version'])) return null;
+
+        return (string)$data['version'];
     }
 
     // ──────────────────────────────────────────────
@@ -360,13 +381,8 @@ class System_updater extends Controller
     // ──────────────────────────────────────────────
     private function resolve_tag_name(string $version): string
     {
-        $tags = $this->fetch_github_tags();
-        foreach ($tags as $tag) {
-            if (($tag['version'] ?? '') === $version) {
-                return $tag['tag'];
-            }
-        }
-        // Fallback: versão pode ser passada com o nome completo (ex: v8.3.0-updater)
+        // Tags sao criadas como vX.Y.Z (sem sufixo)
+        // Se vier com prefixo v, usa como esta
         if (str_starts_with($version, 'v')) {
             return $version;
         }
