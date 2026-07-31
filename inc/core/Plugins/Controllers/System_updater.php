@@ -86,42 +86,11 @@ class System_updater extends Controller
             ms(['status' => 'error', 'message' => 'Versão alvo não informada']);
         }
 
-        set_time_limit(300);
-
-        // Desabilitar TODOS os buffers (real-time streaming)
-        @ini_set('output_buffering', '0');
-        @ini_set('zlib.output_compression', 'Off');
-        @ini_set('implicit_flush', '1');
-        @ob_implicit_flush(true);
-        while (ob_get_level() > 0) { @ob_end_clean(); }
-
-        header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
-        header('X-Accel-Buffering: no');
-        header('Connection: keep-alive');
-
-        // Padding inicial (força o servidor a liberar os headers)
-        echo str_repeat(' ', 4096) . "\n\n";
-        @ob_flush();
-        @flush();
-
-        // Funcao de stream de progresso
-        $stream = function (int $percent, string $message, bool $done = false) {
-            $chunk = json_encode(['percent' => $percent, 'message' => $message, 'done' => $done]);
-            echo "data: {$chunk}\n\n";
-            @ob_flush();
-            @flush();
-            if ($done) {
-                usleep(50000);
-                @ob_flush();
-                @flush();
-            }
-        };
-
         $current = $this->get_current_version();
         $from_version = $current['version'] ?? '0.0.0';
 
-        // 1. Registrar update como pending
+        // Registrar update como pending e RETORNAR IMEDIATAMENTE.
+        // O Worker PM2 (que roda a cada 1s) vai pescar e processar.
         $db = db_connect();
         $db->table('sp_system_updates')->insert([
             'from_version' => $from_version,
@@ -132,45 +101,16 @@ class System_updater extends Controller
         ]);
         $update_id = $db->insertID();
 
-        try {
-            $stream(5, 'Criando backup do sistema...');
-            $ref = new \ReflectionMethod($this, 'create_backup');
-            $ref->setAccessible(true);
-            $backup_file = $ref->invoke($this, $from_version);
+        // Limpar arquivo de progresso velho se houver
+        $progress_file = WRITEPATH . 'logs/update_progress_' . $update_id . '.json';
+        @unlink($progress_file);
 
-            $stream(30, 'Baixando atualização do GitHub...');
-            $ref = new \ReflectionMethod($this, 'apply_git_update');
-            $ref->setAccessible(true);
-            $ref->invoke($this, $target, $channel);
-
-            $stream(80, 'Aplicando migrações SQL...');
-            $ref = new \ReflectionMethod($this, 'run_pending_migrations');
-            $ref->setAccessible(true);
-            $migrations = $ref->invoke($this);
-
-            $stream(92, 'Reiniciando processos...');
-            $ref = new \ReflectionMethod($this, 'restart_processes');
-            $ref->setAccessible(true);
-            $ref->invoke($this);
-
-            $stream(96, 'Atualizando versão...');
-            $ref = new \ReflectionMethod($this, 'write_version');
-            $ref->setAccessible(true);
-            $ref->invoke($this, $target, $channel);
-
-            // Marcar aplicado
-            $db->table('sp_system_updates')->where('id', $update_id)->update([
-                'status' => 'applied',
-                'backup_file' => $backup_file,
-                'applied_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            $stream(100, "Atualização concluída para v{$target}!" . ($migrations > 0 ? " ({$migrations} migrações)" : ""), true);
-
-        } catch (\Throwable $e) {
-            $db->table('sp_system_updates')->where('id', $update_id)->update(['status' => 'failed']);
-            $stream(-1, 'Erro: ' . $e->getMessage(), true);
-        }
+        ms([
+            'status' => 'success',
+            'message' => 'Atualização enfileirada.',
+            'update_id' => $update_id,
+            'csrf_hash' => csrf_hash(),
+        ]);
     }
 
     // ──────────────────────────────────────────────

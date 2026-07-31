@@ -155,80 +155,76 @@ function suCheck() {
 var suPollTimer = null;
 var suUpdateId = 0;
 
+var suPollTimer = null;
+var suUpdateId = 0;
+
 function suApply(version) {
     if (!confirm('Atualizar o sistema para v' + version + '?\n\nUm backup será criado automaticamente antes da atualização.\nO sistema pode ficar indisponível por alguns segundos.')) return;
 
     var channel = document.getElementById('su-channel').value;
 
-    // MOSTRAR OVERLAY IMEDIATAMENTE
     showOverlay();
-    setProgressUI(0, 'Iniciando atualização...');
-    document.getElementById('su-progress-title').innerHTML = '<i class="fad fa-cog fa-spin"></i> Atualizando o sistema...';
+    setProgressUI(5, 'Iniciando atualização...');
+    var title = document.getElementById('su-progress-title');
+    if (title) title.innerHTML = '<i class="fad fa-cog fa-spin"></i> Atualizando o sistema...';
 
     var btn = document.querySelector('.su-update-btn');
+    var btnHtml = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Atualizando...'; }
 
-    var formData = new FormData();
-    formData.append('target_version', version);
-    formData.append('channel', channel);
-    formData.append('<?php echo csrf_token() ?>', '<?php echo csrf_hash() ?>');
-
-    fetch('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin'
-    }).then(function(response) {
-        if (!response.body) { throw new Error('Streaming não suportado'); }
-        var reader = response.body.getReader();
-        var decoder = new TextDecoder();
-        var buffer = '';
-
-        function processChunk(part) {
-            part.split('\n').forEach(function(line) {
-                if (line.indexOf('data: ') === 0) {
-                    try {
-                        var p = JSON.parse(line.substring(6));
-                        setProgressUI(p.percent, p.message);
-                        if (p.done) {
-                            var title = document.getElementById('su-progress-title');
-                            var note = document.getElementById('su-overlay-note');
-                            if (p.percent < 0) {
-                                if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
-                                if (note) note.textContent = 'Você pode fechar esta página';
-                                toastr.error(p.message || 'Erro');
-                                setTimeout(hideOverlay, 4000);
-                            } else {
-                                if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
-                                if (note) note.textContent = 'Redirecionando automaticamente...';
-                                toastr.success(p.message || 'Sistema atualizado!');
-                            }
-                            setTimeout(function(){ location.reload(); }, 3000);
-                        }
-                    } catch(e) {}
-                }
-            });
+    $.post('<?php _e(base_url("plugins/system_updater_apply")) ?>', {
+        target_version: version,
+        channel: channel,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
+    }, function(resp) {
+        if (resp.status === 'success') {
+            suUpdateId = resp.update_id || 0;
+            // Polling muito agressivo: a cada 1 segundo
+            suPollTimer = setInterval(suPoll, 1000);
+            suPoll(); 
+        } else {
+            toastr.error(resp.message || 'Erro ao iniciar');
+            hideOverlay();
+            if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
         }
+    }).fail(function() {
+        toastr.error('Falha de rede ao iniciar');
+        hideOverlay();
+        if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+    });
+}
 
-        function read() {
-            return reader.read().then(function(result) {
-                if (result.done) {
-                    // IMPORTANTE: processar o buffer restante (chunk final)
-                    if (buffer && buffer.trim()) {
-                        buffer.split('\n\n').forEach(processChunk);
-                    }
-                    return;
-                }
-                buffer += decoder.decode(result.value, {stream: true});
-                var parts = buffer.split('\n\n');
-                buffer = parts.pop();
-                parts.forEach(processChunk);
-                return read();
-            });
+function suPoll() {
+    if (!suUpdateId) return;
+
+    $.post('<?php _e(base_url("plugins/system_updater_progress")) ?>', {
+        update_id: suUpdateId,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
+    }, function(resp) {
+        if (resp.status !== 'success' || !resp.progress) return;
+        var p = resp.progress;
+        
+        setProgressUI(p.percent, p.message || '');
+        var bar = document.getElementById('su-progress-bar');
+        if (bar) bar.classList.add('progress-bar-animated');
+
+        if (p.done) {
+            clearInterval(suPollTimer);
+            var title = document.getElementById('su-progress-title');
+            var note = document.getElementById('su-overlay-note');
+            
+            if (p.percent < 0 || p.stage === 'error') {
+                if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
+                if (note) note.textContent = 'Você pode fechar esta página';
+                toastr.error(p.message || 'Erro crítico');
+                setTimeout(hideOverlay, 4000);
+            } else {
+                if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
+                if (note) note.textContent = 'Redirecionando automaticamente...';
+                toastr.success(p.message || 'Sistema atualizado!');
+                setTimeout(function(){ location.reload(); }, 2500);
+            }
         }
-        return read();
-    }).catch(function(err) {
-        toastr.error('Erro na atualização: ' + err.message);
-        setTimeout(hideOverlay, 3000);
     });
 }
 function showOverlay() {
