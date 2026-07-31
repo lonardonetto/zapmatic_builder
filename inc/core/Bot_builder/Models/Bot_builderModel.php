@@ -396,15 +396,27 @@ class Bot_builderModel
                 ->where('i.status', 1)
                 ->get()->getResult();
 
+            $autorespond_bot = null;
             foreach($linked as $bot) {
                 if(isset($bot->bot_enabled) && $bot->bot_enabled == 0) continue;
 
                 // Check chat_type filter
                 if(!$this->chat_type_matches($bot, $chat_id)) continue;
 
+                // Se for autorespond, guarda como fallback mas continua procurando keyword match
+                if (!empty($bot->autorespond)) {
+                    if (!$autorespond_bot) $autorespond_bot = $bot;
+                    continue;
+                }
+
                 // Check keywords using match type
                 if($this->keyword_matches($text, $bot)) return $bot;
             }
+
+            // Se nenhum keyword match encontrou, usa o primeiro autorespond
+            if ($autorespond_bot) return $autorespond_bot;
+
+            return null;
         }
 
         if($instance_id) {
