@@ -32,6 +32,7 @@ class System_updater extends Controller
         $check = $this->check_remote($channel);
 
         $data = [
+            'title' => 'Atualização do Sistema',
             'config' => $this->config,
             'current' => $current,
             'channel' => $channel,
