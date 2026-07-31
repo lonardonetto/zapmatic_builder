@@ -160,91 +160,66 @@ function suApply(version) {
 
     var channel = document.getElementById('su-channel').value;
 
-    // MOSTRAR OVERLAY IMEDIATAMENTE (sem esperar resposta do POST)
+    // MOSTRAR OVERLAY IMEDIATAMENTE
     showOverlay();
     setProgressUI(0, 'Iniciando atualização...');
+    document.getElementById('su-progress-title').innerHTML = '<i class="fad fa-cog fa-spin"></i> Atualizando o sistema...';
 
     var btn = document.querySelector('.su-update-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Iniciando...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Atualizando...'; }
 
-    $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
-        target_version: version,
-        channel: channel,
-        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
-    }, function(resp) {
-        if (resp.status === 'success') {
-            suUpdateId = resp.update_id || 0;
-            suPollTimer = setInterval(suPoll, 2000);
-            suPoll(); // primeira checagem imediata
-        } else {
-            toastr.error(resp.message || 'Erro ao iniciar atualização');
-            hideOverlay();
-            if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+    var formData = new FormData();
+    formData.append('target_version', version);
+    formData.append('channel', channel);
+    formData.append('<?php echo csrf_token() ?>', '<?php echo csrf_hash() ?>');
+
+    fetch('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    }).then(function(response) {
+        if (!response.body) { throw new Error('Streaming não suportado'); }
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+
+        function read() {
+            return reader.read().then(function(result) {
+                if (result.done) { return; }
+                buffer += decoder.decode(result.value, {stream: true});
+                var parts = buffer.split('\n\n');
+                buffer = parts.pop();
+                parts.forEach(function(part) {
+                    part.split('\n').forEach(function(line) {
+                        if (line.indexOf('data: ') === 0) {
+                            try {
+                                var p = JSON.parse(line.substring(6));
+                                setProgressUI(p.percent, p.message);
+                                if (p.done) {
+                                    var title = document.getElementById('su-progress-title');
+                                    if (p.percent < 0) {
+                                        if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
+                                        toastr.error(p.message || 'Erro');
+                                        setTimeout(hideOverlay, 4000);
+                                    } else {
+                                        if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
+                                        toastr.success(p.message || 'Sistema atualizado!');
+                                    }
+                                    setTimeout(function(){ location.reload(); }, 3000);
+                                }
+                            } catch(e) {}
+                        }
+                    });
+                });
+                return read();
+            });
         }
-    }).fail(function() {
-        toastr.error('Erro ao iniciar a atualização');
-        hideOverlay();
-        if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
+        return read();
+    }).catch(function(err) {
+        toastr.error('Erro na atualização: ' + err.message);
+        setTimeout(hideOverlay, 3000);
     });
 }
-
-function suPoll() {
-    if (!suUpdateId) return;
-
-    $.post('<?php _e(base_url('plugins/system_updater_progress')) ?>', {
-        update_id: suUpdateId,
-        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
-    }, function(resp) {
-        if (resp.status !== 'success' || !resp.progress) return;
-
-        var p = resp.progress;
-        var percent = Math.max(0, parseInt(p.percent) || 0);
-
-        // Atualizar barra
-        setProgressUI(percent, p.message || '');
-        var bar = document.getElementById('su-progress-bar');
-        if (bar) bar.classList.add('progress-bar-animated');
-
-        if (p.done) {
-            if (suPollTimer) clearInterval(suPollTimer);
-            var title = document.getElementById('su-progress-title');
-            if (p.stage === 'error' || percent < 0) {
-                if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
-                toastr.error(p.message || 'Erro na atualização');
-                setTimeout(hideOverlay, 4000);
-            } else {
-                if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
-                toastr.success(p.message || 'Sistema atualizado com sucesso!');
-            }
-            setTimeout(() => location.reload(), 3000);
-        }
-    }).fail(function() {
-        // Se a requisição falhar mas o update foi aplicado, recarrega
-        if (suPollTimer) clearInterval(suPollTimer);
-        setTimeout(() => location.reload(), 1500);
-    });
-}
-
-function showOverlay() {
-    var overlay = document.getElementById('su-overlay');
-    if (overlay) overlay.style.display = 'flex';
-}
-
-function hideOverlay() {
-    var overlay = document.getElementById('su-overlay');
-    if (overlay) overlay.style.display = 'none';
-}
-
-function setProgressUI(percent, message) {
-    percent = Math.max(0, parseInt(percent) || 0);
-    var bar = document.getElementById('su-progress-bar');
-    var pct = document.getElementById('su-progress-pct');
-    var msg = document.getElementById('su-progress-msg');
-    if (bar) bar.style.width = percent + '%';
-    if (pct) pct.textContent = percent + '%';
-    if (msg) msg.textContent = message || '';
-}
-
 function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 

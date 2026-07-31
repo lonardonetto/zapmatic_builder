@@ -86,6 +86,23 @@ class System_updater extends Controller
             ms(['status' => 'error', 'message' => 'Versão alvo não informada']);
         }
 
+        set_time_limit(300);
+        @ini_set('output_buffering', 'off');
+        @ini_set('zlib.output_compression', 'off');
+        @ob_end_flush();
+
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('X-Accel-Buffering: no');
+
+        // Funcao de stream de progresso
+        $stream = function (int $percent, string $message, bool $done = false) {
+            $chunk = json_encode(['percent' => $percent, 'message' => $message, 'done' => $done]);
+            echo "data: {$chunk}\n\n";
+            @ob_flush();
+            @flush();
+        };
+
         $current = $this->get_current_version();
         $from_version = $current['version'] ?? '0.0.0';
 
@@ -100,14 +117,45 @@ class System_updater extends Controller
         ]);
         $update_id = $db->insertID();
 
-        // 2. O worker PM2 (bot:all) detecta o pending e processa em background
-        //    SEM exec/shell — retorna imediatamente
-        ms([
-            'status' => 'success',
-            'message' => 'Atualização iniciada em segundo plano.',
-            'update_id' => $update_id,
-            'csrf_hash' => csrf_hash(),
-        ]);
+        try {
+            $stream(5, 'Criando backup do sistema...');
+            $ref = new \ReflectionMethod($this, 'create_backup');
+            $ref->setAccessible(true);
+            $backup_file = $ref->invoke($this, $from_version);
+
+            $stream(30, 'Baixando atualização do GitHub...');
+            $ref = new \ReflectionMethod($this, 'apply_git_update');
+            $ref->setAccessible(true);
+            $ref->invoke($this, $target, $channel);
+
+            $stream(80, 'Aplicando migrações SQL...');
+            $ref = new \ReflectionMethod($this, 'run_pending_migrations');
+            $ref->setAccessible(true);
+            $migrations = $ref->invoke($this);
+
+            $stream(92, 'Reiniciando processos...');
+            $ref = new \ReflectionMethod($this, 'restart_processes');
+            $ref->setAccessible(true);
+            $ref->invoke($this);
+
+            $stream(96, 'Atualizando versão...');
+            $ref = new \ReflectionMethod($this, 'write_version');
+            $ref->setAccessible(true);
+            $ref->invoke($this, $target, $channel);
+
+            // Marcar aplicado
+            $db->table('sp_system_updates')->where('id', $update_id)->update([
+                'status' => 'applied',
+                'backup_file' => $backup_file,
+                'applied_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $stream(100, "Atualização concluída para v{$target}!" . ($migrations > 0 ? " ({$migrations} migrações)" : ""), true);
+
+        } catch (\Throwable $e) {
+            $db->table('sp_system_updates')->where('id', $update_id)->update(['status' => 'failed']);
+            $stream(-1, 'Erro: ' . $e->getMessage(), true);
+        }
     }
 
     // ──────────────────────────────────────────────
