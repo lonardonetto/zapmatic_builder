@@ -1,8 +1,8 @@
 {
-    "version": "8.3.7",
+    "version": "8.3.8",
     "channel": "stable",
-    "build_date": "2026-07-31T08:50:00-03:00",
+    "build_date": "2026-07-31T08:52:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Fix: tmp unica + sem duplicidade worker/streaming"
+    "notes": "UX: aviso 'Redirecionando automaticamente' ao concluir"
 }

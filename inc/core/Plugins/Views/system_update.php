@@ -17,7 +17,7 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
                 </div>
             </div>
             <div id="su-progress-msg" class="text-light small mt-3" style="opacity:0.9;">Iniciando...</div>
-            <div class="text-light small mt-2" style="opacity:0.6;">NÃO feche esta página</div>
+            <div id="su-overlay-note" class="text-light small mt-2" style="opacity:0.6;">NÃO feche esta página</div>
         </div>
     </div>
 
@@ -197,12 +197,15 @@ function suApply(version) {
                                 setProgressUI(p.percent, p.message);
                                 if (p.done) {
                                     var title = document.getElementById('su-progress-title');
+                                    var note = document.getElementById('su-overlay-note');
                                     if (p.percent < 0) {
                                         if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
+                                        if (note) note.textContent = 'Você pode fechar esta página';
                                         toastr.error(p.message || 'Erro');
                                         setTimeout(hideOverlay, 4000);
                                     } else {
                                         if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
+                                        if (note) note.textContent = 'Redirecionando automaticamente...';
                                         toastr.success(p.message || 'Sistema atualizado!');
                                     }
                                     setTimeout(function(){ location.reload(); }, 3000);
