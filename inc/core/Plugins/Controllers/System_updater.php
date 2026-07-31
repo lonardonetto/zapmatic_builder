@@ -106,6 +106,7 @@ class System_updater extends Controller
             'status' => 'success',
             'message' => 'Atualização iniciada em segundo plano.',
             'update_id' => $update_id,
+            'csrf_hash' => csrf_hash(),
         ]);
     }
 
