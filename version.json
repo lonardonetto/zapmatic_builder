@@ -1,8 +1,8 @@
 {
-    "version": "8.3.21",
+    "version": "8.3.22",
     "channel": "stable",
-    "build_date": "2026-07-31T14:42:00-03:00",
+    "build_date": "2026-07-31T16:38:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Fix definitivo autoresponder: remove fallback do find_bot_by_trigger (sessao respeitada)"
+    "notes": "Fix: sessao do autoresponder - nao reabre sessao completada evitando ping-pong is_completed; session_timeout respeitado sem reenvio de fluxo"
 }

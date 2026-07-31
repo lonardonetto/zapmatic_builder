@@ -1473,22 +1473,20 @@ public function save_bot_settings()
                                 $use_existing = true;
                             }
                         }
-
                         if ($use_existing) {
-                            // Reativar sessão existente — manter posição atual do fluxo
-                            $db->table('sp_bb_sessions')
-                                ->where('id', $recent_session->id)
-                                ->update([
-                                    'is_completed' => 0,
-                                    'autorespond_last_at' => date('Y-m-d H:i:s'),
-                                ]);
-                            $recent_session->is_completed = 0;
-                            $recent_session->autorespond_last_at = date('Y-m-d H:i:s');
-                            
-                            // SE O FLUXO JA TERMINOU (current_block_id vazio):
-                            // NAO reiniciar do inicio — apenas manter a sessao ativa
-                            // (evita reenviar a mensagem inicial a cada mensagem)
-                            if (!empty($recent_session->current_block_id)) {
+                            if (empty($recent_session->current_block_id)) {
+                                // Flow ja terminou, sessao ativa. Apenas prolonga o timeout.
+                                // NAO reenvia o fluxo — o bot fica em silencio ate a sessao expirar.
+                                $db->query("UPDATE sp_bb_sessions SET updated_at = NOW() WHERE id = ?", [$recent_session->id]);
+                            } else {
+                                // Reativar sessão existente que ainda tem blocos pendentes
+                                $db->table('sp_bb_sessions')
+                                    ->where('id', $recent_session->id)
+                                    ->update([
+                                        'is_completed' => 0,
+                                        'updated_at' => date('Y-m-d H:i:s'),
+                                    ]);
+                                $recent_session->is_completed = 0;
                                 $this->run_flow($recent_session, $text, $type, $instance_id_for_send, false);
                             }
                             $handled_count++;
