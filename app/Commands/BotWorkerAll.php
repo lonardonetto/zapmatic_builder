@@ -285,10 +285,34 @@ class BotWorkerAll extends BaseCommand
 
             $setProgress('done', 100, "Atualização concluída para v{$target}!", true);
 
+            // Limpar backups antigos (manter apenas os 3 mais recentes)
+            $this->cleanupOldBackups();
+
         } catch (\Throwable $e) {
             $this->db->table('sp_system_updates')->where('id', $update_id)->update(['status' => 'failed']);
             $setProgress('error', -1, 'Erro: ' . $e->getMessage(), true);
         }
+    }
+
+    // ──────────────────────────────────────────────
+    // Limpar backups antigos (manter apenas os 3 mais recentes)
+    // ──────────────────────────────────────────────
+    private function cleanupOldBackups(): void
+    {
+        $backup_dir = WRITEPATH . 'backups';
+        if (!is_dir($backup_dir)) return;
+
+        $backups = glob($backup_dir . '/*.tar.gz');
+        if (count($backups) <= 3) return;
+
+        // Ordenar por data de modificacao (mais novos primeiro)
+        usort($backups, fn($a, $b) => filemtime($b) - filemtime($a));
+
+        // Remover os antigos (do 4o em diante)
+        foreach (array_slice($backups, 3) as $old) {
+            @unlink($old);
+        }
+        log_message('info', "[BotWorkerAll] Backups antigos removidos (mantidos 3)");
     }
 
     // ──────────────────────────────────────────────

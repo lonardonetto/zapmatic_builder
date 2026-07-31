@@ -1,8 +1,8 @@
 {
-    "version": "8.3.17",
+    "version": "8.3.18",
     "channel": "stable",
-    "build_date": "2026-07-31T11:20:00-03:00",
+    "build_date": "2026-07-31T12:25:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Update via formulario (sem AJAX) + pagina de progresso standalone"
+    "notes": "Limpeza automatica de backups (mantem 3 mais recentes)"
 }
