@@ -452,6 +452,8 @@ class System_updater extends Controller
             'version.json',
             'app_zapmatic_whatsmeow_api',          // BINARIO GO + SESSOES - nunca tocar
             'app_zapmatic_api',
+            'inc/core/Plugins',                    // O PROPRIO SISTEMA DE UPDATE - nunca regredir
+            'app/Commands/BotWorkerAll.php',       // O WORKER - nunca regredir
             'app_zapmatic_whatsmeow_api/config.json',
             'app_zapmatic_whatsmeow_api/storage',
             'app_zapmatic_whatsmeow_api/logs',
