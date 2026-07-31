@@ -1,8 +1,8 @@
 {
-    "version": "8.3.20",
+    "version": "8.3.21",
     "channel": "stable",
-    "build_date": "2026-07-31T14:35:00-03:00",
+    "build_date": "2026-07-31T14:42:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Fix autoresponder: nao reinicia fluxo terminado + timeout respeita config"
+    "notes": "Fix definitivo autoresponder: remove fallback do find_bot_by_trigger (sessao respeitada)"
 }

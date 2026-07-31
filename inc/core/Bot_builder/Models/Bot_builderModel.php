@@ -403,9 +403,10 @@ class Bot_builderModel
                 // Check chat_type filter
                 if(!$this->chat_type_matches($bot, $chat_id)) continue;
 
-                // Se for autorespond, guarda como fallback mas continua procurando keyword match
+                // Se for autorespond, pula aqui — o autorespond tem logica
+                // propria de sessao no process_webhook (nao deve criar sessao nova
+                // a cada mensagem via trigger)
                 if (!empty($bot->autorespond)) {
-                    if (!$autorespond_bot) $autorespond_bot = $bot;
                     continue;
                 }
 
@@ -413,9 +414,9 @@ class Bot_builderModel
                 if($this->keyword_matches($text, $bot)) return $bot;
             }
 
-            // Se nenhum keyword match encontrou, usa o primeiro autorespond
-            if ($autorespond_bot) return $autorespond_bot;
-
+            // NAO usar autorespond como fallback aqui!
+            // O autorespond e tratado no bloco dedicado (process_webhook)
+            // que respeita a sessao (nao reinicia o fluxo a cada mensagem)
             return null;
         }
 
