@@ -155,8 +155,25 @@ function suCheck() {
 var suPollTimer = null;
 var suUpdateId = 0;
 
-var suPollTimer = null;
-var suUpdateId = 0;
+function showOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function hideOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function setProgressUI(percent, message) {
+    percent = Math.max(0, parseInt(percent) || 0);
+    var bar = document.getElementById('su-progress-bar');
+    var pct = document.getElementById('su-progress-pct');
+    var msg = document.getElementById('su-progress-msg');
+    if (bar) bar.style.width = percent + '%';
+    if (pct) pct.textContent = percent + '%';
+    if (msg) msg.textContent = message || '';
+}
 
 function suApply(version) {
     if (!confirm('Atualizar o sistema para v' + version + '?\n\nUm backup será criado automaticamente antes da atualização.\nO sistema pode ficar indisponível por alguns segundos.')) return;
@@ -229,7 +246,9 @@ function suPoll() {
     .catch(function() {
         // Arquivo ainda nao existe ou erro transiente - o setInterval continua tentando
     });
-}function suRollback(id) {
+}
+
+function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 
     $.post('<?php _e(base_url('plugins/system_updater_rollback')) ?>', {
