@@ -363,7 +363,15 @@ class System_updater extends Controller
             'build_date' => date('Y-m-d H:i:s'),
             'git_commit' => $this->get_git_commit(),
         ];
-        file_put_contents(FCPATH . 'version.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $file = FCPATH . 'version.json';
+
+        // Garantir permissão de escrita (o rsync pode ter trocado o dono)
+        @chmod($file, 0666);
+
+        $result = @file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if ($result === false) {
+            log_message('error', "[SystemUpdater] Falha ao escrever version.json em {$file}");
+        }
     }
 
     // ──────────────────────────────────────────────

@@ -20,6 +20,7 @@ class SystemUpdater extends BaseCommand
         $version = '';
         $channel = 'stable';
         foreach ($params as $p) {
+            $p = ltrim($p, '-'); // remove prefixo -- ou -
             if (str_starts_with($p, 'id=')) $id = (int)substr($p, 3);
             if (str_starts_with($p, 'version=')) $version = substr($p, 8);
             if (str_starts_with($p, 'channel=')) $channel = substr($p, 8);
