@@ -417,9 +417,19 @@ class System_updater extends Controller
         }
         $src = $extracted[0];
 
-        // Proteções que NÃO podem ser sobrescritas
+        // Proteções que NÃO podem ser sobrescritas ou deletadas
         $excludes = [];
-        $protected = ['.env', 'writable', 'app_zapmatic_whatsmeow_api/config.json', 'app_zapmatic_whatsmeow_api/storage', 'app_zapmatic_whatsmeow_api/logs', 'app_zapmatic_api/sessions', 'app_zapmatic_api/config.js', 'app_zapmatic_api/store', 'app_zapmatic_api/files', 'storage', '.git'];
+        $protected = [
+            '.env', '.git', 'vendor', 'writable', 'storage',
+            'app_zapmatic_whatsmeow_api/config.json',
+            'app_zapmatic_whatsmeow_api/storage',
+            'app_zapmatic_whatsmeow_api/logs',
+            'app_zapmatic_api/sessions',
+            'app_zapmatic_api/config.js',
+            'app_zapmatic_api/store',
+            'app_zapmatic_api/files',
+            'app_zapmatic_api/node_modules',
+        ];
         foreach ($protected as $p) {
             $excludes[] = "--exclude={$p}";
         }
