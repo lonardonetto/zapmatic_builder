@@ -55,6 +55,13 @@ class BotWorkerAll extends BaseCommand
                 log_message('error', "[BotWorkerAll] Campaign Error: {$e->getMessage()}");
             }
 
+            // System Updates (check a cada ciclo, processa se houver pending)
+            try {
+                $this->runSystemUpdates();
+            } catch (\Throwable $e) {
+                log_message('error', "[BotWorkerAll] SystemUpdate Error: {$e->getMessage()}");
+            }
+
             if (time() - $this->lastSlowRun >= self::INTERVAL_SLOW) {
                 $this->lastSlowRun = time();
                 try {
@@ -207,6 +214,75 @@ class BotWorkerAll extends BaseCommand
                     $builder->where('id', $job->id)->update(['status' => 'pending', 'send_at' => time() + 60, 'error_log' => $error]);
                 }
             }
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // System Updates (processa atualizações pendentes)
+    // ──────────────────────────────────────────────
+    private function runSystemUpdates(): void
+    {
+        // Buscar 1 update pendente
+        $row = $this->db->table('sp_system_updates')
+            ->where('status', 'pending')
+            ->orderBy('id', 'ASC')
+            ->get()->getRow();
+
+        if (!$row) return;
+
+        $update_id = (int)$row->id;
+        $target = (string)$row->to_version;
+        $channel = (string)$row->channel;
+        $progressFile = WRITEPATH . 'logs/update_progress_' . $update_id . '.json';
+
+        $setProgress = function ($stage, $percent, $message, $done = false) use ($progressFile) {
+            @file_put_contents($progressFile, json_encode([
+                'stage' => $stage, 'percent' => $percent,
+                'message' => $message, 'done' => $done,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]));
+        };
+
+        try {
+            $setProgress('backup', 10, 'Criando backup do sistema...');
+            $updater = new \Core\Plugins\Controllers\System_updater();
+            $ref = new \ReflectionMethod($updater, 'create_backup');
+            $ref->setAccessible(true);
+            $backup_file = $ref->invoke($updater, '0.0.0');
+
+            $setProgress('download', 30, 'Baixando atualização do GitHub...');
+            $ref = new \ReflectionMethod($updater, 'apply_git_update');
+            $ref->setAccessible(true);
+            $ref->invoke($updater, $target, $channel);
+
+            $setProgress('migrate', 80, 'Aplicando migrações SQL...');
+            $ref = new \ReflectionMethod($updater, 'run_pending_migrations');
+            $ref->setAccessible(true);
+            $migrations = $ref->invoke($updater);
+
+            $setProgress('restart', 92, 'Reiniciando processos...');
+            $ref = new \ReflectionMethod($updater, 'restart_processes');
+            $ref->setAccessible(true);
+            $ref->invoke($updater);
+
+            $setProgress('version', 96, 'Atualizando versão...');
+            $ref = new \ReflectionMethod($updater, 'write_version');
+            $ref->setAccessible(true);
+            $ref->invoke($updater, $target, $channel);
+
+            // Marcar aplicado
+            $this->db->table('sp_system_updates')->where('id', $update_id)->update([
+                'status' => 'applied',
+                'backup_file' => $backup_file,
+                'applied_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $setProgress('done', 100, "Atualização concluída para v{$target}" . ($migrations > 0 ? " ({$migrations} migrações)" : ""), true);
+
+        } catch (\Throwable $e) {
+            $this->db->table('sp_system_updates')->where('id', $update_id)->update(['status' => 'failed']);
+            $setProgress('error', -1, 'Erro: ' . $e->getMessage());
+            log_message('error', "[BotWorkerAll] Update {$update_id} failed: " . $e->getMessage());
         }
     }
 

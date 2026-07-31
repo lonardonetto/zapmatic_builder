@@ -100,11 +100,8 @@ class System_updater extends Controller
         ]);
         $update_id = $db->insertID();
 
-        // 2. Lançar processo em background (não bloqueia a requisição)
-        $repo = rtrim(FCPATH, '/');
-        $cmd = "cd {$repo} && nohup php spark system:update --id={$update_id} --version={$target} --channel={$channel} > /dev/null 2>&1 &";
-        @exec($cmd);
-
+        // 2. O worker PM2 (bot:all) detecta o pending e processa em background
+        //    SEM exec/shell — retorna imediatamente
         ms([
             'status' => 'success',
             'message' => 'Atualização iniciada em segundo plano.',
