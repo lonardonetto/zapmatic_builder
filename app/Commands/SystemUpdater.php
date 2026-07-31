@@ -15,15 +15,29 @@ class SystemUpdater extends BaseCommand
 
     public function run(array $params)
     {
-        // Params: --id=, --version=, --channel=
+        // Params via CLI options (CI4 4.1.x aceita --id 561 OU --id=561)
         $id = 0;
         $version = '';
         $channel = 'stable';
-        foreach ($params as $p) {
-            $p = ltrim($p, '-'); // remove prefixo -- ou -
-            if (str_starts_with($p, 'id=')) $id = (int)substr($p, 3);
-            if (str_starts_with($p, 'version=')) $version = substr($p, 8);
-            if (str_starts_with($p, 'channel=')) $channel = substr($p, 8);
+
+        foreach (CLI::getOptions() as $k => $v) {
+            // Normalizar chave: "id=561" -> "id", valor extraido
+            $key = preg_replace('/=.*$/', '', $k);
+            $val = $v;
+            if ($val === null && str_contains($k, '=')) {
+                $val = substr($k, strpos($k, '=') + 1);
+            }
+            if ($key === 'id') $id = (int)$val;
+            if ($key === 'version') $version = (string)$val;
+            if ($key === 'channel') $channel = (string)$val;
+        }
+
+        // Fallback: params posicionais se options nao vierem
+        if ($id <= 0 || $version === '') {
+            foreach ($params as $p) {
+                if (is_numeric($p) && $id <= 0) { $id = (int)$p; continue; }
+                if (preg_match('/^\d+\.\d+\.\d+$/', $p)) { $version = $p; continue; }
+            }
         }
 
         $this->progressFile = WRITEPATH . 'logs/update_progress_' . $id . '.json';
