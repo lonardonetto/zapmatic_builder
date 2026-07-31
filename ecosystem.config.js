@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "bot-worker-all",
+      name: "pluszap-bot-worker-all",
       script: "spark",
       args: "bot:all",
       interpreter: "php",

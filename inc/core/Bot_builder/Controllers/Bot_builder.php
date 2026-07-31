@@ -1445,7 +1445,8 @@ public function save_bot_settings()
                     $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup, $phone);
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
-                        $timeout = max(60, intval($auto_bot->session_timeout ?? 60)) * 60;
+                        // Respeitar o session_timeout configurado (min 1 minuto)
+                        $timeout = max(1, intval($auto_bot->session_timeout ?? 60)) * 60;
 
                         // Buscar QUALQUER sessão recente (ativa ou completed)
                         $db = $this->model->db;
@@ -1483,8 +1484,13 @@ public function save_bot_settings()
                                 ]);
                             $recent_session->is_completed = 0;
                             $recent_session->autorespond_last_at = date('Y-m-d H:i:s');
-                            // NÃO resetar current_block_id — manter onde o fluxo parou
-                            $this->run_flow($recent_session, $text, $type, $instance_id_for_send, false);
+                            
+                            // SE O FLUXO JA TERMINOU (current_block_id vazio):
+                            // NAO reiniciar do inicio — apenas manter a sessao ativa
+                            // (evita reenviar a mensagem inicial a cada mensagem)
+                            if (!empty($recent_session->current_block_id)) {
+                                $this->run_flow($recent_session, $text, $type, $instance_id_for_send, false);
+                            }
                             $handled_count++;
                         } elseif ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
                             // Criar nova sessão apenas se não existe nenhuma recente
