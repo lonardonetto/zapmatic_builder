@@ -453,8 +453,10 @@ class System_updater extends Controller
             $zip_url = 'https://github.com/lonardonetto/zapmatic_builder/archive/refs/heads/' . $ref . '.zip';
         }
 
-        $tmp = FCPATH . 'writable/tmp_update_' . time();
-        mkdir($tmp, 0777, true);
+        $tmp = FCPATH . 'writable/tmp_update_' . uniqid();
+        if (!is_dir($tmp)) {
+            mkdir($tmp, 0777, true);
+        }
 
         $zip_file = $tmp . '/update.zip';
 
@@ -531,8 +533,9 @@ class System_updater extends Controller
         // Se temos o backup em tar.gz, restaurar
         $tmp = FCPATH . 'writable/tmp_restore';
         if (is_dir($tmp)) $this->run_shell("rm -rf {$tmp}");
-
-        mkdir($tmp, 0777, true);
+        if (!is_dir($tmp)) {
+            mkdir($tmp, 0777, true);
+        }
         $this->run_shell("tar -xzf {$backup_path} -C {$tmp} 2>&1");
 
         if (is_dir($tmp . '/inc')) {
@@ -559,14 +562,16 @@ class System_updater extends Controller
         $filename = 'backup_v' . $from_version . '_' . date('Ymd_His') . '.tar.gz';
         $backup_path = $backup_dir . '/' . $filename;
 
-        $tmp = FCPATH . 'writable/tmp_backup';
-        if (is_dir($tmp)) $this->run_shell("rm -rf {$tmp}");
-        mkdir($tmp, 0777, true);
+        // Pasta temporaria UNICA (evita conflito de permissao com processos anteriores)
+        $tmp = FCPATH . 'writable/tmp_backup_' . uniqid();
+        if (!is_dir($tmp)) {
+            mkdir($tmp, 0777, true);
+        }
 
         $this->run_shell("cp -a " . FCPATH . "inc {$tmp}/inc 2>/dev/null");
         $this->run_shell("cp -a " . FCPATH . "app {$tmp}/app 2>/dev/null");
         if (file_exists(FCPATH . 'version.json')) {
-            copy(FCPATH . 'version.json', $tmp . '/version.json');
+            @copy(FCPATH . 'version.json', $tmp . '/version.json');
         }
 
         $this->run_shell("cd {$tmp} && tar -czf {$backup_path} inc app version.json 2>&1");
