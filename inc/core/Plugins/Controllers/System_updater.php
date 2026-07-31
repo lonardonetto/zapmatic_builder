@@ -309,6 +309,24 @@ class System_updater extends Controller
     }
 
     // ──────────────────────────────────────────────
+    // Resolver o nome real da tag a partir da versão
+    // ──────────────────────────────────────────────
+    private function resolve_tag_name(string $version): string
+    {
+        $tags = $this->fetch_github_tags();
+        foreach ($tags as $tag) {
+            if (($tag['version'] ?? '') === $version) {
+                return $tag['tag'];
+            }
+        }
+        // Fallback: versão pode ser passada com o nome completo (ex: v8.3.0-updater)
+        if (str_starts_with($version, 'v')) {
+            return $version;
+        }
+        return "v{$version}";
+    }
+
+    // ──────────────────────────────────────────────
     // Escolher versão mais recente por canal
     // ──────────────────────────────────────────────
     private function pick_latest(array $tags, string $channel): ?array
@@ -354,8 +372,9 @@ class System_updater extends Controller
     {
         $repo_dir = rtrim(FCPATH, '/');
 
-        // Determinar referência
-        $ref = ($channel === 'test') ? 'beta' : "v{$target}";
+        // Resolver o NOME REAL da tag (ex: v8.3.0-updater, v8.2.0-cleanup)
+        $tag_name = $this->resolve_tag_name($target);
+        $ref = $tag_name;
 
         // Baixar ZIP da tag/branch do GitHub (repo público, sem auth)
         $zip_url = 'https://github.com/lonardonetto/zapmatic_builder/archive/refs/tags/' . $ref . '.zip';
