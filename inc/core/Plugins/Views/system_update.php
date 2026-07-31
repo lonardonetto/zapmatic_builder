@@ -112,11 +112,9 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
                 </div>
             </div>
         </div>
-        <?php endif; ?>
-    </div>
-</div>
-
-<?php echo $this->endSection() ?>
+         <?php endif; ?>
+     </div>
+ </div>
 
 <script>
 function suCheck() {
@@ -165,3 +163,6 @@ function suRollback(id) {
     }, 'json');
 }
 </script>
+
+<?php echo $this->endSection() ?>
+
