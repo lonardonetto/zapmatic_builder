@@ -256,10 +256,12 @@ class Whatsapp_api extends Controller
         $chat_id = ($normalized_recipient !== '' ? $normalized_recipient : $number) . "@s.whatsapp.net";
         
         // Normalizacao do nono digito para numeros brasileiros (55 + DDD + 9 + numero)
-        // Alguns numeros do WhatsApp nao tem o nono digito no JID
+        // Regra: DDD >= 31 (ex: 86, 85, 71) → WhatsApp JID SEM o nono digito
+        //        DDD <= 30 (ex: 21, 11, 27) → WhatsApp JID COM o nono digito
         $alt_chat_id = null;
         $clean = preg_replace('/[^0-9]/', '', $chat_id);
-        if (strlen($clean) === 13 && substr($clean, 0, 2) === '55' && $clean[4] === '9') {
+        $ddd = substr($clean, 2, 2);
+        if (strlen($clean) === 13 && substr($clean, 0, 2) === '55' && $clean[4] === '9' && intval($ddd) >= 31) {
             // Remove o nono digito: 55 86 9 94482065 → 55 86 94482065
             $alt = substr($clean, 0, 4) . substr($clean, 5);
             $alt_chat_id = $alt . "@s.whatsapp.net";
