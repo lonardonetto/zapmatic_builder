@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -18,14 +19,14 @@ type DBConfig struct {
 
 // fileConfig mirrors config.json structure (all fields optional).
 type fileConfig struct {
-	Port       string   `json:"port"`
-	LogLevel   string   `json:"log_level"`
-	LogDir     string   `json:"log_dir"`
-	StoreDir   string   `json:"store_dir"`
-	ProxyURL   string   `json:"proxy"`
-	WebhookURL string   `json:"webhook_url"`
-	APIKey     string   `json:"api_key"`
-	DB         *DBConfig `json:"database"`
+	Port       interface{} `json:"port"` // accepts string or int
+	LogLevel   string      `json:"log_level"`
+	LogDir     string      `json:"log_dir"`
+	StoreDir   string      `json:"store_dir"`
+	ProxyURL   string      `json:"proxy"`
+	WebhookURL string      `json:"webhook_url"`
+	APIKey     string      `json:"api_key"`
+	DB         *DBConfig   `json:"database"`
 }
 
 type Config struct {
@@ -128,8 +129,15 @@ func loadFileConfig(cfg *Config) {
 			continue
 		}
 		// Apply non-empty values from file
-		if fc.Port != "" {
-			cfg.Port = fc.Port
+		if fc.Port != nil {
+			switch v := fc.Port.(type) {
+			case string:
+				if v != "" {
+					cfg.Port = v
+				}
+			case float64:
+				cfg.Port = fmt.Sprintf("%.0f", v)
+			}
 		}
 		if fc.LogLevel != "" {
 			cfg.LogLevel = fc.LogLevel
