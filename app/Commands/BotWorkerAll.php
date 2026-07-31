@@ -248,21 +248,24 @@ class BotWorkerAll extends BaseCommand
         };
 
         try {
-            $setProgress('backup', 5, 'Criando backup do sistema...');
+            $setProgress('backup', 5, 'Criando backup do sistema... (pode levar alguns segundos)');
             $updater = new \Core\Plugins\Controllers\System_updater();
             $ref = new \ReflectionMethod($updater, 'create_backup');
             $ref->setAccessible(true);
             $backup_file = $ref->invoke($updater, $row->from_version ?? '0.0.0');
+            $setProgress('backup_done', 15, 'Backup criado. Baixando atualização...');
 
-            $setProgress('download', 30, 'Baixando atualização...');
+            $setProgress('download', 30, 'Baixando atualização do GitHub...');
             $ref = new \ReflectionMethod($updater, 'apply_git_update');
             $ref->setAccessible(true);
             $ref->invoke($updater, $target, $channel);
+            $setProgress('download_done', 65, 'Arquivos aplicados. Migrando banco...');
 
-            $setProgress('migrate', 80, 'Aplicando banco de dados...');
+            $setProgress('migrate', 80, 'Aplicando migrações SQL...');
             $ref = new \ReflectionMethod($updater, 'run_pending_migrations');
             $ref->setAccessible(true);
             $migrations = $ref->invoke($updater);
+            $setProgress('migrate_done', 88, 'Banco atualizado. Reiniciando...');
 
             $setProgress('restart', 92, 'Reiniciando serviços...');
             $ref = new \ReflectionMethod($updater, 'restart_processes');

@@ -1,8 +1,8 @@
 {
-    "version": "8.3.11",
+    "version": "8.3.12",
     "channel": "stable",
-    "build_date": "2026-07-31T10:20:00-03:00",
+    "build_date": "2026-07-31T10:25:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Protecao app_zapmatic_whatsmeow_api + worker polling"
+    "notes": "Progresso granular + polling resiliente"
 }

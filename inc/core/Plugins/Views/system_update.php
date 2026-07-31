@@ -225,6 +225,9 @@ function suPoll() {
                 setTimeout(function(){ location.reload(); }, 2500);
             }
         }
+    }).fail(function() {
+        // Durante o rsync os arquivos PHP sao substituidos, o poll pode falhar.
+        // Nao faz nada: o setInterval continua tentando e recupera sozinho.
     });
 }
 function showOverlay() {
