@@ -13,6 +13,6 @@ return [
         'tab' => 1,
         'type' => 'bottom',
         'position' => 1010,
-        'name' => 'Admin Mods'
+        'name' => 'Atualizações'
     ]
 ];
