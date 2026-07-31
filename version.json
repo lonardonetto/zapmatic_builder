@@ -1,8 +1,8 @@
 {
-    "version": "8.3.2",
+    "version": "8.3.3",
     "channel": "stable",
-    "build_date": "2026-07-31T01:08:00-03:00",
+    "build_date": "2026-07-31T01:14:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "TESTE FINAL: barra de progresso via worker PM2"
+    "notes": "Fix CSRF no updater"
 }

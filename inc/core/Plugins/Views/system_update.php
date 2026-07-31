@@ -135,7 +135,10 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
 <script>
 function suCheck() {
     var channel = document.getElementById('su-channel').value;
-    $.post('<?php _e(base_url('plugins/system_updater_check')) ?>', { channel: channel }, function(resp) {
+    $.post('<?php _e(base_url('plugins/system_updater_check')) ?>', {
+        channel: channel,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
+    }, function(resp) {
         if (resp.status === 'success') {
             if (resp.data && resp.data.update_available) {
                 toastr.success(resp.message);
@@ -166,7 +169,8 @@ function suApply(version) {
 
     $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
         target_version: version,
-        channel: channel
+        channel: channel,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
     }, function(resp) {
         if (resp.status === 'success') {
             suUpdateId = resp.update_id || 0;
@@ -188,7 +192,8 @@ function suPoll() {
     if (!suUpdateId) return;
 
     $.post('<?php _e(base_url('plugins/system_updater_progress')) ?>', {
-        update_id: suUpdateId
+        update_id: suUpdateId,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
     }, function(resp) {
         if (resp.status !== 'success' || !resp.progress) return;
 
@@ -243,7 +248,10 @@ function setProgressUI(percent, message) {
 function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 
-    $.post('<?php _e(base_url('plugins/system_updater_rollback')) ?>', { update_id: id }, function(resp) {
+    $.post('<?php _e(base_url('plugins/system_updater_rollback')) ?>', {
+        update_id: id,
+        '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
+    }, function(resp) {
         if (resp.status === 'success') {
             toastr.success(resp.message);
             setTimeout(() => location.reload(), 2000);
