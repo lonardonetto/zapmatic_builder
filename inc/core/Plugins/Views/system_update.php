@@ -157,8 +157,11 @@ function suApply(version) {
 
     var channel = document.getElementById('su-channel').value;
 
+    // MOSTRAR OVERLAY IMEDIATAMENTE (sem esperar resposta do POST)
+    showOverlay();
+    setProgressUI(0, 'Iniciando atualização...');
+
     var btn = document.querySelector('.su-update-btn');
-    var btnHtml = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fad fa-spinner-third fa-spin"></i> Iniciando...'; }
 
     $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
@@ -167,15 +170,16 @@ function suApply(version) {
     }, function(resp) {
         if (resp.status === 'success') {
             suUpdateId = resp.update_id || 0;
-            showOverlay();
             suPollTimer = setInterval(suPoll, 2000);
             suPoll(); // primeira checagem imediata
         } else {
             toastr.error(resp.message || 'Erro ao iniciar atualização');
+            hideOverlay();
             if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
         }
     }).fail(function() {
         toastr.error('Erro ao iniciar a atualização');
+        hideOverlay();
         if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
     });
 }
@@ -192,22 +196,17 @@ function suPoll() {
         var percent = Math.max(0, parseInt(p.percent) || 0);
 
         // Atualizar barra
+        setProgressUI(percent, p.message || '');
         var bar = document.getElementById('su-progress-bar');
-        var pct = document.getElementById('su-progress-pct');
-        var msg = document.getElementById('su-progress-msg');
-        var title = document.getElementById('su-progress-title');
-
-        if (bar) bar.style.width = percent + '%';
-        if (pct) pct.textContent = percent + '%';
-        if (msg) msg.textContent = p.message || '';
-        if (bar) bar.classList.remove('progress-bar-animated');
         if (bar) bar.classList.add('progress-bar-animated');
 
         if (p.done) {
             if (suPollTimer) clearInterval(suPollTimer);
+            var title = document.getElementById('su-progress-title');
             if (p.stage === 'error' || percent < 0) {
                 if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
                 toastr.error(p.message || 'Erro na atualização');
+                setTimeout(hideOverlay, 4000);
             } else {
                 if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
                 toastr.success(p.message || 'Sistema atualizado com sucesso!');
@@ -224,6 +223,21 @@ function suPoll() {
 function showOverlay() {
     var overlay = document.getElementById('su-overlay');
     if (overlay) overlay.style.display = 'flex';
+}
+
+function hideOverlay() {
+    var overlay = document.getElementById('su-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function setProgressUI(percent, message) {
+    percent = Math.max(0, parseInt(percent) || 0);
+    var bar = document.getElementById('su-progress-bar');
+    var pct = document.getElementById('su-progress-pct');
+    var msg = document.getElementById('su-progress-msg');
+    if (bar) bar.style.width = percent + '%';
+    if (pct) pct.textContent = percent + '%';
+    if (msg) msg.textContent = message || '';
 }
 
 function suRollback(id) {
