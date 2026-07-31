@@ -1073,6 +1073,13 @@ public function save_bot_settings()
 
             $identity = $this->resolve_message_identity($message);
             $phone = $identity['session_phone'];
+
+            // ★ IGNORAR STATUS BROADCAST (status do WhatsApp) e broadcast lists
+            // O autoresponder NAO pode responder a atualizacoes de status
+            if (strpos($phone, '@broadcast') !== false) {
+                file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏭️ Ignorando status@broadcast\n", FILE_APPEND);
+                continue;
+            }
             $reply_phone = $identity['reply_phone'];
             $text = $this->extract_text($message);
             $type = $this->get_message_type($message);
