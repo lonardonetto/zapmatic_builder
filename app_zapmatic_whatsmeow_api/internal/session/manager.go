@@ -295,10 +295,8 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 					switch item.Event {
 					case "code":
 						m.mu.Lock()
-						if inst.State < StatePasskeyReady {
-							inst.LastQR = item.Code
-							inst.State = StateQRReady
-						}
+						inst.LastQR = item.Code
+						inst.State = StateQRReady
 						m.mu.Unlock()
 						logging.Log.Debug().Str("instance", instanceID).Msg("QR code received")
 					case "success":
@@ -312,23 +310,16 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 					case "error":
 						logging.Log.Error().Str("instance", instanceID).Err(item.Error).Msg("QR pairing error")
 						m.mu.Lock()
-						if inst.State < StatePairCodeReady {
-							inst.State = StateDisconnected
-						}
+						inst.State = StateDisconnected
 						m.mu.Unlock()
 					default:
 						if item.Event == "timeout" || item.Event == "err-unexpected-state" || item.Event == "err-client-outdated" || item.Event == "err-scanned-without-multidevice" {
 							m.mu.Lock()
-							if inst.State < StatePairCodeReady {
-								inst.State = StateDisconnected
-							}
+							inst.State = StateDisconnected
 							m.mu.Unlock()
 						}
 					}
 				}
-
-				// QR channel closed — reconnect with authenticated session
-				logging.Log.Info().Str("instance", instanceID).Msg("QR channel closed, reconnecting")
 			}()
 
 			if err := client.Connect(); err != nil {
@@ -613,8 +604,6 @@ func (m *Manager) handleEvent(instanceID string, evt interface{}) {
 		if inst.client != nil && inst.client.Store != nil {
 			inst.Phone = inst.client.Store.ID.User
 		}
-		inst.State = StateConnected
-		inst.connectedAt = time.Now()
 		m.mu.Unlock()
 		logging.Log.Info().Str("instance", instanceID).Str("jid", inst.JID).Msg("Pair success")
 		m.saveMapping(instanceID, inst.JID)

@@ -32,12 +32,6 @@
                         <i class="fab fa-golang me-2"></i><?php _e('Whatsmeow') ?>
                     </a>
 
-                    <?php if(get_option('wa_paircode') == 1): ?>
-                    <button type="button" class="btn btn-warning rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#PairingCodeModal">
-                        <i class="fas fa-key me-2"></i><?php _e('Conectar via código (PIN)') ?>
-                    </button>
-                    <?php endif; ?>
-
                     <?php if ((int)permission("cloud_api_enabled") == 1): ?>
                         <button type="button" class="btn btn-primary rounded-pill px-4 js-open-connection-drawer" data-connection-drawer-target="cloud">
                             <i class="fas fa-cloud me-2"></i><?php _e('Cloud API') ?>
@@ -545,48 +539,22 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><?php _ec("Conecte usando código 🤖") ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePairCodeModal()"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Area antes de gerar -->
-                <div id="paircode_input_area">
-                    <div class="col mb-3">
-                        <label for="phone" class="form-label"><?php _e("📱 Número do WhatsApp") ?></label>
-                        <input id="pairPhoneInput" type="text" class="form-control" placeholder="5511999999999" required>
-                        <small class="text-muted"><?php _e("DDD + número") ?></small>
-                    </div>
-                    <button type="button" class="btn btn-primary btn-block w-100" id="pairCodeGenerateBtn" onclick="generatePairCode()">
+                <form class="PairingCodeModal" action="<?php _ec(base_url("whatsapp_profiles/oauth")) ?>" method="POST" data-redirect="" data-progress-title="<?php _e('Gerando código de pareamento') ?>" data-progress-detail="<?php _e('Estamos solicitando o código para continuar a conexão Baileys.') ?>" data-progress-duration="3000">
+                    <div class="tab-pane fade show active p-50" id="PairingCodeModal_form">
+                        <div class="col mb-3">
+                            <input type="hidden" id="instance_id" name="instance_id" value="<?php _ec($instance_id)?>">
+                            <label for="phone" class="form-label"><?php _e("📱 Número do WhatsApp") ?></label>
+                            <input id="phone" type="text" class="form-control" name="phone"  required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block w-100">
                         <?php _e("Gerar código") ?>
                     </button>
-                </div>
-                <!-- Loading -->
-                <div id="paircode_loading" class="d-none text-center py-3">
-                    <div class="spinner-border text-primary mb-2"></div>
-                    <p class="text-muted"><?php _e("Conectando ao WhatsApp...") ?></p>
-                </div>
-                <!-- Resultado -->
-                <div id="paircode_result" class="d-none text-center">
-                    <div class="bg-warning bg-opacity-10 rounded-4 p-4 mb-3">
-                        <div class="text-muted small mb-2"><?php _e("Digite este código no WhatsApp:") ?></div>
-                        <div class="text-muted small mb-2"><?php _e("Dispositivos conectados > Vincular dispositivo > Vincular com código") ?></div>
-                        <h2 class="fw-bold font-monospace text-dark my-3" id="paircode_code_display" style="font-size: 2.2rem; letter-spacing: 4px;"></h2>
+
                     </div>
-                    <button type="button" class="btn btn-outline-secondary btn-block w-100 mb-2" onclick="copyPairCode()">
-                        <i class="fas fa-copy me-1"></i><?php _e("Copiar código") ?>
-                    </button>
-                    <button type="button" class="btn btn-success btn-block w-100" id="pairCodeCheckBtn" onclick="checkPairCodeConnection()">
-                        <i class="fas fa-check-circle me-1"></i><?php _e("Já conectei, verificar agora") ?>
-                    </button>
-                    <div id="paircode_checking" class="d-none mt-3">
-                        <div class="spinner-border spinner-border-sm text-success me-2"></div>
-                        <?php _e("Verificando...") ?>
-                    </div>
-                    <div id="paircode_verify_error" class="d-none alert alert-warning mt-3">
-                        <?php _e("Ainda não detectado. Certifique-se de digitar o código corretamente no WhatsApp e tente novamente.") ?>
-                    </div>
-                </div>
-                <!-- Erro -->
-                <div id="paircode_error" class="d-none alert alert-danger" role="alert"></div>
+                </form>
             </div>
         </div>
     </div>
@@ -2484,135 +2452,6 @@ window.addEventListener('message', function(event) {
 <?php endif; ?>
 </script>
 <script>
-function generatePairCode() {
-    var phone = document.getElementById('pairPhoneInput').value.trim();
-    if (!phone) { alert('Digite o número do WhatsApp'); return; }
-
-    var btn = document.getElementById('pairCodeGenerateBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gerando...';
-
-    document.getElementById('paircode_input_area').classList.add('d-none');
-    document.getElementById('paircode_loading').classList.remove('d-none');
-    document.getElementById('paircode_result').classList.add('d-none');
-    document.getElementById('paircode_error').classList.add('d-none');
-
-    fetch('<?php echo base_url("whatsapp_profiles/get_paircode"); ?>', {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'phone=' + encodeURIComponent(phone)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        document.getElementById('paircode_loading').classList.add('d-none');
-        if (data.status === 'success') {
-            document.getElementById('paircode_code_display').textContent = data.code;
-            document.getElementById('paircode_result').classList.remove('d-none');
-            window._pairInstanceId = data.instance_id;
-            // Auto-detect every 4s
-            startPairPolling(data.instance_id);
-        } else {
-            document.getElementById('paircode_error').textContent = data.message || 'Erro ao gerar código.';
-            document.getElementById('paircode_error').classList.remove('d-none');
-            document.getElementById('paircode_input_area').classList.remove('d-none');
-        }
-        btn.disabled = false;
-        btn.innerHTML = 'Gerar código';
-    })
-    .catch(function(err) {
-        document.getElementById('paircode_loading').classList.add('d-none');
-        document.getElementById('paircode_error').textContent = err.message || 'Erro de conexão.';
-        document.getElementById('paircode_error').classList.remove('d-none');
-        document.getElementById('paircode_input_area').classList.remove('d-none');
-        btn.disabled = false;
-        btn.innerHTML = 'Gerar código';
-    });
-}
-
-function startPairPolling(instanceId) {
-    if (window._pairPollTimer) clearInterval(window._pairPollTimer);
-    var attempts = 0;
-    window._pairPollTimer = setInterval(function() {
-        attempts++;
-        fetch('<?php echo base_url("whatsapp_profiles/check_login/"); ?>' + instanceId, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(s) {
-            if (s.status === 'success' || s.status === 'running') {
-                clearInterval(window._pairPollTimer);
-                window._pairPollTimer = null;
-                var modal = document.getElementById('PairingCodeModal');
-                var bsModal = bootstrap.Modal.getInstance(modal);
-                if (bsModal) bsModal.hide();
-                setTimeout(function() { window.location.reload(); }, 500);
-            } else if (attempts > 30) {
-                // Stop after 2 minutes
-                clearInterval(window._pairPollTimer);
-                window._pairPollTimer = null;
-            }
-        })
-        .catch(function() {});
-    }, 4000);
-}
-
-function checkPairCodeConnection() {
-    document.getElementById('paircode_checking').classList.remove('d-none');
-    document.getElementById('paircode_verify_error').classList.add('d-none');
-    var btn = document.getElementById('pairCodeCheckBtn');
-    if (btn) btn.disabled = true;
-
-    // Usa o instanceId armazenado durante a geracao do codigo
-    var instanceId = window._pairInstanceId;
-    if (!instanceId) {
-        // Fallback: tenta extrair do HTML
-        var m = document.querySelector('[data-instance-id]');
-        if (m) instanceId = m.getAttribute('data-instance-id');
-    }
-    if (!instanceId) { alert('Instância não encontrada'); return; }
-
-    fetch('<?php echo base_url("whatsapp_profiles/check_login/"); ?>' + instanceId, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        document.getElementById('paircode_checking').classList.add('d-none');
-        btn.disabled = false;
-        if (data.status === 'success' || data.status === 'running') {
-            var modal = document.getElementById('PairingCodeModal');
-            var bsModal = bootstrap.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
-            setTimeout(function() { window.location.reload(); }, 500);
-        } else {
-            document.getElementById('paircode_verify_error').classList.remove('d-none');
-        }
-    })
-    .catch(function() {
-        document.getElementById('paircode_checking').classList.add('d-none');
-        btn.disabled = false;
-        document.getElementById('paircode_verify_error').classList.remove('d-none');
-    });
-}
-
-function copyPairCode() {
-    var code = document.getElementById('paircode_code_display').textContent;
-    navigator.clipboard.writeText(code).then(function() {
-        var btns = document.querySelectorAll('#paircode_result button');
-        if (btns.length) { btns[0].innerHTML = '<i class="fas fa-check me-1"></i>Copiado!'; }
-    });
-}
-
-function closePairCodeModal() {
-    if (window._pairPollTimer) { clearInterval(window._pairPollTimer); window._pairPollTimer = null; }
-    document.getElementById('paircode_input_area').classList.remove('d-none');
-    document.getElementById('paircode_loading').classList.add('d-none');
-    document.getElementById('paircode_result').classList.add('d-none');
-    document.getElementById('paircode_error').classList.add('d-none');
-    document.getElementById('pairPhoneInput').value = '';
-    var btn = document.getElementById('pairCodeGenerateBtn');
-    if (btn) { btn.disabled = false; btn.innerHTML = 'Gerar código'; }
-}
-
 function desconectarPerfil(profileId, endpointUrl) {
     var confirmCallback = function() {
         var actionToast = null;
