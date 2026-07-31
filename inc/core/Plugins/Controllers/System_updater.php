@@ -421,6 +421,8 @@ class System_updater extends Controller
         $excludes = [];
         $protected = [
             '.env', '.git', 'vendor', 'writable', 'storage',
+            'ecosystem.config.js',
+            'version.json',
             'app_zapmatic_whatsmeow_api/config.json',
             'app_zapmatic_whatsmeow_api/storage',
             'app_zapmatic_whatsmeow_api/logs',
