@@ -661,6 +661,27 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             $content_data["error_msg"] = "";
             $content_data["has_error"] = false;
 
+            // Processar Pairing Code para WhatsMeow
+            if ($phone_post_requested && !empty($instance_id)) {
+                $access_token = get_team("ids");
+                $results = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
+                $result = wa_get_curl("get_paircode", ["instance_id" => $instance_id, "access_token" => $access_token, "phone" => $_POST['phone']]);
+
+                if (isset($results) && isset($result) && $result->status == "success") {
+                    $content_data["has_pair"] = true;
+                    $content_data["pair_code"] = $result->code;
+                    $content_data["has_error"] = false;
+                } else if (isset($result) && $result->status == "error") {
+                    $content_data["error_msg"] = $result->message;
+                    $content_data["has_error"] = true;
+                    $content_data["has_pair"] = true;
+                } else {
+                    $content_data["has_error"] = true;
+                    $content_data["has_pair"] = false;
+                    $content_data["error_msg"] = __("Cannot connect to WhatsApp server. Please make sure the WhatsApp server running.");
+                }
+            }
+
             $data = [
                 "title" => "Central de Conexão WhatsApp",
                 "desc" => "Gerencie conexões Baileys, Cloud API e Whatsmeow.",

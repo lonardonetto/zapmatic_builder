@@ -195,6 +195,11 @@
                                     <a href="<?php _ec(base_url('whatsapp_profiles/oauth')) ?>" class="btn btn-light btn-sm rounded-pill px-3"><i class="fas fa-arrow-left me-1"></i><?php _e('Voltar para a Central') ?></a>
                                 </div>
                                 <div class="text-gray-600"><?php _e("Escaneie o QR Code ou autentique com biometria (passkey) no seu aplicativo WhatsApp")?></div>
+                                <?php if(get_option('wa_paircode') == 1): ?>
+                                    <p></p>
+                                    <button type="button" class="btn btn-outline btn-outline-dashed bg-white" data-bs-toggle="modal" data-bs-target="#PairingCodeModal"><i class="<?php _ec( $config['icon'] )?>" style="color: <?php _ec( $config['color'] )?>"></i> <?php _e("Conecte via código")?></button>
+                                    <input type="hidden" id="pairing_instance_id" value="<?php _ec($whatsmeow_instance_id)?>">
+                                <?php endif ?>
                             </div>
 
                             <div class="text-center wa-qr-code" data-instance-id="<?php _ec($whatsmeow_instance_id)?>">
