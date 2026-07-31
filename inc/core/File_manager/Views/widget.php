@@ -31,7 +31,6 @@
 	                <i class="fad fa-th-large p-r-0 text-gray-500 text-active-color-primary fs-18"  data-toggle="tooltip" data-placement="top" data-bs-original-title="<?php _e("Advanced options")?>" ></i>
 	            </a>
 	            <div class="dropdown-menu dropdown-menu-right" >
-            		<?php echo view_cell('\Core\Openai\Controllers\Openai::image_widget') ?>
                 	<?php echo view_cell('\Core\File_manager\Controllers\File_manager::adobe', ["button" => true]) ?>
 	            </div>
 	        </div>

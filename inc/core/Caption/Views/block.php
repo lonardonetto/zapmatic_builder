@@ -8,7 +8,6 @@
 		<li class="save-caption">
 			<a href="javascript:void(0);" class="btnSaveCaption px-3 py-2 d-block btn btn-active-light text-gray-700" title="<?php _e("Save caption")?>" data-toggle="tooltip" data-placement="top"><i class="fal fa-save p-0"></i></a>
 		</li>
-		<?php echo view_cell('\Core\Ai_content_generator\Controllers\Ai_content_generator::widget', [ "name" => $name ]) ?>
 		<li>
 			<?php echo view_cell('\Core\Shortlink\Controllers\Shortlink::widget') ?>
 		</li>

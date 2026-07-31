@@ -48,7 +48,6 @@
 	                <i class="px-3 py-2 d-block btn btn-active-light fad fa-th-large text-gray-600"  data-toggle="tooltip" data-placement="top" data-bs-original-title="<?php _e("Advanced options")?>" ></i>
 	            </a>
 	            <div class="dropdown-menu dropdown-menu-right" >
-	        		<?php echo view_cell('\Core\Openai\Controllers\Openai::image_widget') ?>
                 	<?php echo view_cell('\Core\File_manager\Controllers\File_manager::adobe') ?>
 	            </div>
 	        </div>
