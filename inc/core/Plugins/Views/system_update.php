@@ -141,19 +141,32 @@ function suCheck() {
     }, function(resp) {
         if (resp.status === 'success') {
             if (resp.data && resp.data.update_available) {
-                toastr.success(resp.message);
+                showToast('success', resp.message);
                 setTimeout(() => location.reload(), 1500);
             } else {
-                toastr.info(resp.message);
+                showToast('info', resp.message);
             }
         } else {
-            toastr.error(resp.message || 'Erro ao verificar');
+            showToast('error', resp.message || 'Erro ao verificar');
         }
     }, 'json');
 }
 
 var suPollTimer = null;
 var suUpdateId = 0;
+
+// Toast seguro (funciona com iziToast, toastr ou alert)
+function showToast(type, message) {
+    try {
+        if (typeof iziToast !== 'undefined' && iziToast[type]) {
+            iziToast[type]({ title: message, position: 'topRight', timeout: 5000 });
+        } else if (typeof toastr !== 'undefined' && toastr[type]) {
+            toastr[type](message);
+        } else if (type === 'error') {
+            alert('Erro: ' + message);
+        }
+    } catch(e) {}
+}
 
 function showOverlay() {
     var overlay = document.getElementById('su-overlay');
@@ -200,12 +213,12 @@ function suApply(version) {
             suPollTimer = setInterval(suPoll, 1000);
             suPoll(); 
         } else {
-            toastr.error(resp.message || 'Erro ao iniciar');
+            showToast('error', resp.message || 'Erro ao iniciar');
             hideOverlay();
             if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
         }
     }).fail(function() {
-        toastr.error('Falha de rede ao iniciar');
+        showToast('error', 'Falha de rede ao iniciar');
         hideOverlay();
         if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
     });
@@ -233,12 +246,12 @@ function suPoll() {
             if (p.percent < 0 || p.stage === 'error') {
                 if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
                 if (note) note.textContent = 'Você pode fechar esta página';
-                toastr.error(p.message || 'Erro crítico');
+                showToast('error', p.message || 'Erro crítico');
                 setTimeout(hideOverlay, 4000);
             } else {
                 if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
                 if (note) note.textContent = 'Redirecionando automaticamente...';
-                toastr.success(p.message || 'Sistema atualizado!');
+                showToast('success', p.message || 'Sistema atualizado!');
                 setTimeout(function(){ location.reload(); }, 2500);
             }
         }
@@ -256,10 +269,10 @@ function suRollback(id) {
         '<?php echo csrf_token() ?>': '<?php echo csrf_hash() ?>'
     }, function(resp) {
         if (resp.status === 'success') {
-            toastr.success(resp.message);
+            showToast('success', resp.message);
             setTimeout(() => location.reload(), 2000);
         } else {
-            toastr.error(resp.message || 'Erro no rollback');
+            showToast('error', resp.message || 'Erro no rollback');
         }
     }, 'json');
 }

@@ -1,8 +1,8 @@
 {
-    "version": "8.3.15",
+    "version": "8.3.16",
     "channel": "stable",
-    "build_date": "2026-07-31T11:00:00-03:00",
+    "build_date": "2026-07-31T11:05:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "FIX DEFINITIVO: Plugins protegido do rsync + view corrigida"
+    "notes": "FIX: toastr -> showToast seguro (JS nunca mais quebra)"
 }
