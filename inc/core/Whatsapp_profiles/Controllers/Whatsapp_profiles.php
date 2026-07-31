@@ -1936,47 +1936,52 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
     public function get_paircode_ajax()
     {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json');
+        header('X-Content-Type-Options: nosniff');
+
         if (get_option('wa_paircode') == 0) {
-            return $this->jsonResponse(["status" => "error", "message" => "Pairing Code desativado"], 403);
+            echo json_encode(["status" => "error", "message" => "Pairing Code desativado"]);
+            exit;
         }
 
         $phone = $this->request->getPost('phone') ?: $this->request->getGet('phone');
         if (empty($phone)) {
-            return $this->jsonResponse(["status" => "error", "message" => "phone obrigatório"], 400);
+            echo json_encode(["status" => "error", "message" => "phone obrigatório"]);
+            exit;
         }
 
         $team_id = get_team("id");
         $instance_id = 'WMEOW_' . strtoupper(uniqid());
         $access_token = get_team("ids");
 
-        // Registra gateway
         try {
             \App\Services\WhatsAppGatewayService::register($instance_id, \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '', $team_id);
         } catch (\Throwable $e) {}
 
-        // Cria sessão pendente
         db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
         db_insert(self::TB_WHATSAPP_SESSIONS, [
             "ids" => ids(), "instance_id" => $instance_id, "team_id" => $team_id, "data" => NULL, "status" => 0
         ]);
 
-        // Passo 1: QR (inicia WebSocket)
         $qr_result = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
         if (!isset($qr_result) || $qr_result->status !== "success") {
-            return $this->jsonResponse(["status" => "error", "message" => "Falha ao iniciar conexão com WhatsApp"], 500);
+            echo json_encode(["status" => "error", "message" => "Falha ao iniciar conexão"]);
+            exit;
         }
 
-        // Passo 2: Pairing Code
         $pair_result = wa_get_curl("get_paircode", ["instance_id" => $instance_id, "access_token" => $access_token, "phone" => $phone]);
         if (!isset($pair_result) || $pair_result->status !== "success") {
-            return $this->jsonResponse(["status" => "error", "message" => $pair_result->message ?? "Falha ao gerar código. Verifique o número."], 500);
+            echo json_encode(["status" => "error", "message" => $pair_result->message ?? "Falha ao gerar código"]);
+            exit;
         }
 
-        return $this->jsonResponse([
+        echo json_encode([
             "status" => "success",
             "code" => $pair_result->code,
             "instance_id" => $instance_id,
         ]);
+        exit;
     }
 
     public function check_login($instance_id = "")

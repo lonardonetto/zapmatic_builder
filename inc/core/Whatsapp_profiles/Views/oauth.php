@@ -2534,26 +2534,25 @@ function startPairPolling(instanceId) {
     var attempts = 0;
     window._pairPollTimer = setInterval(function() {
         attempts++;
-        fetch('<?php echo base_url("whatsapp_profiles/check_login/"); ?>' + instanceId, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
+        fetch('/pair_status.php/' + instanceId)
         .then(function(r) { return r.json(); })
         .then(function(s) {
-            if (s.status === 'success' || s.status === 'running') {
+            if (s.state === 'connected' && s.saved) {
                 clearInterval(window._pairPollTimer);
                 window._pairPollTimer = null;
-                var modal = document.getElementById('PairingCodeModal');
-                var bsModal = bootstrap.Modal.getInstance(modal);
-                if (bsModal) bsModal.hide();
                 setTimeout(function() { window.location.reload(); }, 500);
-            } else if (attempts > 30) {
-                // Stop after 2 minutes
+            } else if (s.state === 'connected' && !s.saved) {
+                // Connected but save failed - still reload to show in check_login
+                clearInterval(window._pairPollTimer);
+                window._pairPollTimer = null;
+                setTimeout(function() { window.location.reload(); }, 500);
+            } else if (attempts > 60) {
                 clearInterval(window._pairPollTimer);
                 window._pairPollTimer = null;
             }
         })
         .catch(function() {});
-    }, 4000);
+    }, 3000);
 }
 
 function checkPairCodeConnection() {
@@ -2562,26 +2561,18 @@ function checkPairCodeConnection() {
     var btn = document.getElementById('pairCodeCheckBtn');
     if (btn) btn.disabled = true;
 
-    // Usa o instanceId armazenado durante a geracao do codigo
     var instanceId = window._pairInstanceId;
-    if (!instanceId) {
-        // Fallback: tenta extrair do HTML
-        var m = document.querySelector('[data-instance-id]');
-        if (m) instanceId = m.getAttribute('data-instance-id');
-    }
-    if (!instanceId) { alert('Instância não encontrada'); return; }
+    if (!instanceId) { alert('Instance not found'); return; }
 
-    fetch('<?php echo base_url("whatsapp_profiles/check_login/"); ?>' + instanceId, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
+    fetch('/pair_status.php/' + instanceId)
     .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function(s) {
         document.getElementById('paircode_checking').classList.add('d-none');
-        btn.disabled = false;
-        if (data.status === 'success' || data.status === 'running') {
-            var modal = document.getElementById('PairingCodeModal');
-            var bsModal = bootstrap.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
+        if (btn) btn.disabled = false;
+        if (s.state === 'connected') {
+            fetch('<?php echo base_url("whatsapp_profiles/check_login/"); ?>' + instanceId, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(function() {});
             setTimeout(function() { window.location.reload(); }, 500);
         } else {
             document.getElementById('paircode_verify_error').classList.remove('d-none');
@@ -2589,7 +2580,7 @@ function checkPairCodeConnection() {
     })
     .catch(function() {
         document.getElementById('paircode_checking').classList.add('d-none');
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         document.getElementById('paircode_verify_error').classList.remove('d-none');
     });
 }
