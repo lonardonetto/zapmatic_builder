@@ -87,13 +87,23 @@ class System_updater extends Controller
         }
 
         set_time_limit(300);
-        @ini_set('output_buffering', 'off');
-        @ini_set('zlib.output_compression', 'off');
-        @ob_end_flush();
+
+        // Desabilitar TODOS os buffers (real-time streaming)
+        @ini_set('output_buffering', '0');
+        @ini_set('zlib.output_compression', 'Off');
+        @ini_set('implicit_flush', '1');
+        @ob_implicit_flush(true);
+        while (ob_get_level() > 0) { @ob_end_clean(); }
 
         header('Content-Type: text/event-stream');
         header('Cache-Control: no-cache');
         header('X-Accel-Buffering: no');
+        header('Connection: keep-alive');
+
+        // Padding inicial (força o servidor a liberar os headers)
+        echo str_repeat(' ', 4096) . "\n\n";
+        @ob_flush();
+        @flush();
 
         // Funcao de stream de progresso
         $stream = function (int $percent, string $message, bool $done = false) {
@@ -101,6 +111,11 @@ class System_updater extends Controller
             echo "data: {$chunk}\n\n";
             @ob_flush();
             @flush();
+            if ($done) {
+                usleep(50000);
+                @ob_flush();
+                @flush();
+            }
         };
 
         $current = $this->get_current_version();

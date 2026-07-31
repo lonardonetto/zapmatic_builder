@@ -183,37 +183,45 @@ function suApply(version) {
         var decoder = new TextDecoder();
         var buffer = '';
 
+        function processChunk(part) {
+            part.split('\n').forEach(function(line) {
+                if (line.indexOf('data: ') === 0) {
+                    try {
+                        var p = JSON.parse(line.substring(6));
+                        setProgressUI(p.percent, p.message);
+                        if (p.done) {
+                            var title = document.getElementById('su-progress-title');
+                            var note = document.getElementById('su-overlay-note');
+                            if (p.percent < 0) {
+                                if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
+                                if (note) note.textContent = 'Você pode fechar esta página';
+                                toastr.error(p.message || 'Erro');
+                                setTimeout(hideOverlay, 4000);
+                            } else {
+                                if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
+                                if (note) note.textContent = 'Redirecionando automaticamente...';
+                                toastr.success(p.message || 'Sistema atualizado!');
+                            }
+                            setTimeout(function(){ location.reload(); }, 3000);
+                        }
+                    } catch(e) {}
+                }
+            });
+        }
+
         function read() {
             return reader.read().then(function(result) {
-                if (result.done) { return; }
+                if (result.done) {
+                    // IMPORTANTE: processar o buffer restante (chunk final)
+                    if (buffer && buffer.trim()) {
+                        buffer.split('\n\n').forEach(processChunk);
+                    }
+                    return;
+                }
                 buffer += decoder.decode(result.value, {stream: true});
                 var parts = buffer.split('\n\n');
                 buffer = parts.pop();
-                parts.forEach(function(part) {
-                    part.split('\n').forEach(function(line) {
-                        if (line.indexOf('data: ') === 0) {
-                            try {
-                                var p = JSON.parse(line.substring(6));
-                                setProgressUI(p.percent, p.message);
-                                if (p.done) {
-                                    var title = document.getElementById('su-progress-title');
-                                    var note = document.getElementById('su-overlay-note');
-                                    if (p.percent < 0) {
-                                        if (title) title.innerHTML = '<i class="fad fa-exclamation-triangle text-warning"></i> Falha na atualização';
-                                        if (note) note.textContent = 'Você pode fechar esta página';
-                                        toastr.error(p.message || 'Erro');
-                                        setTimeout(hideOverlay, 4000);
-                                    } else {
-                                        if (title) title.innerHTML = '<i class="fad fa-check-circle text-success"></i> Atualização concluída!';
-                                        if (note) note.textContent = 'Redirecionando automaticamente...';
-                                        toastr.success(p.message || 'Sistema atualizado!');
-                                    }
-                                    setTimeout(function(){ location.reload(); }, 3000);
-                                }
-                            } catch(e) {}
-                        }
-                    });
-                });
+                parts.forEach(processChunk);
                 return read();
             });
         }
