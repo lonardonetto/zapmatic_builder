@@ -121,7 +121,7 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
 <script>
 function suCheck() {
     var channel = document.getElementById('su-channel').value;
-    $.post('<?php _e(base_url('plugins/system-updater-check')) ?>', { channel: channel }, function(resp) {
+    $.post('<?php _e(base_url('plugins/system_updater_check')) ?>', { channel: channel }, function(resp) {
         if (resp.status === 'success') {
             if (resp.data && resp.data.update_available) {
                 toastr.success(resp.message);
@@ -139,7 +139,7 @@ function suApply(version) {
     if (!confirm('Atualizar o sistema para v' + version + '?\n\nUm backup será criado automaticamente antes da atualização.\nO sistema pode ficar indisponível por alguns segundos.')) return;
 
     var channel = document.getElementById('su-channel').value;
-    $.post('<?php _e(base_url('plugins/system-updater-apply')) ?>', {
+    $.post('<?php _e(base_url('plugins/system_updater_apply')) ?>', {
         target_version: version,
         channel: channel
     }, function(resp) {
@@ -155,7 +155,7 @@ function suApply(version) {
 function suRollback(id) {
     if (!confirm('Reverter para a versão anterior?\n\nO backup desta atualização será restaurado.')) return;
 
-    $.post('<?php _e(base_url('plugins/system-updater-rollback')) ?>', { update_id: id }, function(resp) {
+    $.post('<?php _e(base_url('plugins/system_updater_rollback')) ?>', { update_id: id }, function(resp) {
         if (resp.status === 'success') {
             toastr.success(resp.message);
             setTimeout(() => location.reload(), 2000);

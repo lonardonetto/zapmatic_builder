@@ -27,23 +27,28 @@ class System_updater extends Controller
     // ──────────────────────────────────────────────
     public function index()
     {
-        $current = $this->get_current_version();
-        $channel = $current['channel'] ?? 'stable';
-        $check = $this->check_remote($channel);
+        try {
+            $current = $this->get_current_version();
+            $channel = $current['channel'] ?? 'stable';
+            $check = $this->check_remote($channel);
 
-        $data = [
-            'title' => 'Atualização do Sistema',
-            'config' => $this->config,
-            'current' => $current,
-            'channel' => $channel,
-            'latest_stable' => $check['stable'] ?? null,
-            'latest_test' => $check['test'] ?? null,
-            'update_available' => $check['update_available'] ?? false,
-            'history' => $this->get_update_history(),
-            'migrations_pending' => $this->count_pending_migrations(),
-        ];
+            $data = [
+                'title' => 'Atualização do Sistema',
+                'config' => $this->config,
+                'current' => $current,
+                'channel' => $channel,
+                'latest_stable' => $check['stable'] ?? null,
+                'latest_test' => $check['test'] ?? null,
+                'update_available' => $check['update_available'] ?? false,
+                'history' => $this->get_update_history(),
+                'migrations_pending' => $this->count_pending_migrations(),
+            ];
 
-        return view('Core\Plugins\Views\system_update', $data);
+            return view('Core\Plugins\Views\system_update', $data);
+        } catch (\Throwable $e) {
+            @file_put_contents(WRITEPATH . 'logs/system_updater_error.log', date('Y-m-d H:i:s') . " | " . $e->getMessage() . " @ " . $e->getFile() . ":" . $e->getLine() . "\n", FILE_APPEND);
+            throw $e;
+        }
     }
 
     // ──────────────────────────────────────────────
