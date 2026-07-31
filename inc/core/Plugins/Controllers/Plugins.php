@@ -446,4 +446,28 @@ class Plugins extends \CodeIgniter\Controller
         $result = wa_get_curl("reset", ["api_key" => get_option("admin_api_key", "asg12345")]);
         ms($result);
     }
+
+    public function system_updater()
+    {
+        $updater = new \Core\Plugins\Controllers\System_updater();
+        return $updater->index();
+    }
+
+    public function system_updater_check()
+    {
+        $updater = new \Core\Plugins\Controllers\System_updater();
+        return $updater->check();
+    }
+
+    public function system_updater_apply()
+    {
+        $updater = new \Core\Plugins\Controllers\System_updater();
+        return $updater->apply();
+    }
+
+    public function system_updater_rollback()
+    {
+        $updater = new \Core\Plugins\Controllers\System_updater();
+        return $updater->rollback();
+    }
 }
