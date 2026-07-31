@@ -25,3 +25,10 @@ if ( file_exists( realpath(  __DIR__."/../Helpers" ) ) ) {
         }
     }
 }
+// Rotas do System Updater
+$routes->group('plugins', ['namespace' => 'Core\Plugins\Controllers'], function ($routes) {
+    $routes->get('system-updater', 'System_updater::index');
+    $routes->post('system-updater/check', 'System_updater::check');
+    $routes->post('system-updater/apply', 'System_updater::apply');
+    $routes->post('system-updater/rollback', 'System_updater::rollback');
+});

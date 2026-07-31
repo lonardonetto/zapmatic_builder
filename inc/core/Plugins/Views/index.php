@@ -11,6 +11,7 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
     <div class="container my-5">
         <div class="w-100 m-r-0 d-flex align-items-center justify-content-between">
             <h3 class="fw-bolder m-b-0 text-gray-800"><i class="fad fa-plug text-primary"></i> Update Mods</h3>
+            <a href="<?php _e(base_url('plugins/system-updater')) ?>" class="btn btn-light btn-active-light-primary m-r-1 b-r-10"><i class="fad fa-sync-alt text-primary"></i> Atualizar Sistema</a>
             <a href="/plugins/popup_install/" class="btn btn-light btn-active-light-success m-r-1 b-r-10 actionItem btnInstallPlugin" data-popup="InstallModal"><i class="fad fa-file-archive text-success"></i> Install Mod</a>
             <a href="/plugins/reset" class="btn btn-light btn-active-light-danger m-r-1 b-r-10 actionItem"><i class="fad fa-redo text-danger"></i> Restart App</a>
         </div>
