@@ -321,32 +321,75 @@ class System_updater extends Controller
     }
 
     // ──────────────────────────────────────────────
-    // Aplicar atualização via git
+    // Aplicar atualização via download ZIP da tag + rsync
     // ──────────────────────────────────────────────
     private function apply_git_update(string $target, string $channel): void
     {
-        $repo_dir = FCPATH;
+        $repo_dir = rtrim(FCPATH, '/');
 
-        // Se não for repo git, inicializa
-        if (!is_dir($repo_dir . '.git')) {
-            $this->run_shell("cd {$repo_dir} && git init && git remote add origin https://github.com/lonardonetto/zapmatic_builder.git");
-        }
+        // Determinar referência
+        $ref = ($channel === 'test') ? 'beta' : "v{$target}";
 
-        // Buscar tags
-        $this->run_shell("cd {$repo_dir} && git fetch --tags origin 2>&1");
-
-        // Determinar branch/tag alvo
+        // Baixar ZIP da tag/branch do GitHub (repo público, sem auth)
+        $zip_url = 'https://github.com/lonardonetto/zapmatic_builder/archive/refs/tags/' . $ref . '.zip';
         if ($channel === 'test') {
-            $ref = 'beta';
-            $this->run_shell("cd {$repo_dir} && git fetch origin beta:beta 2>&1 || true");
-            $this->run_shell("cd {$repo_dir} && git checkout beta 2>&1 && git reset --hard origin/beta 2>&1");
-        } else {
-            $tag = "v{$target}";
-            $this->run_shell("cd {$repo_dir} && git checkout {$tag} 2>&1 && git reset --hard {$tag} 2>&1");
+            $zip_url = 'https://github.com/lonardonetto/zapmatic_builder/archive/refs/heads/' . $ref . '.zip';
         }
 
-        // Corrigir permissões
+        $tmp = FCPATH . 'writable/tmp_update_' . time();
+        mkdir($tmp, 0777, true);
+
+        $zip_file = $tmp . '/update.zip';
+
+        // Download com User-Agent
+        $ctx = stream_context_create(['http' => [
+            'header' => "User-Agent: Zapmatic-Updater\r\n",
+            'timeout' => 60,
+            'follow_location' => 1,
+        ]]);
+        $data = @file_get_contents($zip_url, false, $ctx);
+        if (!$data || strlen($data) < 1000) {
+            $this->run_shell("rm -rf {$tmp}");
+            throw new \RuntimeException("Falha ao baixar atualização de {$zip_url}");
+        }
+        file_put_contents($zip_file, $data);
+
+        // Extrair ZIP
+        $zip = new \ZipArchive;
+        if ($zip->open($zip_file) !== true) {
+            $this->run_shell("rm -rf {$tmp}");
+            throw new \RuntimeException("ZIP inválido");
+        }
+        $zip->extractTo($tmp);
+        $zip->close();
+
+        // Encontrar pasta raiz do projeto extraído
+        $extracted = glob($tmp . '/zapmatic_builder-*');
+        if (empty($extracted) || !is_dir($extracted[0])) {
+            $this->run_shell("rm -rf {$tmp}");
+            throw new \RuntimeException("Estrutura do ZIP inesperada");
+        }
+        $src = $extracted[0];
+
+        // Proteções que NÃO podem ser sobrescritas
+        $excludes = [];
+        $protected = ['.env', 'writable', 'app_zapmatic_whatsmeow_api/config.json', 'app_zapmatic_whatsmeow_api/storage', 'app_zapmatic_whatsmeow_api/logs', 'app_zapmatic_api/sessions', 'app_zapmatic_api/config.js', 'app_zapmatic_api/store', 'app_zapmatic_api/files', 'storage', '.git'];
+        foreach ($protected as $p) {
+            $excludes[] = "--exclude={$p}";
+        }
+
+        // Backup antes (feito pelo caller, mas garantia dupla)
+        $backup_file = $this->create_backup($target);
+
+        // Rsync do código extraído sobre o sistema (--delete remove módulos antigos)
+        $cmd = "rsync -avz --delete --no-times " . implode(' ', $excludes) . " {$src}/ {$repo_dir}/ 2>&1";
+        $this->run_shell($cmd);
+
+        // Garantir permissões
         $this->run_shell("chmod -R 777 {$repo_dir}/app {$repo_dir}/inc 2>/dev/null || true");
+
+        // Limpar temp
+        $this->run_shell("rm -rf {$tmp}");
     }
 
     // ──────────────────────────────────────────────
