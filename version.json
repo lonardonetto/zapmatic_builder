@@ -1,8 +1,6 @@
 {
     "version": "8.3.1",
     "channel": "stable",
-    "build_date": "2026-07-31T00:26:00-03:00",
-    "git_commit": "",
-    "min_php": "8.0",
-    "notes": "Sidebar: 'Admin Mods' renomeado para 'Atualizações'"
+    "build_date": "2026-07-31 00:43:57",
+    "git_commit": "a5c0f92"
 }
