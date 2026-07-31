@@ -310,17 +310,6 @@ class Whatsapp_api extends Controller
         $instance_id = self::get_instance_id();
         $phone = self::get_phone();
 
-        /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
-
-        if (!$session) {
-
-            return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-        }
-
-        if ($session->status == 1) {
-            return $this->respond(["status" => "error", "message" => __("Instance ID has been used")]);
-        }
-        
         $result_qr = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
         if(isset($result_qr) && $result_qr->status == "success"){
             $result = wa_get_curl("get_paircode", ["instance_id" => $instance_id, "access_token" => $access_token, "phone" => $phone]);

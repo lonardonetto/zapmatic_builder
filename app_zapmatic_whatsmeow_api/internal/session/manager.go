@@ -29,6 +29,7 @@ const (
 	StateQRReady
 	StatePasskeyReady
 	StatePasskeyCodeReady
+	StatePairCodeReady
 	StateConnected
 )
 
@@ -40,6 +41,7 @@ type Instance struct {
 	LastQR           string        `json:"last_qr,omitempty"`
 	PushName         string        `json:"push_name,omitempty"`
 	LastPasskeyCode  string        `json:"last_passkey_code,omitempty"`
+	LastPairCode     string        `json:"last_pair_code,omitempty"`
 	SkipHandoffUX    bool          `json:"skip_handoff_ux,omitempty"`
 	PasskeyChallenge []byte        `json:"-"`
 	client           *whatsmeow.Client
@@ -655,6 +657,67 @@ func (m *Manager) Shutdown() {
 	m.instances = make(map[string]*Instance)
 }
 
+func (m *Manager) GetPairCode(instanceID, phone string) (string, error) {
+	m.mu.RLock()
+	inst, ok := m.instances[instanceID]
+	m.mu.RUnlock()
+	if !ok {
+		return "", fmt.Errorf("instance not found")
+	}
+	if inst.client == nil {
+		return "", fmt.Errorf("client not initialized")
+	}
+	if inst.State != StateQRReady {
+		return "", fmt.Errorf("instance not ready for pairing (state: %s)", stateToString(inst.State))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	code, err := inst.client.PairPhone(ctx, phone, true, whatsmeow.PairClientChrome, "Chrome (Linux)")
+	if err != nil {
+		return "", fmt.Errorf("failed to generate pair code: %w", err)
+	}
+
+	m.mu.Lock()
+	inst.LastPairCode = code
+	inst.State = StatePairCodeReady
+	m.mu.Unlock()
+
+	logging.Log.Info().Str("instance", instanceID).Str("code", code).Msg("Pair code generated")
+	return code, nil
+}
+
+// GetPairCodeWaitQR aguarda o QR ficar pronto, entao gera o codigo.
+func (m *Manager) GetPairCodeWaitQR(instanceID, phone string, timeout time.Duration) (string, error) {
+	deadline := time.After(timeout)
+	for {
+		m.mu.RLock()
+		inst, ok := m.instances[instanceID]
+		if !ok {
+			m.mu.RUnlock()
+			return "", fmt.Errorf("instance not found")
+		}
+		state := inst.State
+		m.mu.RUnlock()
+
+		switch state {
+		case StateQRReady:
+			return m.GetPairCode(instanceID, phone)
+		case StateConnected:
+			return "", fmt.Errorf("instance already connected")
+		case StateDisconnected:
+			return "", fmt.Errorf("connection failed")
+		}
+
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-deadline:
+			return "", fmt.Errorf("timeout waiting for QR to be ready (state: %s)", stateToString(state))
+		}
+	}
+}
+
 func stateToString(s InstanceState) string {
 	switch s {
 	case StateDisconnected:
@@ -667,6 +730,8 @@ func stateToString(s InstanceState) string {
 		return "passkey_ready"
 	case StatePasskeyCodeReady:
 		return "passkey_code_ready"
+	case StatePairCodeReady:
+		return "pair_code_ready"
 	case StateConnected:
 		return "connected"
 	default:

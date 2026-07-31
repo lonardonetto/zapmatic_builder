@@ -252,3 +252,40 @@ func (r *Router) handleLogout(w http.ResponseWriter, req *http.Request) {
 	}
 	r.writeJSON(w, http.StatusOK, map[string]string{"status": "success", "instance_id": instanceID})
 }
+
+// handlePairCode gera codigo de pareamento por telefone (PIN de 8 caracteres).
+// Fluxo: /qrcode inicia WebSocket → /paircode?instance_id=X&phone=5511999999999
+func (r *Router) handlePairCode(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		r.writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"status": "error", "message": "Method not allowed"})
+		return
+	}
+	instanceID := req.URL.Query().Get("instance_id")
+	phone := req.URL.Query().Get("phone")
+	if instanceID == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "instance_id is required"})
+		return
+	}
+	if phone == "" {
+		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "phone is required"})
+		return
+	}
+
+	if err := r.rt.Session().StartInstance(context.Background(), instanceID); err != nil {
+		if err.Error() != "instance already connected" {
+			r.writeJSON(w, http.StatusConflict, map[string]string{"status": "error", "message": err.Error()})
+			return
+		}
+	}
+
+	// Aguarda o QR ficar pronto (WebSocket pode levar uns segundos)
+	code, err := r.rt.Session().GetPairCodeWaitQR(instanceID, phone, 15*time.Second)
+	if err != nil {
+		r.writeJSON(w, http.StatusInternalServerError, map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+
+	r.writeJSON(w, http.StatusOK, map[string]string{
+		"status": "success", "instance_id": instanceID, "code": code,
+	})
+}
