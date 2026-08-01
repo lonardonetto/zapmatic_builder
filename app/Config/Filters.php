@@ -32,10 +32,10 @@ class Filters extends BaseConfig
 		'before' => [
 			// 'honeypot',
 			// 'csrf',
-			'main'
+			'main' => ['except' => 'connect/*']
 		],
 		'after'  => [
-			'toolbar',
+			'toolbar' => ['except' => 'connect/*'],
 			'main',
 			// 'honeypot',
 		],

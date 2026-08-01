@@ -1934,6 +1934,91 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         exit;
     }
 
+    public function generate_connection_link()
+    {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json');
+
+        $clientName = $this->request->getPost('client_name') ?? '';
+        $teamId = get_team("id");
+        $instanceId = 'WMEOW_' . strtoupper(uniqid());
+        $token = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+
+        $goBaseUrl = \App\Services\WhatsAppGatewayService::getGoBaseUrl();
+
+        try {
+            \App\Services\WhatsAppGatewayService::register($instanceId, $goBaseUrl, '', $teamId);
+        } catch (\Throwable $e) {}
+
+        $db = \Config\Database::connect();
+        $db->table('sp_connection_links')->insert([
+            'team_id' => $teamId,
+            'instance_id' => $instanceId,
+            'token' => $token,
+            'client_name' => $clientName,
+            'status' => 'pending',
+            'expires_at' => date('Y-m-d H:i:s', time() + 1800),
+        ]);
+
+        $url = base_url('connect/' . $token);
+
+        echo json_encode(['status' => 'success', 'url' => $url, 'token' => $token, 'expires_in' => 1800]);
+        exit;
+    }
+
+    public function list_connection_links()
+    {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json');
+
+        $teamId = get_team("id");
+        $db = \Config\Database::connect();
+
+        // Mark expired
+        $db->table('sp_connection_links')
+            ->where('team_id', $teamId)
+            ->where('status', 'pending')
+            ->where('expires_at <', date('Y-m-d H:i:s'))
+            ->update(['status' => 'expired']);
+
+        $links = $db->table('sp_connection_links')
+            ->where('team_id', $teamId)
+            ->orderBy('id', 'DESC')
+            ->limit(20)
+            ->get()->getResult();
+
+        echo json_encode(['status' => 'success', 'links' => $links]);
+        exit;
+    }
+
+    public function revoke_connection_link()
+    {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json');
+
+        $token = $this->request->getPost('token');
+        if (empty($token)) {
+            echo json_encode(['status' => 'error', 'message' => 'token required']);
+            exit;
+        }
+
+        $teamId = get_team("id");
+        $db = \Config\Database::connect();
+        $db->table('sp_connection_links')
+            ->where('token', $token)
+            ->where('team_id', $teamId)
+            ->update(['status' => 'expired']);
+
+        echo json_encode(['status' => 'success']);
+        exit;
+    }
+
     public function get_paircode_ajax()
     {
         while (ob_get_level()) { ob_end_clean(); }
@@ -1953,10 +2038,10 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
 
         $team_id = get_team("id");
         $instance_id = 'WMEOW_' . strtoupper(uniqid());
-        $access_token = get_team("ids");
+        $goBaseUrl = rtrim(\App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
 
         try {
-            \App\Services\WhatsAppGatewayService::register($instance_id, \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '', $team_id);
+            \App\Services\WhatsAppGatewayService::register($instance_id, $goBaseUrl, '', $team_id);
         } catch (\Throwable $e) {}
 
         db_delete(self::TB_WHATSAPP_SESSIONS, ["status" => 0, "team_id" => $team_id]);
@@ -1964,14 +2049,15 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "ids" => ids(), "instance_id" => $instance_id, "team_id" => $team_id, "data" => NULL, "status" => 0
         ]);
 
-        $qr_result = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
-        if (!isset($qr_result) || $qr_result->status !== "success") {
+        // Chama Go API diretamente (não wa_get_curl que usa whatsapp_server_url errado)
+        $qr_result = $this->goCurl($goBaseUrl . '/qrcode?instance_id=' . urlencode($instance_id));
+        if (!isset($qr_result) || ($qr_result->status ?? '') !== "success") {
             echo json_encode(["status" => "error", "message" => "Falha ao iniciar conexão"]);
             exit;
         }
 
-        $pair_result = wa_get_curl("get_paircode", ["instance_id" => $instance_id, "access_token" => $access_token, "phone" => $phone]);
-        if (!isset($pair_result) || $pair_result->status !== "success") {
+        $pair_result = $this->goCurl($goBaseUrl . '/paircode?instance_id=' . urlencode($instance_id) . '&phone=' . urlencode($phone));
+        if (!isset($pair_result) || ($pair_result->status ?? '') !== "success") {
             echo json_encode(["status" => "error", "message" => $pair_result->message ?? "Falha ao gerar código"]);
             exit;
         }
@@ -1982,6 +2068,20 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             "instance_id" => $instance_id,
         ]);
         exit;
+    }
+
+    private function goCurl($url)
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => 0,
+        ]);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+        return $resp ? json_decode($resp) : null;
     }
 
     public function check_login($instance_id = "")

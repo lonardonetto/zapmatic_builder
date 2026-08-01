@@ -1,8 +1,8 @@
 {
-    "version": "8.3.24",
+    "version": "8.3.25",
     "channel": "stable",
-    "build_date": "2026-07-31T18:49:00-03:00",
+    "build_date": "2026-08-01T11:27:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Phone Pairing Code (PIN) completo: Go PairSuccess->Connected, goroutine QR protegida, pair_status.php standalone, avatar auto-salvo"
+    "notes": "Link publico de conexao WhatsApp, tabs profissionais, auto-refresh QR, SQL escaping fix"
 }

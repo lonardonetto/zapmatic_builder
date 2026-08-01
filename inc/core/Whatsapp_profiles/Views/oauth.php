@@ -38,6 +38,10 @@
                     </button>
                     <?php endif; ?>
 
+                    <button type="button" class="btn btn-success rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#ConnectionLinkModal">
+                        <i class="fas fa-link me-2"></i><?php _e('Gerar link de conexão') ?>
+                    </button>
+
                     <?php if ((int)permission("cloud_api_enabled") == 1): ?>
                         <button type="button" class="btn btn-primary rounded-pill px-4 js-open-connection-drawer" data-connection-drawer-target="cloud">
                             <i class="fas fa-cloud me-2"></i><?php _e('Cloud API') ?>
@@ -383,21 +387,36 @@
                 <div class="col-12">
                     <div class="card mb-4">
                         <div class="card-header border-0 pb-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                                <div class="card-title mb-0"><i class="fad fa-grid-2 me-2" style="color: <?php _e($config['color'])?>"></i> <?php _ec("Contas Conectadas")?></div>
-                                <div class="wa-summary-strip">
-                                    <span class="wa-summary-pill"><?php _e('Total') ?> <?php _ec((string) count($accounts)) ?></span>
-                                    <span class="wa-summary-pill"><?php _e('Cloud') ?> <?php _ec((string) $cloud_accounts_total) ?></span>
-                                    <span class="wa-summary-pill"><?php _e('Baileys') ?> <?php _ec((string) $baileys_accounts_total) ?></span>
-                                    <span class="wa-summary-pill wa-summary-pill-info"><?php _e('Whatsmeow') ?> <?php _ec((string) $whatsmeow_accounts_total) ?></span>
-                                    <span class="wa-summary-pill wa-summary-pill-warning"><?php _e('Exigem atenção') ?> <?php _ec((string) $offline_accounts_total) ?></span>
-                                </div>
-                            </div>
+                            <ul class="nav nav-tabs card-header-tabs mb-3" id="connectionTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts-pane" type="button" role="tab">
+                                        <i class="fad fa-grid-2 me-1"></i><?php _e('Contas Conectadas') ?>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="links-tab" data-bs-toggle="tab" data-bs-target="#links-pane" type="button" role="tab" onclick="loadConnectionLinks()">
+                                        <i class="fas fa-link me-1"></i><?php _e('Links de Conexão') ?>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
 
-                            <div class="wa-toolbar">
-                                <div class="wa-search-wrap">
-                                    <i class="fas fa-search wa-search-icon"></i>
-                                    <input type="text" id="waConnectionSearch" class="form-control wa-search-input" placeholder="<?php _e('Buscar por nome ou número...') ?>">
+                        <div class="tab-content">
+                            <!-- TAB 1: Contas Conectadas -->
+                            <div class="tab-pane fade show active" id="accounts-pane" role="tabpanel">
+                                <div class="px-4 pb-2">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                                        <div class="wa-summary-strip">
+                                            <span class="wa-summary-pill"><?php _e('Total') ?> <?php _ec((string) count($accounts)) ?></span>
+                                            <span class="wa-summary-pill"><?php _e('Cloud') ?> <?php _ec((string) $cloud_accounts_total) ?></span>
+                                            <span class="wa-summary-pill wa-summary-pill-info"><?php _e('Whatsmeow') ?> <?php _ec((string) $whatsmeow_accounts_total) ?></span>
+                                            <span class="wa-summary-pill wa-summary-pill-warning"><?php _e('Exigem atenção') ?> <?php _ec((string) $offline_accounts_total) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="wa-toolbar">
+                                        <div class="wa-search-wrap">
+                                            <i class="fas fa-search wa-search-icon"></i>
+                                            <input type="text" id="waConnectionSearch" class="form-control wa-search-input" placeholder="<?php _e('Buscar por nome ou número...') ?>">
                                 </div>
                                 <div class="wa-filter-pills" id="waConnectionFilters">
                                     <button type="button" class="wa-filter-pill active" data-filter="all"><?php _e('Todas') ?></button>
@@ -518,6 +537,28 @@
                                     </div>
                                 <?php endforeach ?>
                             </div>
+                                </div>
+                            </div>
+                            <!-- END TAB 1 -->
+
+                            <!-- TAB 2: Links de Conexão -->
+                            <div class="tab-pane fade" id="links-pane" role="tabpanel">
+                                <div class="px-4 pb-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <p class="text-muted mb-0"><?php _e('Links gerados para conectar clientes sem acesso ao sistema.') ?></p>
+                                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#ConnectionLinkModal">
+                                            <i class="fas fa-plus me-1"></i><?php _e('Novo link') ?>
+                                        </button>
+                                    </div>
+                                    <div id="connection-links-list">
+                                        <div class="text-muted text-center py-4">
+                                            <i class="fas fa-link fa-2x mb-2 d-block text-muted opacity-50"></i>
+                                            <?php _e('Nenhum link ativo no momento.') ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END TAB 2 -->
                         </div>
                     </div>
                 </div>
@@ -591,6 +632,50 @@
         </div>
     </div>
 </div>
+
+<!-- Connection Link Modal -->
+<div class="modal fade" id="ConnectionLinkModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success bg-opacity-10">
+                <h5 class="modal-title"><i class="fas fa-link me-2 text-success"></i>Gerar Link de Conexão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="resetConnectionLinkModal()"></button>
+            </div>
+            <div class="modal-body">
+                <div id="clink-step1">
+                    <p class="text-muted mb-3">Gere um link seguro para enviar ao cliente. Ele poderá conectar o WhatsApp sem ter acesso ao sistema.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do cliente (opcional)</label>
+                        <input type="text" class="form-control" id="clink-client-name" placeholder="Ex: João Silva">
+                    </div>
+                    <button type="button" class="btn btn-success btn-lg w-100" id="btn-generate-link" onclick="generateConnectionLink()">
+                        <i class="fas fa-link me-2"></i>Gerar link
+                    </button>
+                </div>
+                <div id="clink-step2" class="d-none text-center">
+                    <div class="bg-success bg-opacity-10 rounded-4 p-4 mb-3">
+                        <div class="text-muted small mb-2">Link gerado com sucesso!</div>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control text-center" id="clink-url" readonly style="font-size:13px">
+                            <button class="btn btn-outline-success" type="button" onclick="copyConnectionLink()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">⏱ Expira em 30 minutos</small>
+                    </div>
+                    <a id="clink-whatsapp-share" href="#" target="_blank" class="btn btn-success w-100 mb-2">
+                        <i class="fab fa-whatsapp me-2"></i>Enviar via WhatsApp
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="resetConnectionLinkModal()">
+                        Gerar outro link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <!-- Edit Cloud API Modal -->
 <div class="modal fade" id="EditCloudModal" tabindex="-1" role="dialog">
@@ -2592,6 +2677,110 @@ function copyPairCode() {
         if (btns.length) { btns[0].innerHTML = '<i class="fas fa-check me-1"></i>Copiado!'; }
     });
 }
+
+// Connection Link functions
+function generateConnectionLink() {
+    var clientName = document.getElementById('clink-client-name').value.trim();
+    var btn = document.getElementById('btn-generate-link');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando...';
+
+    fetch('<?php echo base_url("whatsapp_profiles/generate_connection_link"); ?>', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'client_name=' + encodeURIComponent(clientName)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-link me-2"></i>Gerar link';
+        if (data.status === 'success') {
+            document.getElementById('clink-url').value = data.url;
+            document.getElementById('clink-whatsapp-share').href = 'https://wa.me/?text=' + encodeURIComponent('Conecte seu WhatsApp ao sistema: ' + data.url);
+            document.getElementById('clink-step1').classList.add('d-none');
+            document.getElementById('clink-step2').classList.remove('d-none');
+            loadConnectionLinks();
+        } else {
+            alert(data.message || 'Erro ao gerar link');
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-link me-2"></i>Gerar link';
+        alert('Erro de conexão');
+    });
+}
+
+function copyConnectionLink() {
+    var url = document.getElementById('clink-url').value;
+    navigator.clipboard.writeText(url).then(function() {
+        var btns = document.querySelectorAll('#clink-step2 .btn-outline-success');
+        if (btns.length) { btns[0].innerHTML = '<i class="fas fa-check"></i>'; setTimeout(function() { btns[0].innerHTML = '<i class="fas fa-copy"></i>'; }, 1500); }
+    });
+}
+
+function resetConnectionLinkModal() {
+    document.getElementById('clink-step1').classList.remove('d-none');
+    document.getElementById('clink-step2').classList.add('d-none');
+    document.getElementById('clink-client-name').value = '';
+    document.getElementById('clink-url').value = '';
+}
+
+function loadConnectionLinks() {
+    fetch('<?php echo base_url("whatsapp_profiles/list_connection_links"); ?>', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.status !== 'success' || !data.links.length) {
+            document.getElementById('connection-links-list').innerHTML = '<div class="text-muted text-center py-4"><i class="fas fa-link fa-2x mb-2 d-block text-muted opacity-50"></i>Nenhum link ativo no momento.</div>';
+            return;
+        }
+        var html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr>' +
+            '<th>Cliente</th><th>Status</th><th>Conectado</th><th class="text-end">Ações</th></tr></thead><tbody>';
+        data.links.forEach(function(link) {
+            var statusBadge = '';
+            var connected = '';
+            var actions = '';
+            if (link.status === 'pending') {
+                var exp = new Date(link.expires_at.replace(' ', 'T'));
+                var diff = Math.max(0, Math.floor((exp - new Date()) / 60000));
+                statusBadge = '<span class="badge bg-warning">pendente · ' + diff + 'min</span>';
+                connected = '<span class="text-muted">—</span>';
+                actions = '<button class="btn btn-sm btn-outline-secondary me-1" onclick="navigator.clipboard.writeText(\'' + window.location.origin + '/connect/' + link.token + '\')"><i class="fas fa-copy"></i></button>' +
+                    '<button class="btn btn-sm btn-outline-danger" onclick="revokeConnectionLink(\'' + link.token + '\')"><i class="fas fa-ban"></i></button>';
+            } else if (link.status === 'used') {
+                statusBadge = '<span class="badge bg-success">conectado</span>';
+                var avatar = link.connected_avatar ? '<img src="' + link.connected_avatar + '" class="rounded-circle me-1" width="24" height="24">' : '';
+                connected = avatar + '<strong>' + (link.connected_name || '') + '</strong> <small class="text-muted">' + (link.connected_phone || '') + '</small>';
+                actions = '<span class="text-muted"><i class="fas fa-check text-success"></i></span>';
+            } else {
+                statusBadge = '<span class="badge bg-secondary">expirado</span>';
+                connected = '<span class="text-muted">—</span>';
+                actions = '<span class="text-muted">—</span>';
+            }
+            var name = link.client_name || '<span class="text-muted">(sem nome)</span>';
+            html += '<tr><td>' + name + '</td><td>' + statusBadge + '</td><td>' + connected + '</td><td class="text-end">' + actions + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('connection-links-list').innerHTML = html;
+    })
+    .catch(function() {});
+}
+
+function revokeConnectionLink(token) {
+    if (!confirm('Revogar este link?')) return;
+    fetch('<?php echo base_url("whatsapp_profiles/revoke_connection_link"); ?>', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'token=' + encodeURIComponent(token)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { loadConnectionLinks(); })
+    .catch(function() {});
+}
+
+// Load links on page load
 
 function closePairCodeModal() {
     if (window._pairPollTimer) { clearInterval(window._pairPollTimer); window._pairPollTimer = null; }

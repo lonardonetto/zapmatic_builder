@@ -10,6 +10,23 @@ $db = new mysqli(
     $env['database.default.database'] ?? ''
 );
 
+// Detect Go API port from local config.json
+$goPort = '8090';
+$cfgPaths = [
+    __DIR__ . '/app_zapmatic_whatsmeow_api/config.json',
+    __DIR__ . '/../app_zapmatic_whatsmeow_api/config.json',
+];
+foreach ($cfgPaths as $cfgPath) {
+    if (file_exists($cfgPath)) {
+        $cfg = json_decode(file_get_contents($cfgPath), true);
+        if (!empty($cfg['port'])) {
+            $goPort = (string)$cfg['port'];
+            break;
+        }
+    }
+}
+$goBaseUrl = 'http://127.0.0.1:' . $goPort;
+
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 if (!preg_match('#/pair_status\.php/(WMEOW_[A-F0-9]+)#', $path, $m)) {
     echo '{"state":"error","message":"invalid"}';
@@ -18,11 +35,11 @@ if (!preg_match('#/pair_status\.php/(WMEOW_[A-F0-9]+)#', $path, $m)) {
 $instanceId = $m[1];
 
 // Check Go API status
-$ch = curl_init('http://127.0.0.1:8090/status?instance_id=' . urlencode($instanceId));
+$ch = curl_init($goBaseUrl . '/status?instance_id=' . urlencode($instanceId));
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5]);
 $resp = curl_exec($ch);
 curl_close($ch);
-if (!$resp) { echo '{"state":"error"}'; exit; }
+if (!$resp) { echo '{"state":"error","message":"gateway offline"}'; exit; }
 
 $status = json_decode($resp);
 if (!$status) { echo '{"state":"error"}'; exit; }
@@ -34,7 +51,7 @@ if ($status->state !== 'connected') {
 
 // CONNECTED! Get profile with avatar
 $avatar = '';
-$chP = curl_init('http://127.0.0.1:8090/profile?instance_id=' . urlencode($instanceId));
+$chP = curl_init($goBaseUrl . '/profile?instance_id=' . urlencode($instanceId));
 curl_setopt_array($chP, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10]);
 $profResp = curl_exec($chP);
 curl_close($chP);
@@ -76,10 +93,10 @@ if ($teamId) {
     $pid = $db->real_escape_string($jid);
     $token = $db->real_escape_string($instanceId);
     $avatarEsc = $db->real_escape_string($avatar);
-    
+
     $db->query("INSERT INTO sp_accounts (ids, team_id, token, pid, name, avatar, social_network, category, status, login_type, data) VALUES (UUID(), $teamId, '$token', '$pid', '$name', '$avatarEsc', 'whatsapp', 'profile', 1, 3, '{\"gateway\":\"whatsmeow\",\"jid\":\"$pid\"}')");
     $db->query("UPDATE sp_whatsapp_sessions SET status = 1, data = '{\"gateway\":\"whatsmeow\",\"jid\":\"$pid\"}' WHERE instance_id = '$token'");
-    
+
     echo json_encode(['state' => 'connected', 'saved' => true, 'instance_id' => $instanceId, 'team_id' => $teamId, 'name' => $pushName, 'avatar' => $avatar]);
 } else {
     echo json_encode(['state' => 'connected', 'saved' => false, 'error' => 'no team_id found']);
