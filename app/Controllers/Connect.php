@@ -9,9 +9,13 @@ class Connect extends Controller
     public function show($token = '')
     {
         $db = \Config\Database::connect();
-        $link = $db->table('sp_connection_links')
-            ->where('token', $token)
-            ->get()->getRow();
+        try {
+            $link = $db->table('sp_connection_links')
+                ->where('token', $token)
+                ->get()->getRow();
+        } catch (\Throwable $e) {
+            return view('Connect/not_found');
+        }
 
         if (!$link) {
             return view('Connect/not_found');
@@ -54,10 +58,15 @@ class Connect extends Controller
         header('Content-Type: application/json');
 
         $db = \Config\Database::connect();
-        $link = $db->table('sp_connection_links')
-            ->where('token', $token)
-            ->where('status', 'pending')
-            ->get()->getRow();
+        try {
+            $link = $db->table('sp_connection_links')
+                ->where('token', $token)
+                ->where('status', 'pending')
+                ->get()->getRow();
+        } catch (\Throwable $e) {
+            echo json_encode(['state' => 'error', 'message' => 'Database error']);
+            exit;
+        }
 
         if (!$link || strtotime($link->expires_at) < time()) {
             echo json_encode(['error' => 'expired']);
@@ -206,10 +215,15 @@ class Connect extends Controller
         }
 
         $db = \Config\Database::connect();
-        $link = $db->table('sp_connection_links')
-            ->where('token', $token)
-            ->where('status', 'pending')
-            ->get()->getRow();
+        try {
+            $link = $db->table('sp_connection_links')
+                ->where('token', $token)
+                ->where('status', 'pending')
+                ->get()->getRow();
+        } catch (\Throwable $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Database error']);
+            exit;
+        }
 
         if (!$link || strtotime($link->expires_at) < time()) {
             echo json_encode(['status' => 'error', 'message' => 'Link expired']);
