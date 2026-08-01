@@ -439,16 +439,18 @@ class Whatsapp_api extends Controller
             return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
         }
 
-        if ($account->status == 0) {
-            return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
-        }
+        // Go API: chama /qrcode para reconectar (reconecta automaticamente)
+        $goBaseUrl = \App\Services\WhatsAppGatewayService::getGoBaseUrl();
+        $ch = curl_init($goBaseUrl . '/qrcode?instance_id=' . urlencode($instance_id));
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_SSL_VERIFYHOST => 0, CURLOPT_SSL_VERIFYPEER => 0]);
+        $result = curl_exec($ch);
+        curl_close($ch);
 
-        $result = wa_get_curl("instance", ["instance_id" => $instance_id, "access_token" => $access_token]);
-        if ($result == "") {
+        if (!$result) {
             return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server. Please try again later")]);
         }
 
-        return $this->respond((array)$result);
+        return $this->respond((array)json_decode($result));
     }
 
 
@@ -464,12 +466,6 @@ class Whatsapp_api extends Controller
     $team_id = $team->id;
     $access_token = $team->ids;
     $instance_id = self::get_instance_id($instance_id);
-
-    // Verificando a sessão
-
-    if (!$session) {
-        return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-    }
 
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
@@ -562,10 +558,6 @@ public function create_groups()
     // Verificação e inicialização do instance_id
     $instance_id = self::get_instance_id($instance_id) ?: $instance_id;
 
-    // Verificação da sessão
-    if (!$session) {
-        return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-    }
     // Verificação da conta
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
     if (!$account) {
