@@ -133,6 +133,34 @@ _e($this->extend('Backend\Stackmin\Views\index'), false);
             </div>
         </div>
          <?php endif; ?>
+
+        <?php if (!empty($changelog)): ?>
+        <h6 class="mt-4 mb-3 text-gray-800"><i class="fad fa-file-alt text-muted"></i> Changelog</h6>
+        <div class="card border-0 shadow-sm rounded-12">
+            <div class="card-body" style="max-height:500px; overflow-y:auto; font-size:13px; line-height:1.7;">
+                <?php
+                    $lines = explode("\n", $changelog);
+                    foreach ($lines as $line) {
+                        $line = htmlspecialchars($line);
+                        if (str_starts_with($line, '## ')) {
+                            echo '<h6 class="mt-3 mb-1 text-success" style="font-size:14px;">' . $line . '</h6>';
+                        } elseif (str_starts_with($line, '# ')) {
+                            echo '<h5 class="mb-2">' . $line . '</h5>';
+                        } elseif (str_starts_with($line, '---')) {
+                            echo '<hr class="my-2">';
+                        } elseif (str_starts_with($line, '- ')) {
+                            echo '<div style="padding-left:16px;">' . $line . '</div>';
+                        } elseif (str_starts_with($line, '**')) {
+                            echo '<div class="fw-bold text-gray-700 mt-1">' . $line . '</div>';
+                        } elseif (trim($line) !== '') {
+                            echo '<div class="text-muted">' . $line . '</div>';
+                        }
+                    }
+                ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
      </div>
  </div>
 

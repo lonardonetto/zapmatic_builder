@@ -42,6 +42,7 @@ class System_updater extends Controller
                 'update_available' => $check['update_available'] ?? false,
                 'history' => $this->get_update_history(),
                 'migrations_pending' => $this->count_pending_migrations(),
+                'changelog' => $this->fetch_changelog(),
             ];
 
             return view('Core\Plugins\Views\system_update', $data);
@@ -373,6 +374,20 @@ poll();
         if (!is_array($data) || empty($data['version'])) return null;
 
         return (string)$data['version'];
+    }
+
+    // ──────────────────────────────────────────────
+    // Buscar CHANGELOG.md do GitHub
+    // ──────────────────────────────────────────────
+    private function fetch_changelog(): string
+    {
+        $url = 'https://raw.githubusercontent.com/lonardonetto/zapmatic_builder/main/CHANGELOG.md';
+        $ctx = stream_context_create(['http' => [
+            'header' => "User-Agent: Zapmatic-Updater\r\n",
+            'timeout' => 10,
+        ]]);
+        $result = @file_get_contents($url, false, $ctx);
+        return $result ?: '';
     }
 
     // ──────────────────────────────────────────────
