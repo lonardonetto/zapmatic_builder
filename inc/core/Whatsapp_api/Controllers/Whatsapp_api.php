@@ -184,20 +184,9 @@ class Whatsapp_api extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id();
 
-        /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
-
-        if (!$session) {
-            /* Legacy session insert removed */
-            /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
-        }
-
-        if ($session->status == 1) {
-            return $this->respond(["status" => "error", "message" => __("Instance ID has been used")]);
-        }
-
         $result = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
 
-        if ($result == "") {
+        if ($result == "" || $result == null) {
             return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server. Please try again later")]);
         }
 
