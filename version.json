@@ -1,8 +1,8 @@
 {
-    "version": "8.3.25",
+    "version": "8.3.26",
     "channel": "stable",
-    "build_date": "2026-08-01T11:27:00-03:00",
+    "build_date": "2026-08-01T16:45:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Link publico de conexao WhatsApp, tabs profissionais, auto-refresh QR, SQL escaping fix"
+    "notes": "Delete links historico, updater migration order fix, Connect.php try-catch"
 }

@@ -2019,6 +2019,28 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         exit;
     }
 
+    public function delete_connection_link()
+    {
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json');
+
+        $token = $this->request->getPost('token');
+        if (empty($token)) {
+            echo json_encode(['status' => 'error', 'message' => 'token required']);
+            exit;
+        }
+
+        $teamId = get_team("id");
+        $db = \Config\Database::connect();
+        $db->table('sp_connection_links')
+            ->where('token', $token)
+            ->where('team_id', $teamId)
+            ->delete();
+
+        echo json_encode(['status' => 'success']);
+        exit;
+    }
+
     public function get_paircode_ajax()
     {
         while (ob_get_level()) { ob_end_clean(); }

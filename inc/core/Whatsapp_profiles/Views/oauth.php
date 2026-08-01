@@ -2753,11 +2753,11 @@ function loadConnectionLinks() {
                 statusBadge = '<span class="badge bg-success">conectado</span>';
                 var avatar = link.connected_avatar ? '<img src="' + link.connected_avatar + '" class="rounded-circle me-1" width="24" height="24">' : '';
                 connected = avatar + '<strong>' + (link.connected_name || '') + '</strong> <small class="text-muted">' + (link.connected_phone || '') + '</small>';
-                actions = '<span class="text-muted"><i class="fas fa-check text-success"></i></span>';
+                actions = '<button class="btn btn-sm btn-outline-danger" onclick="deleteConnectionLink(\'' + link.token + '\')"><i class="fas fa-trash-alt"></i></button>';
             } else {
                 statusBadge = '<span class="badge bg-secondary">expirado</span>';
                 connected = '<span class="text-muted">—</span>';
-                actions = '<span class="text-muted">—</span>';
+                actions = '<button class="btn btn-sm btn-outline-danger" onclick="deleteConnectionLink(\'' + link.token + '\')"><i class="fas fa-trash-alt"></i></button>';
             }
             var name = link.client_name || '<span class="text-muted">(sem nome)</span>';
             html += '<tr><td>' + name + '</td><td>' + statusBadge + '</td><td>' + connected + '</td><td class="text-end">' + actions + '</td></tr>';
@@ -2771,6 +2771,18 @@ function loadConnectionLinks() {
 function revokeConnectionLink(token) {
     if (!confirm('Revogar este link?')) return;
     fetch('<?php echo base_url("whatsapp_profiles/revoke_connection_link"); ?>', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'token=' + encodeURIComponent(token)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { loadConnectionLinks(); })
+    .catch(function() {});
+}
+
+function deleteConnectionLink(token) {
+    if (!confirm('Excluir este link do histórico?')) return;
+    fetch('<?php echo base_url("whatsapp_profiles/delete_connection_link"); ?>', {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'token=' + encodeURIComponent(token)
