@@ -466,14 +466,9 @@ class Whatsapp_api extends Controller
     $instance_id = self::get_instance_id($instance_id);
 
     // Verificando a sessão
-    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     if (!$session) {
         return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
-    }
-
-    if ($session->status == 0) {
-        return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
     }
 
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
@@ -568,14 +563,9 @@ public function create_groups()
     $instance_id = self::get_instance_id($instance_id) ?: $instance_id;
 
     // Verificação da sessão
-    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
     if (!$session) {
         return $this->respond(["status" => "error", "message" => __("Instance ID Invalidated")]);
     }
-    if ($session->status == 0) {
-        return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
-    }
-
     // Verificação da conta
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
     if (!$account) {
@@ -751,13 +741,8 @@ public function create_groups()
         $access_token = isset($team->access_token) ? $team->access_token : $access_token;
     }
 
-    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
-    if (!$session || $session->status == 0) {
-        return $this->respond(["status" => "error", "message" => __("Invalid instance ID or instance not activated")]);
-    }
-
     // Obtém a conta do WhatsApp
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
@@ -823,13 +808,8 @@ public function remove_participants()
         $access_token = isset($team->access_token) ? $team->access_token : $access_token;
     }
 
-    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
-    if (!$session || $session->status == 0) {
-        return $this->respond(["status" => "error", "message" => __("Invalid instance ID or instance not activated")]);
-    }
-
     // Obtém a conta do WhatsApp
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
@@ -907,13 +887,8 @@ public function edit_group()
         return $this->respond(["status" => "error", "message" => __("Invalid access token")]);
     }
 
-    /* Legacy TB_WHATSAPP_SESSIONS removed */ $session = false;
 
     // Verifica a validade da sessão
-    if (!$session || $session->status == 0) {
-        return $this->respond(["status" => "error", "message" => __("Invalid instance ID or instance not activated")]);
-    }
-
     // Obtém a conta do WhatsApp
     $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
 
