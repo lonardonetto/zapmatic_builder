@@ -37,6 +37,37 @@ class Whatsapp_api extends Controller
         $this->model = new \Core\Whatsapp_api\Models\Whatsapp_apiModel();
     }
 
+    /**
+     * Chama o Go API diretamente (sem depender de whatsapp_server_url do banco).
+     * Substitui wa_get_curl para endpoints que precisam do Go API local.
+     */
+    private function go_api(string $endpoint, array $params = [], string $method = 'GET')
+    {
+        $baseUrl = \App\Services\WhatsAppGatewayService::getGoBaseUrl();
+        $url = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/');
+        if (!empty($params) && $method === 'GET') {
+            $url .= '?' . http_build_query($params);
+        }
+        $ch = curl_init($url);
+        $opts = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => 0,
+        ];
+        if ($method === 'POST') {
+            $opts[CURLOPT_POST] = true;
+            if (!empty($params)) {
+                $opts[CURLOPT_POSTFIELDS] = json_encode($params);
+                $opts[CURLOPT_HTTPHEADER] = ['Content-Type: application/json'];
+            }
+        }
+        curl_setopt_array($ch, $opts);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $result ? json_decode($result) : null;
+    }
+
     public function index($page = false)
     {
         if (!permission("whatsapp_api")) {
@@ -51,7 +82,7 @@ class Whatsapp_api extends Controller
         ];
 
         $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -184,7 +215,7 @@ class Whatsapp_api extends Controller
         $access_token = $team->ids;
         $instance_id = self::get_instance_id();
 
-        $result = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
+        $result = $this->go_api("get_qrcode", ["instance_id" => $instance_id]);
 
         if ($result == "" || $result == null) {
             return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server. Please try again later")]);
@@ -299,9 +330,9 @@ class Whatsapp_api extends Controller
         $instance_id = self::get_instance_id();
         $phone = self::get_phone();
 
-        $result_qr = wa_get_curl("get_qrcode", ["instance_id" => $instance_id, "access_token" => $access_token]);
+        $result_qr = $this->go_api("get_qrcode", ["instance_id" => $instance_id]);
         if(isset($result_qr) && $result_qr->status == "success"){
-            $result = wa_get_curl("get_paircode", ["instance_id" => $instance_id, "access_token" => $access_token, "phone" => $phone]);
+            $result = $this->go_api("get_paircode", ["instance_id" => $instance_id, "phone" => $phone]);
         }else{
             return $this->respond(["status" => "error", "message" => "Cannot get Pair Code"]);
         }
@@ -390,7 +421,7 @@ class Whatsapp_api extends Controller
             return $this->respond(["status" => "error", "message" => __("This instance ID has not been activated yet")]);
         }
 
-        $result = wa_get_curl("logout", ["instance_id" => $instance_id, "access_token" => $access_token]);
+        $result = $this->go_api("logout", ["instance_id" => $instance_id], 'POST');
 
         if ($result == "") {
             return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server. Please try again later")]);
@@ -412,7 +443,7 @@ class Whatsapp_api extends Controller
             return $this->respond(["status" => "error", "message" => __("Account does not exist")]);
         }
 
-        $result = wa_get_curl("logout", ["instance_id" => $instance_id, "access_token" => $access_token]);
+        $result = $this->go_api("logout", ["instance_id" => $instance_id], 'POST');
         if ($result == "") {
             return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server. Please try again later")]);
         }
@@ -478,7 +509,7 @@ class Whatsapp_api extends Controller
     }
 
     // Obtendo os grupos
-    $result = wa_get_curl("get_groups", ["instance_id" => $instance_id, "access_token" => $access_token]);
+    $result = $this->go_api("groups/list", ["instance_id" => $instance_id]);
 
     $groups = [];
     if (isset($result->data) && is_array($result->data)) {
@@ -1275,6 +1306,24 @@ if (isset($response->status) && $response->status === 'success') {
 
     public function logout()
     {
-        echo "logout";
+        $team = self::get_team();
+        $team_id = $team->id;
+        $instance_id = self::get_instance_id();
+
+        $account = db_get("*", TB_ACCOUNTS, ["team_id" => $team_id, "token" => $instance_id]);
+
+        if (!$account) {
+            return $this->respond(["status" => "error", "message" => __("Account does not exist")]);
+        }
+
+        $result = $this->go_api("logout", ["instance_id" => $instance_id], 'POST');
+
+        if (!$result) {
+            return $this->respond(["status" => "error", "message" => __("Cannot connect to WhatsApp server")]);
+        }
+
+        db_update(TB_ACCOUNTS, ["status" => 0], ["id" => $account->id]);
+
+        return $this->respond(["status" => "success", "message" => "Logged out successfully"]);
     }
 }
