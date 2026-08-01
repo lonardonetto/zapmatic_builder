@@ -50,15 +50,15 @@ class SystemUpdater extends BaseCommand
             $refBackup->setAccessible(true);
             $backup_file = $refBackup->invoke($updater, '0.0.0');
 
-            $this->setProgress('download', 30, 'Baixando atualização do GitHub...');
-            $refApply = new \ReflectionMethod($updater, 'apply_git_update');
-            $refApply->setAccessible(true);
-            $refApply->invoke($updater, $version, $channel);
-
-            $this->setProgress('migrate', 80, 'Aplicando migrações SQL...');
+            $this->setProgress('migrate', 20, 'Aplicando migrações SQL...');
             $refMigrate = new \ReflectionMethod($updater, 'run_pending_migrations');
             $refMigrate->setAccessible(true);
             $migrations = $refMigrate->invoke($updater);
+
+            $this->setProgress('download', 40, 'Baixando atualização do GitHub...');
+            $refApply = new \ReflectionMethod($updater, 'apply_git_update');
+            $refApply->setAccessible(true);
+            $refApply->invoke($updater, $version, $channel);
 
             $this->setProgress('restart', 92, 'Reiniciando processos...');
             $refRestart = new \ReflectionMethod($updater, 'restart_processes');
