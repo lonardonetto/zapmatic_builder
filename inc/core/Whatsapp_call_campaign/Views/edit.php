@@ -13,7 +13,13 @@
 
                 <!-- 1. Seleção de contas -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Instâncias WhatsApp</label>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Instâncias WhatsApp</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAllInstances(true)"><i class="fad fa-check-double me-1"></i>Selecionar todas</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllInstances(false)"><i class="fad fa-times me-1"></i>Desmarcar todas</button>
+                        </div>
+                    </div>
                     <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
                         <?php
                         $currentIds = [];
@@ -290,6 +296,13 @@
 
 <script>
 $(document).ready(function() {
+    // Toggle all instances
+    window.toggleAllInstances = function(state) {
+        document.querySelectorAll('input[name="parallel_instances[]"]').forEach(function(cb) {
+            cb.checked = state;
+        });
+    };
+
     // Remove lead
     window.removeLead = function(el) {
         el.closest('.lead-badge').remove();
