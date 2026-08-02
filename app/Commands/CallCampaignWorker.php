@@ -51,16 +51,13 @@ class CallCampaignWorker extends BaseCommand
             if ($start > time()) {
                 return; // Ainda não é hora
             }
-            // Hora de iniciar
-            $db->table(self::TB_CAMPAIGNS)
-                ->where('id', $campaign->id)
-                ->update(['status' => 'running']);
+            $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->update(['status' => 'running']);
             $campaign->status = 'running';
         }
 
         // Verificar janela de agendamento (dias/horários)
         if (!$this->isWithinScheduleWindow($campaign)) {
-            return; // Fora da janela, tenta no próximo ciclo
+            return;
         }
 
         // Check if all leads are done
@@ -70,16 +67,12 @@ class CallCampaignWorker extends BaseCommand
             ->countAllResults();
 
         if ($pending == 0) {
-            // Check if any leads are still ringing
             $ringing = $db->table(self::TB_LEADS)
                 ->where('campaign_id', $campaign->id)
                 ->where('status', 'ringing')
                 ->countAllResults();
-
             if ($ringing == 0) {
-                $db->table(self::TB_CAMPAIGNS)
-                    ->where('id', $campaign->id)
-                    ->update(['status' => 'completed']);
+                $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->update(['status' => 'completed']);
                 CLI::write("[CallCampaignWorker] Campaign {$campaign->id} completed", 'green');
             }
             return;
@@ -91,112 +84,185 @@ class CallCampaignWorker extends BaseCommand
             ->where('status', 'ringing')
             ->countAllResults();
 
-        if ($ringing >= $campaign->max_concurrent) {
-            return;
-        }
-
-        // Get next pending lead (random order for anti-ban)
-        $lead = $db->table(self::TB_LEADS)
-            ->where('campaign_id', $campaign->id)
-            ->where('status', 'pending')
-            ->orderBy('RAND()')
-            ->limit(1)
-            ->get()->getRow();
-
-        if (!$lead) {
-            return;
-        }
-
-        // Mark as ringing
-        $db->table(self::TB_LEADS)
-            ->where('id', $lead->id)
-            ->update([
-                'status' => 'ringing',
-                'started_at' => date('Y-m-d H:i:s'),
-            ]);
-
-        // Resolve instance_id (rotação vs paralelo)
-        $targetInstanceId = $campaign->instance_id;
+        $mode = $campaign->call_mode ?? 'fila';
         $instanceIds = !empty($campaign->instance_ids) ? json_decode($campaign->instance_ids, true) : [$campaign->instance_id];
         if (empty($instanceIds)) $instanceIds = [$campaign->instance_id];
 
-        if (($campaign->call_mode ?? 'rotation') === 'parallel') {
-            // Paralelo: round-robin entre instâncias
-            $totalLeads = (int)$campaign->total_leads;
-            $pendingCount = $db->table(self::TB_LEADS)
+        if ($mode === 'simultaneo') {
+            // SIMULTÂNEO: N chamadas ao mesmo tempo (1 por instância)
+            $availableSlots = count($instanceIds) - $ringing;
+            if ($availableSlots <= 0) return;
+
+            $leads = $db->table(self::TB_LEADS)
                 ->where('campaign_id', $campaign->id)
                 ->where('status', 'pending')
-                ->countAllResults();
-            $leadIndex = $totalLeads - $pendingCount - 1;
-            $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
-        } else {
-            // Rotação: alterna instância a cada chamada
-            $totalLeads = (int)$campaign->total_leads;
-            $pendingCount = $db->table(self::TB_LEADS)
-                ->where('campaign_id', $campaign->id)
-                ->where('status', 'pending')
-                ->countAllResults();
-            $leadIndex = $totalLeads - $pendingCount - 1;
-            $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
-        }
+                ->orderBy('RAND()')
+                ->limit($availableSlots)
+                ->get()->getResult();
 
-        // Place call via Go API
-        $goBaseUrl = $this->getGoBaseUrl();
-        $payload = [
-            'instance_id' => $targetInstanceId,
-            'phone' => $lead->phone,
-        ];
+            if (empty($leads)) return;
 
-        // Add audio if configured
-        if (!empty($campaign->audio_id)) {
-            $audio = $db->table(self::TB_AUDIOS)
-                ->where('id', $campaign->audio_id)
-                ->get()->getRow();
-            if ($audio && file_exists($audio->file_path)) {
-                $payload['audio_path'] = $audio->file_path;
+            // Build batch
+            $batch = [];
+            $goBaseUrl = $this->getGoBaseUrl();
+            $audioPath = $this->getAudioPath($db, $campaign);
+
+            foreach ($leads as $i => $lead) {
+                $targetInstance = $instanceIds[$i % count($instanceIds)];
+                $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
+                    'status' => 'ringing', 'started_at' => date('Y-m-d H:i:s'),
+                ]);
+                $payload = ['instance_id' => $targetInstance, 'phone' => $lead->phone];
+                if ($audioPath) $payload['audio_path'] = $audioPath;
+                $batch[] = [
+                    'lead_id' => $lead->id,
+                    'campaign_id' => $campaign->id,
+                    'url' => $goBaseUrl . '/call/start',
+                    'payload' => $payload,
+                ];
             }
+
+            CLI::write("[CallCampaignWorker] SIMULTÂNEO: " . count($batch) . " chamadas simultâneas", 'magenta');
+            $results = $this->goApiMultiPost($batch);
+
+            foreach ($results as $r) {
+                if ($r['success']) {
+                    $db->table(self::TB_LEADS)->where('id', $r['lead_id'])->update(['call_id' => $r['call_id']]);
+                    $db->table(self::TB_CAMPAIGNS)->where('id', $r['campaign_id'])->set('calls_made', 'calls_made + 1', false)->update();
+                } else {
+                    $db->table(self::TB_LEADS)->where('id', $r['lead_id'])->update([
+                        'status' => 'failed', 'error_message' => $r['error'], 'ended_at' => date('Y-m-d H:i:s'),
+                    ]);
+                    $db->table(self::TB_CAMPAIGNS)->where('id', $r['campaign_id'])->set('calls_failed', 'calls_failed + 1', false)->update();
+                }
+            }
+
+            // Delay antes do próximo lote
+            $delayMin = max(5, (int)($campaign->delay_min ?? 10));
+            $delayMax = max($delayMin, (int)($campaign->delay_max ?? 60));
+            $delay = rand($delayMin, $delayMax);
+            CLI::write("[CallCampaignWorker] Waiting {$delay}s before next batch...", 'cyan');
+            sleep($delay);
+
+        } elseif ($mode === 'alternado') {
+            // ALTERNADO: 1 chamada por vez, alterna instância
+            if ($ringing >= 1) return;
+
+            $lead = $db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign->id)
+                ->where('status', 'pending')
+                ->orderBy('RAND()')->limit(1)->get()->getRow();
+            if (!$lead) return;
+
+            // Count already processed leads to pick instance
+            $done = $db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign->id)
+                ->whereIn('status', ['answered', 'no_answer', 'busy', 'failed'])
+                ->countAllResults();
+            $targetInstance = $instanceIds[$done % count($instanceIds)];
+
+            $this->placeCall($db, $campaign, $lead, $targetInstance);
+
+        } else {
+            // FILA: 1 chamada por vez, 1ª instância
+            if ($ringing >= 1) return;
+
+            $lead = $db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign->id)
+                ->where('status', 'pending')
+                ->orderBy('RAND()')->limit(1)->get()->getRow();
+            if (!$lead) return;
+
+            $this->placeCall($db, $campaign, $lead, $campaign->instance_id);
         }
+    }
+
+    private function placeCall($db, $campaign, $lead, $targetInstanceId)
+    {
+        $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
+            'status' => 'ringing', 'started_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $goBaseUrl = $this->getGoBaseUrl();
+        $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
+
+        $audioPath = $this->getAudioPath($db, $campaign);
+        if ($audioPath) $payload['audio_path'] = $audioPath;
 
         CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id})", 'yellow');
-
         $result = $this->goApiPost($goBaseUrl . '/call/start', $payload);
 
         if (!$result || ($result->status ?? '') !== 'success') {
-            $db->table(self::TB_LEADS)
-                ->where('id', $lead->id)
-                ->update([
-                    'status' => 'failed',
-                    'error_message' => $result->message ?? 'Go API error',
-                    'ended_at' => date('Y-m-d H:i:s'),
-                ]);
-            $db->table(self::TB_CAMPAIGNS)
-                ->where('id', $campaign->id)
-                ->set('calls_failed', 'calls_failed + 1', false)
-                ->update();
+            $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
+                'status' => 'failed', 'error_message' => $result->message ?? 'Go API error', 'ended_at' => date('Y-m-d H:i:s'),
+            ]);
+            $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->set('calls_failed', 'calls_failed + 1', false)->update();
             return;
         }
 
         $callId = $result->call_id ?? '';
+        $db->table(self::TB_LEADS)->where('id', $lead->id)->update(['call_id' => $callId]);
+        $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->set('calls_made', 'calls_made + 1', false)->update();
 
-        // Update lead with call_id
-        $db->table(self::TB_LEADS)
-            ->where('id', $lead->id)
-            ->update(['call_id' => $callId]);
-
-        $db->table(self::TB_CAMPAIGNS)
-            ->where('id', $campaign->id)
-            ->set('calls_made', 'calls_made + 1', false)
-            ->update();
-
-        // Poll for call result in background
         $this->pollCallResult($db, $campaign->id, $lead->id, $callId, $campaign->timeout_ring + 60);
 
-        // Delay before next call (random between min and max for anti-ban)
         $delayMin = max(5, (int)($campaign->delay_min ?? 10));
         $delayMax = max($delayMin, (int)($campaign->delay_max ?? 60));
         $delay = rand($delayMin, $delayMax);
         CLI::write("[CallCampaignWorker] Waiting {$delay}s ({$delayMin}-{$delayMax}s) before next call...", 'cyan');
         sleep($delay);
+    }
+
+    private function getAudioPath($db, $campaign)
+    {
+        if (empty($campaign->audio_id)) return null;
+        $audio = $db->table(self::TB_AUDIOS)->where('id', $campaign->audio_id)->get()->getRow();
+        return ($audio && file_exists($audio->file_path)) ? $audio->file_path : null;
+    }
+
+    private function goApiMultiPost(array $batch): array
+    {
+        $results = [];
+        $multi = curl_multi_init();
+        $chs = [];
+
+        foreach ($batch as $item) {
+            $ch = curl_init($item['url']);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($item['payload']),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT => 30,
+            ]);
+            curl_multi_add_handle($multi, $ch);
+            $chs[] = ['ch' => $ch, 'lead_id' => $item['lead_id'], 'campaign_id' => $item['campaign_id']];
+        }
+
+        // Execute all simultaneously
+        $running = null;
+        do {
+            curl_multi_exec($multi, $running);
+            curl_multi_select($multi);
+        } while ($running > 0);
+
+        foreach ($chs as $item) {
+            $body = curl_multi_getcontent($item['ch']);
+            $data = $body ? json_decode($body) : null;
+            $ok = $data && ($data->status ?? '') === 'success';
+            $results[] = [
+                'lead_id' => $item['lead_id'],
+                'campaign_id' => $item['campaign_id'],
+                'success' => $ok,
+                'call_id' => $data->call_id ?? '',
+                'error' => $data->message ?? 'Go API error',
+            ];
+            curl_multi_remove_handle($multi, $item['ch']);
+            curl_close($item['ch']);
+        }
+
+        curl_multi_close($multi);
+        return $results;
     }
 
     private function pollCallResult($db, $campaignId, $leadId, $callId, $timeout)
