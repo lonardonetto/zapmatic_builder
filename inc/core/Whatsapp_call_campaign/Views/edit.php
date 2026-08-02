@@ -38,13 +38,20 @@
                             ?>
                             <div id="current-audio-section">
                                 <?php if ($currentAudio): ?>
-                                <div class="d-flex align-items-center gap-2 border rounded p-2 mb-2">
-                                    <i class="fad fa-file-audio text-primary"></i>
-                                    <div class="flex-grow-1">
-                                        <strong><?php echo htmlspecialchars($currentAudio->name) ?></strong>
-                                        <small class="text-muted d-block"><?php echo strtoupper($currentAudio->format) ?> · <?php echo gmdate("i:s", $currentAudio->duration_seconds) ?></small>
+                                <div class="border rounded p-2 mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fad fa-file-audio text-primary"></i>
+                                        <div class="flex-grow-1">
+                                            <strong><?php echo htmlspecialchars($currentAudio->name) ?></strong>
+                                            <small class="text-muted d-block"><?php echo strtoupper($currentAudio->format) ?> · <?php echo gmdate("i:s", $currentAudio->duration_seconds) ?></small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAudio()" title="Remover áudio"><i class="fas fa-times"></i></button>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAudio()" title="Remover áudio"><i class="fas fa-times"></i></button>
+                                    <div class="mt-2">
+                                        <audio controls preload="none" style="width:100%;height:32px;">
+                                            <source src="<?php _e(base_url('call_audio_stream.php?id=' . $currentAudio->id)) ?>" type="audio/<?php echo $currentAudio->format === 'mp3' ? 'mpeg' : $currentAudio->format ?>">
+                                        </audio>
+                                    </div>
                                 </div>
                                 <input type="hidden" name="audio_id" id="currentAudioId" value="<?php echo (int)$campaign->audio_id ?>">
                                 <?php else: ?>

@@ -151,7 +151,19 @@
                         <tbody>
                             <?php foreach ($audios as $a): ?>
                             <tr>
-                                <td class="ps-3"><i class="fad fa-file-audio me-2 text-muted"></i><?php echo htmlspecialchars($a->name) ?></td>
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-circle p-0" style="width:28px;height:28px;" onclick="playAudio(this, '<?php _e(base_url('call_audio_stream.php?id=' . $a->id)) ?>')" title="Ouvir"><i class="fas fa-play" style="font-size:10px;"></i></button>
+                                        <div>
+                                            <div><?php echo htmlspecialchars($a->name) ?></div>
+                                            <div id="audio-player-<?php echo (int)$a->id ?>" class="d-none mt-1">
+                                                <audio controls preload="none" style="width:200px;height:28px;">
+                                                    <source src="<?php _e(base_url('call_audio_stream.php?id=' . $a->id)) ?>" type="audio/<?php echo $a->format === 'mp3' ? 'mpeg' : $a->format ?>">
+                                                </audio>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td><span class="badge bg-light text-dark"><?php echo strtoupper(htmlspecialchars($a->format)) ?></span></td>
                                 <td><?php echo $a->duration_seconds > 0 ? gmdate("i:s", $a->duration_seconds) : '—' ?></td>
                                 <td><?php echo $a->file_size_bytes > 0 ? round($a->file_size_bytes / 1024 / 1024, 1) . ' MB' : '—' ?></td>
@@ -364,4 +376,22 @@ $(document).ready(function() {
     var tbody = document.querySelector('tbody');
     if (tbody) observer.observe(tbody, { childList: true, subtree: true });
 });
+
+function playAudio(btn, url) {
+    // Find or create audio element
+    var row = btn.closest('tr');
+    var playerId = btn.closest('td').querySelector('[id^="audio-player-"]');
+    if (playerId) {
+        playerId.classList.toggle('d-none');
+        var audio = playerId.querySelector('audio');
+        if (audio && !playerId.classList.contains('d-none')) {
+            audio.play().catch(function() {});
+            btn.innerHTML = '<i class="fas fa-pause" style="font-size:10px;"></i>';
+            audio.onended = function() { btn.innerHTML = '<i class="fas fa-play" style="font-size:10px;"></i>'; };
+        } else if (audio) {
+            audio.pause();
+            btn.innerHTML = '<i class="fas fa-play" style="font-size:10px;"></i>';
+        }
+    }
+}
 </script>
