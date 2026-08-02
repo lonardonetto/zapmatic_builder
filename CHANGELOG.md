@@ -102,3 +102,17 @@ Todas as versões do sistema. Atualizado automaticamente com cada release.
 - Sistema de atualização automático via GitHub tags
 - Cloud API (Meta) como segundo provider
 - Bot Builder com debounce, autoresponder, campanhas
+## v8.4.0 — 01/08/2026
+
+**Campanhas de chamada WhatsApp (meowcaller)**
+
+- Novo recurso: campanhas de chamada de voz via WhatsApp
+- Go API: whatsmeow atualizado + meowcaller adicionado (pure Go VoIP)
+- Endpoints: `/call/start`, `/call/status`, `/call/cancel`, `/call/list`, `/call/upload-audio`
+- Módulo PHP `Whatsapp_call_campaign` completo (Config, Controller, Views, Worker)
+- Tabelas: `sp_call_audios`, `sp_call_campaigns`, `sp_call_leads`
+- Worker PM2 `call-campaign-worker` processa fila automaticamente
+- Testado end-to-end: Go API → WhatsApp → Worker → Dashboard
+
+---
+
