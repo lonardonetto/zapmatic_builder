@@ -49,7 +49,7 @@ class Whatsapp_call_campaign extends Controller
     public function index()
     {
         $team_id = get_team("id");
-        
+
         $campaigns = $this->db->table(self::TB_CAMPAIGNS)
             ->where('team_id', $team_id)
             ->orderBy('id', 'DESC')
@@ -68,6 +68,10 @@ class Whatsapp_call_campaign extends Controller
             ->orderBy('id', 'DESC')
             ->get()->getResult();
 
+        // Carregar contatos com telefones
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+        $contacts = call_get_contacts_with_phones($team_id);
+
         $data = [
             "title" => $this->config['name'],
             "desc" => $this->config['desc'],
@@ -77,6 +81,7 @@ class Whatsapp_call_campaign extends Controller
                 "campaigns" => $campaigns,
                 "accounts" => $accounts,
                 "audios" => $audios,
+                "contacts" => $contacts,
             ])
         ];
 
@@ -89,21 +94,52 @@ class Whatsapp_call_campaign extends Controller
         $name = $this->request->getPost('name');
         $instance_id = $this->request->getPost('instance_id');
         $audio_id = $this->request->getPost('audio_id');
-        $phones_raw = $this->request->getPost('phones');
+        $lead_mode = $this->request->getPost('lead_mode') ?: 'manual';
+        $selected_contacts = $this->request->getPost('selected_contacts') ?: [];
+        $phones_raw = $this->request->getPost('phones') ?: '';
         $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
 
-        if (empty($name) || empty($instance_id) || empty($phones_raw)) {
+        if (empty($name) || empty($instance_id)) {
             return redirect('whatsapp_call_campaign');
         }
 
-        // Parse phones (one per line or comma-separated)
-        $phones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+
+        $phones = [];
+        $phone_names = [];
+
+        if ($lead_mode === 'all_contacts') {
+            $contacts = call_get_contacts_with_phones($team_id);
+            foreach ($contacts as $c) {
+                foreach ($c->valid_phones as $p) {
+                    $phones[] = $p;
+                    $phone_names[$p] = $c->name;
+                }
+            }
+        } elseif ($lead_mode === 'selected_contacts' && !empty($selected_contacts)) {
+            $ids = is_array($selected_contacts) ? $selected_contacts : explode(',', $selected_contacts);
+            $contacts = call_get_contacts_with_phones($team_id);
+            foreach ($contacts as $c) {
+                if (in_array((string)$c->id, $ids)) {
+                    foreach ($c->valid_phones as $p) {
+                        $phones[] = $p;
+                        $phone_names[$p] = $c->name;
+                    }
+                }
+            }
+        } else {
+            $phones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
+            $phones = array_map('call_normalize_phone', $phones);
+            $phones = array_filter($phones, function($p) { return strlen($p) >= 12; });
+        }
+
         if (empty($phones)) {
             return redirect('whatsapp_call_campaign');
         }
 
-        // Create campaign
+        $phones = array_values(array_unique($phones));
+
         $this->db->table(self::TB_CAMPAIGNS)->insert([
             'team_id' => $team_id,
             'instance_id' => $instance_id,
@@ -118,13 +154,12 @@ class Whatsapp_call_campaign extends Controller
 
         $campaign_id = (int) $this->db->insertID();
 
-        // Insert leads
         $builder = $this->db->table(self::TB_LEADS);
         foreach ($phones as $phone) {
             $builder->insert([
                 'campaign_id' => $campaign_id,
                 'phone' => trim($phone),
-                'name' => '',
+                'name' => $phone_names[$phone] ?? '',
                 'status' => 'pending',
             ]);
         }

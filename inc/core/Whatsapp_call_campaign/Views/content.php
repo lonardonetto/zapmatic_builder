@@ -169,9 +169,48 @@
                             <input type="number" name="timeout_ring" class="form-control" value="30" min="10" max="120">
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-bold">Telefones (um por linha)</label>
-                            <textarea name="phones" class="form-control" rows="8" required placeholder="5511999999999&#10;5521888888888&#10;5586777777777"></textarea>
-                            <small class="text-muted">Um número por linha. Inclua DDD + número (com ou sem +55).</small>
+                            <label class="form-label fw-bold">Leads</label>
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeAll" value="all_contacts" onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeAll">Todos os contatos (<?php echo count($contacts) ?>)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeSelect" value="selected_contacts" onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeSelect">Selecionar contatos</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeManual" value="manual" checked onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeManual">Colar números</label>
+                                </div>
+                            </div>
+
+                            <!-- Contatos selecionados -->
+                            <div id="leadModeSelectPanel" class="d-none mb-3">
+                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                                    <?php if (!empty($contacts)): ?>
+                                    <?php foreach ($contacts as $c): ?>
+                                    <?php if ($c->phone_count > 0): ?>
+                                    <div class="form-check py-1">
+                                        <input class="form-check-input" type="checkbox" name="selected_contacts[]" value="<?php echo (int)$c->id ?>" id="contact_<?php echo (int)$c->id ?>">
+                                        <label class="form-check-label" for="contact_<?php echo (int)$c->id ?>">
+                                            <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
+                                            <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
+                                        </label>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                    <p class="text-muted small mb-0">Nenhum contato encontrado.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- Manual -->
+                            <div id="leadModeManualPanel">
+                                <textarea name="phones" class="form-control" rows="6" placeholder="5511999999999&#10;5521888888888&#10;5586777777777"></textarea>
+                                <small class="text-muted">Um número por linha. Nono dígito será normalizado automaticamente.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -212,3 +251,11 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleLeadMode() {
+    var mode = document.querySelector('input[name="lead_mode"]:checked').value;
+    document.getElementById('leadModeSelectPanel').classList.toggle('d-none', mode !== 'selected_contacts');
+    document.getElementById('leadModeManualPanel').classList.toggle('d-none', mode !== 'manual');
+}
+</script>
