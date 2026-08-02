@@ -19,6 +19,7 @@ import (
 
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/receiver"
+	"github.com/purpshell/meowcaller"
 )
 
 type InstanceState int
@@ -45,12 +46,17 @@ type Instance struct {
 	SkipHandoffUX    bool          `json:"skip_handoff_ux,omitempty"`
 	PasskeyChallenge []byte        `json:"-"`
 	client           *whatsmeow.Client
+	meowCaller       *meowcaller.Client
 	cancel           context.CancelFunc
 	connectedAt      time.Time
 }
 
 func (inst *Instance) Client() *whatsmeow.Client {
 	return inst.client
+}
+
+func (inst *Instance) MeowCaller() *meowcaller.Client {
+	return inst.meowCaller
 }
 
 func (inst *Instance) DisplayName() string {
@@ -258,13 +264,15 @@ func (m *Manager) StartInstance(ctx context.Context, instanceID string) error {
 	}
 
 	client := whatsmeow.NewClient(deviceStore, waLog.Zerolog(logging.Log))
+	mcClient := meowcaller.NewClient(client, meowcaller.WithLogger(logging.Log))
 
 	clientCtx, clientCancel := context.WithCancel(ctx)
 	inst := &Instance{
-		ID:     instanceID,
-		State:  StateConnecting,
-		client: client,
-		cancel: clientCancel,
+		ID:         instanceID,
+		State:      StateConnecting,
+		client:     client,
+		meowCaller: mcClient,
+		cancel:     clientCancel,
 	}
 	m.instances[instanceID] = inst
 	m.mu.Unlock()

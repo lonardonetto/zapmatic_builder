@@ -80,14 +80,12 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		r.writeJSON(w, http.StatusNotFound, map[string]string{"status": "error", "message": "instance not found"})
 		return
 	}
-	waClient := inst.Client()
-	if waClient == nil || !waClient.IsConnected() {
-		r.writeJSON(w, http.StatusConflict, map[string]string{"status": "error", "message": "instance not connected"})
+	// Get the meowcaller client (pre-initialized with the instance)
+	mcClient := inst.MeowCaller()
+	if mcClient == nil {
+		r.writeJSON(w, http.StatusConflict, map[string]string{"status": "error", "message": "meowcaller not initialized for this instance"})
 		return
 	}
-
-	// Create meowcaller client on the existing whatsmeow client
-	mcClient := meowcaller.NewClient(waClient)
 
 	// Place the call
 	ctx, cancel := context.WithTimeout(req.Context(), 60*time.Second)
@@ -110,51 +108,49 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		call:       call,
 	}
 
-	// Attach audio if provided
+	// Attach audio if provided — load BEFORE OnReady so it's ready when answered
+	var audioSrc meowcaller.AudioSource
 	if body.AudioPath != "" || body.AudioID != "" {
 		audioPath := body.AudioPath
 		if audioPath == "" {
 			audioPath = filepath.Join("storage", "call_audio", body.AudioID+".mp3")
 		}
-
-		// Support multiple formats
 		ext := filepath.Ext(audioPath)
 		if ext == "" {
 			audioPath += ".mp3"
 			ext = ".mp3"
 		}
-
 		if _, err := os.Stat(audioPath); err == nil {
-			var src meowcaller.AudioSource
 			switch ext {
 			case ".mp3":
-				src, err = meowcaller.MP3File(audioPath)
+				audioSrc, err = meowcaller.MP3File(audioPath)
 			case ".wav":
-				src, err = meowcaller.WAVFile(audioPath)
+				audioSrc, err = meowcaller.WAVFile(audioPath)
 			case ".opus":
-				src, err = meowcaller.OpusFile(audioPath)
+				audioSrc, err = meowcaller.OpusFile(audioPath)
 			default:
-				src, err = meowcaller.MP3File(audioPath)
+				audioSrc, err = meowcaller.MP3File(audioPath)
 			}
-			if err == nil && src != nil {
-				call.OnReady(func() {
-					logging.Log.Info().Str("call_id", call.ID()).Str("audio", audioPath).Msg("Playing audio to peer")
-					call.Play(src)
-				})
-			} else {
+			if err != nil || audioSrc == nil {
 				logging.Log.Warn().Err(err).Str("audio", audioPath).Msg("Failed to load audio file")
+				audioSrc = nil
 			}
 		} else {
 			logging.Log.Warn().Str("audio", audioPath).Msg("Audio file not found")
 		}
 	}
 
-	// Lifecycle callbacks
+	// SINGLE OnReady callback — meowcaller only keeps the LAST registered handler
 	call.OnReady(func() {
 		entry.Status = "active"
 		now := time.Now()
 		entry.AnsweredAt = &now
 		logging.Log.Info().Str("call_id", call.ID()).Msg("Call answered, media flowing")
+
+		if audioSrc != nil {
+			logging.Log.Info().Str("call_id", call.ID()).Msg("Playing audio to peer")
+			call.Play(audioSrc)
+		}
 	})
 
 	call.OnEnd(func(reason string) {
