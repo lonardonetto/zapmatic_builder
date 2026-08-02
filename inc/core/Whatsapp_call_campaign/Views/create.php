@@ -93,15 +93,19 @@
                                     <label class="form-label fw-bold">Modo de chamada</label>
                                     <div class="d-flex gap-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked>
-                                            <label class="form-check-label" for="modeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação</label>
+                                            <input class="form-check-input" type="radio" name="call_mode" id="modeFila" value="fila" checked>
+                                            <label class="form-check-label" for="modeFila"><i class="fad fa-list-ol me-1"></i>Fila</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel">
-                                            <label class="form-check-label" for="modeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo</label>
+                                            <input class="form-check-input" type="radio" name="call_mode" id="modeAlternado" value="alternado">
+                                            <label class="form-check-label" for="modeAlternado"><i class="fad fa-sync-alt me-1"></i>Alternado</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="call_mode" id="modeSimultaneo" value="simultaneo">
+                                            <label class="form-check-label" for="modeSimultaneo"><i class="fad fa-layer-group me-1"></i>Simultâneo</label>
                                         </div>
                                     </div>
-                                    <small class="text-muted">Rotação: 1 chamada por vez, alterna instâncias. Paralelo: N chamadas simultâneas.</small>
+                                    <small class="text-muted">Fila: 1 instância sequencial. Alternado: alterna instâncias (1 por vez). Simultâneo: N chamadas ao mesmo tempo.</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Áudio para tocar</label>

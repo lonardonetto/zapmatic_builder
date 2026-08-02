@@ -112,14 +112,19 @@
                                     <label class="form-label fw-bold">Modo de chamada</label>
                                     <div class="d-flex gap-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="call_mode" id="emodeRotation" value="rotation" <?php echo ($campaign->call_mode ?? 'rotation') === 'rotation' ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="emodeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação</label>
+                                            <input class="form-check-input" type="radio" name="call_mode" id="emodeFila" value="fila" <?php echo ($campaign->call_mode ?? 'fila') === 'fila' ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="emodeFila"><i class="fad fa-list-ol me-1"></i>Fila</label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="call_mode" id="emodeParallel" value="parallel" <?php echo ($campaign->call_mode ?? '') === 'parallel' ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="emodeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo</label>
+                                            <input class="form-check-input" type="radio" name="call_mode" id="emodeAlternado" value="alternado" <?php echo ($campaign->call_mode ?? '') === 'alternado' ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="emodeAlternado"><i class="fad fa-sync-alt me-1"></i>Alternado</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="call_mode" id="emodeSimultaneo" value="simultaneo" <?php echo ($campaign->call_mode ?? '') === 'simultaneo' ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="emodeSimultaneo"><i class="fad fa-layer-group me-1"></i>Simultâneo</label>
                                         </div>
                                     </div>
+                                    <small class="text-muted">Fila: 1 instância sequencial. Alternado: alterna instâncias. Simultâneo: N chamadas ao mesmo tempo.</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Áudio</label>
