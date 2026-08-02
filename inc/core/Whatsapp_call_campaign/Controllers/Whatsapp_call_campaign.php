@@ -293,6 +293,33 @@ class Whatsapp_call_campaign extends Controller
         return redirect('whatsapp_call_campaign');
     }
 
+    public function delete_audio()
+    {
+        $team_id = get_team("id");
+        $audio_id = (int) $this->request->getPost('audio_id');
+
+        if (!$audio_id) {
+            return redirect('whatsapp_call_campaign');
+        }
+
+        // Get audio file path before deleting
+        $audio = $this->db->table(self::TB_AUDIOS)
+            ->where('id', $audio_id)
+            ->where('team_id', $team_id)
+            ->get()->getRow();
+
+        if ($audio) {
+            // Delete file from disk
+            if (!empty($audio->file_path) && file_exists($audio->file_path)) {
+                @unlink($audio->file_path);
+            }
+            // Delete from DB
+            $this->db->table(self::TB_AUDIOS)->where('id', $audio_id)->where('team_id', $team_id)->delete();
+        }
+
+        return redirect('whatsapp_call_campaign');
+    }
+
     public function audios()
     {
         while (ob_get_level()) { ob_end_clean(); }

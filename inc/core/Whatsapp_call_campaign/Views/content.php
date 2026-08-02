@@ -99,6 +99,7 @@
                                 <th>Duração</th>
                                 <th>Tamanho</th>
                                 <th>Criado</th>
+                                <th class="text-end pe-3">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -109,6 +110,12 @@
                                 <td><?php echo $a->duration_seconds > 0 ? gmdate("i:s", $a->duration_seconds) : '—' ?></td>
                                 <td><?php echo $a->file_size_bytes > 0 ? round($a->file_size_bytes / 1024 / 1024, 1) . ' MB' : '—' ?></td>
                                 <td class="text-muted small"><?php echo htmlspecialchars($a->created_at) ?></td>
+                                <td class="text-end pe-3">
+                                    <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/delete_audio')) ?>" style="display:inline" onsubmit="return confirm('Excluir este áudio?')">
+                                        <input type="hidden" name="audio_id" value="<?php echo (int)$a->id ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

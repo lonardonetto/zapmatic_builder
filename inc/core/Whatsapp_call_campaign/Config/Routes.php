@@ -24,5 +24,6 @@ $routes->group('', ['namespace' => 'Core\Whatsapp_call_campaign\Controllers'], s
     $routes->get('whatsapp_call_campaign/status/(:num)', 'Whatsapp_call_campaign::status/$1');
     $routes->get('whatsapp_call_campaign/results/(:num)', 'Whatsapp_call_campaign::results/$1');
     $routes->post('whatsapp_call_campaign/upload_audio', 'Whatsapp_call_campaign::upload_audio');
+    $routes->post('whatsapp_call_campaign/delete_audio', 'Whatsapp_call_campaign::delete_audio');
     $routes->get('whatsapp_call_campaign/audios', 'Whatsapp_call_campaign::audios');
 });
