@@ -282,6 +282,11 @@ class WhatsAppGatewayService
             return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Gateway Whatsmeow sem base_url.'];
         }
 
+        // Normalizar nono dígito (55 + DDD + 9 + numero)
+        // DDD >= 31: WhatsApp SEM o nono dígito
+        // DDD <= 30: WhatsApp COM o nono dígito
+        $chatId = self::normalizeBrazilianPhone($chatId);
+
         $headers = ['Content-Type: application/json'];
         if (!empty($gateway['api_key'])) $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
 
@@ -905,6 +910,36 @@ class WhatsAppGatewayService
             'gateways' => $gateways,
             'available' => $available,
         ];
+    }
+
+    /**
+     * Normaliza números brasileiros removendo o 9º dígito quando necessário.
+     * WhatsApp não usa o nono dígito para DDDs >= 31.
+     * Ex: 5586994482065 → 558694482065 (DDD 86 >= 31, remove o 9)
+     *     5521999999999 → 5521999999999 (DDD 21 <= 30, mantém)
+     */
+    private static function normalizeBrazilianPhone(string $chatId): string
+    {
+        $bare = preg_replace('/[^0-9]/', '', explode('@', $chatId)[0]);
+        $suffix = '';
+        if (strpos($chatId, '@') !== false) {
+            $suffix = '@' . explode('@', $chatId)[1];
+        }
+
+        // Só normaliza BR com 13 dígitos (55 + DDD + 9 + 8)
+        if (strlen($bare) !== 13 || substr($bare, 0, 2) !== '55') {
+            return $chatId;
+        }
+
+        $ddd = intval(substr($bare, 2, 2));
+        $hasNine = ($bare[4] === '9');
+
+        // DDD >= 31: remove nono dígito
+        if ($hasNine && $ddd >= 31) {
+            return substr($bare, 0, 4) . substr($bare, 5) . $suffix;
+        }
+
+        return $chatId;
     }
 
 }
