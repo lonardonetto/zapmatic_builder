@@ -20,6 +20,9 @@ $routes->group('', ['namespace' => 'Core\Whatsapp_call_campaign\Controllers'], s
     $routes->post('whatsapp_call_campaign/create', 'Whatsapp_call_campaign::create');
     $routes->post('whatsapp_call_campaign/start', 'Whatsapp_call_campaign::start');
     $routes->post('whatsapp_call_campaign/pause', 'Whatsapp_call_campaign::pause');
+    $routes->post('whatsapp_call_campaign/repeat', 'Whatsapp_call_campaign::repeat');
+    $routes->get('whatsapp_call_campaign/edit/(:num)', 'Whatsapp_call_campaign::edit/$1');
+    $routes->post('whatsapp_call_campaign/update', 'Whatsapp_call_campaign::update');
     $routes->post('whatsapp_call_campaign/delete', 'Whatsapp_call_campaign::delete');
     $routes->get('whatsapp_call_campaign/status/(:num)', 'Whatsapp_call_campaign::status/$1');
     $routes->get('whatsapp_call_campaign/results/(:num)', 'Whatsapp_call_campaign::results/$1');

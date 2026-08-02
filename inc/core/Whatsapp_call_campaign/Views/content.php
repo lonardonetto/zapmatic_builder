@@ -55,19 +55,28 @@
                                     <?php if ($c->status === 'draft' || $c->status === 'paused'): ?>
                                     <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/start')) ?>" style="display:inline">
                                         <input type="hidden" name="campaign_id" value="<?php echo (int)$c->id ?>">
-                                        <button type="submit" class="btn btn-sm btn-success"><i class="fad fa-play"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-success" title="Iniciar"><i class="fad fa-play"></i></button>
                                     </form>
                                     <?php endif; ?>
                                     <?php if ($c->status === 'running'): ?>
                                     <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/pause')) ?>" style="display:inline">
                                         <input type="hidden" name="campaign_id" value="<?php echo (int)$c->id ?>">
-                                        <button type="submit" class="btn btn-sm btn-warning"><i class="fad fa-pause"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-warning" title="Pausar"><i class="fad fa-pause"></i></button>
                                     </form>
                                     <?php endif; ?>
-                                    <a href="<?php _e(base_url('whatsapp_call_campaign/results/' . $c->id)) ?>" class="btn btn-sm btn-outline-primary"><i class="fad fa-chart-bar"></i></a>
+                                    <?php if ($c->status === 'completed' || $c->status === 'paused'): ?>
+                                    <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/repeat')) ?>" style="display:inline" onsubmit="return confirm('Repetir esta campanha? Todos os leads serão resetados.')">
+                                        <input type="hidden" name="campaign_id" value="<?php echo (int)$c->id ?>">
+                                        <button type="submit" class="btn btn-sm btn-info" title="Repetir campanha"><i class="fad fa-redo"></i></button>
+                                    </form>
+                                    <?php endif; ?>
+                                    <?php if ($c->status === 'draft'): ?>
+                                    <a href="<?php _e(base_url('whatsapp_call_campaign/edit/' . $c->id)) ?>" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="fad fa-edit"></i></a>
+                                    <?php endif; ?>
+                                    <a href="<?php _e(base_url('whatsapp_call_campaign/results/' . $c->id)) ?>" class="btn btn-sm btn-outline-primary" title="Resultados"><i class="fad fa-chart-bar"></i></a>
                                     <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/delete')) ?>" style="display:inline" onsubmit="return confirm('Excluir esta campanha?')">
                                         <input type="hidden" name="campaign_id" value="<?php echo (int)$c->id ?>">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fad fa-trash"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fad fa-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>

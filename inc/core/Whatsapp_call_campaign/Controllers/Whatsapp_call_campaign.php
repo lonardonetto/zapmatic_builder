@@ -195,6 +195,181 @@ class Whatsapp_call_campaign extends Controller
         return redirect('whatsapp_call_campaign');
     }
 
+    public function repeat($campaign_id = 0)
+    {
+        $team_id = get_team("id");
+        $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
+
+        // Verificar se a campanha pertence ao team
+        $campaign = $this->db->table(self::TB_CAMPAIGNS)
+            ->where('id', $campaign_id)
+            ->where('team_id', $team_id)
+            ->get()->getRow();
+
+        if (!$campaign) {
+            return redirect('whatsapp_call_campaign');
+        }
+
+        // Resetar campanha
+        $this->db->table(self::TB_CAMPAIGNS)
+            ->where('id', $campaign_id)
+            ->update([
+                'status' => 'draft',
+                'calls_made' => 0,
+                'calls_answered' => 0,
+                'calls_no_answer' => 0,
+                'calls_busy' => 0,
+                'calls_failed' => 0,
+            ]);
+
+        // Resetar todos os leads
+        $this->db->table(self::TB_LEADS)
+            ->where('campaign_id', $campaign_id)
+            ->update([
+                'status' => 'pending',
+                'call_id' => null,
+                'started_at' => null,
+                'answered_at' => null,
+                'ended_at' => null,
+                'duration_seconds' => 0,
+                'response_audio' => null,
+                'error_message' => null,
+                'retry_count' => 0,
+            ]);
+
+        return redirect('whatsapp_call_campaign');
+    }
+
+    public function edit($campaign_id = 0)
+    {
+        $team_id = get_team("id");
+        $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $this->request->getGet('campaign_id') ?: $campaign_id);
+
+        $campaign = $this->db->table(self::TB_CAMPAIGNS)
+            ->where('id', $campaign_id)
+            ->where('team_id', $team_id)
+            ->get()->getRow();
+
+        if (!$campaign) {
+            return redirect('whatsapp_call_campaign');
+        }
+
+        $leads = $this->db->table(self::TB_LEADS)
+            ->where('campaign_id', $campaign_id)
+            ->orderBy('id', 'ASC')
+            ->get()->getResult();
+
+        $accounts = db_fetch("*", TB_ACCOUNTS, [
+            "social_network" => "whatsapp", "category" => "profile",
+            "login_type" => [1, 3], "team_id" => $team_id, "status" => 1
+        ], "created", "ASC");
+
+        $audios = $this->db->table(self::TB_AUDIOS)
+            ->where('team_id', $team_id)
+            ->orderBy('id', 'DESC')
+            ->get()->getResult();
+
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+        $contacts = call_get_contacts_with_phones($team_id);
+
+        $data = [
+            "title" => $this->config['name'] . ' - Editar',
+            "desc" => $campaign->name,
+            "config" => $this->config,
+            "content" => view('Core\Whatsapp_call_campaign\Views\edit', [
+                "config" => $this->config,
+                "campaign" => $campaign,
+                "leads" => $leads,
+                "accounts" => $accounts,
+                "audios" => $audios,
+                "contacts" => $contacts,
+            ])
+        ];
+
+        return view('Core\Whatsapp\Views\index', $data);
+    }
+
+    public function update($campaign_id = 0)
+    {
+        $team_id = get_team("id");
+        $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
+        $name = $this->request->getPost('name');
+        $instance_id = $this->request->getPost('instance_id');
+        $audio_id = $this->request->getPost('audio_id');
+        $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
+        $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
+        $phones_raw = $this->request->getPost('phones') ?: '';
+
+        $campaign = $this->db->table(self::TB_CAMPAIGNS)
+            ->where('id', $campaign_id)
+            ->where('team_id', $team_id)
+            ->get()->getRow();
+
+        if (!$campaign) {
+            return redirect('whatsapp_call_campaign');
+        }
+
+        // Atualizar dados da campanha
+        $updateData = [];
+        if (!empty($name)) $updateData['name'] = $name;
+        if (!empty($instance_id)) $updateData['instance_id'] = $instance_id;
+        if ($audio_id !== null) $updateData['audio_id'] = !empty($audio_id) ? (int)$audio_id : null;
+        $updateData['delay_between_calls'] = $delay;
+        $updateData['timeout_ring'] = $timeout;
+
+        if (!empty($updateData)) {
+            $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->update($updateData);
+        }
+
+        // Atualizar leads se fornecidos
+        if (!empty($phones_raw)) {
+            include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+
+            $phones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
+            $phones = array_map('call_normalize_phone', $phones);
+            $phones = array_filter($phones, function($p) { return strlen($p) >= 12; });
+            $phones = array_values(array_unique($phones));
+
+            if (!empty($phones)) {
+                // Remover leads antigos que não estão na nova lista
+                $this->db->table(self::TB_LEADS)
+                    ->where('campaign_id', $campaign_id)
+                    ->whereNotIn('phone', $phones)
+                    ->where('status', 'pending')
+                    ->delete();
+
+                // Adicionar leads novos
+                $existing = $this->db->table(self::TB_LEADS)
+                    ->select('phone')
+                    ->where('campaign_id', $campaign_id)
+                    ->get()->getResult();
+                $existingPhones = array_column($existing, 'phone');
+
+                $builder = $this->db->table(self::TB_LEADS);
+                foreach ($phones as $phone) {
+                    if (!in_array($phone, $existingPhones)) {
+                        $builder->insert([
+                            'campaign_id' => $campaign_id,
+                            'phone' => $phone,
+                            'name' => '',
+                            'status' => 'pending',
+                        ]);
+                    }
+                }
+
+                // Atualizar total
+                $total = $this->db->table(self::TB_LEADS)
+                    ->where('campaign_id', $campaign_id)
+                    ->countAllResults();
+                $this->db->table(self::TB_CAMPAIGNS)
+                    ->where('id', $campaign_id)
+                    ->update(['total_leads' => $total]);
+            }
+        }
+
+        return redirect('whatsapp_call_campaign');
+    }
+
     public function delete($campaign_id = 0)
     {
         $team_id = get_team("id");
