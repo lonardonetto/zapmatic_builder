@@ -63,6 +63,7 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		InstanceID string `json:"instance_id"`
 		Phone      string `json:"phone"`
 		AudioID    string `json:"audio_id"`
+		AudioPath  string `json:"audio_path"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON"})
@@ -110,16 +111,41 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Attach audio if provided
-	if body.AudioID != "" {
-		audioPath := filepath.Join("storage", "call_audio", body.AudioID+".mp3")
+	if body.AudioPath != "" || body.AudioID != "" {
+		audioPath := body.AudioPath
+		if audioPath == "" {
+			audioPath = filepath.Join("storage", "call_audio", body.AudioID+".mp3")
+		}
+
+		// Support multiple formats
+		ext := filepath.Ext(audioPath)
+		if ext == "" {
+			audioPath += ".mp3"
+			ext = ".mp3"
+		}
+
 		if _, err := os.Stat(audioPath); err == nil {
-			src, err := meowcaller.MP3File(audioPath)
-			if err == nil {
+			var src meowcaller.AudioSource
+			switch ext {
+			case ".mp3":
+				src, err = meowcaller.MP3File(audioPath)
+			case ".wav":
+				src, err = meowcaller.WAVFile(audioPath)
+			case ".opus":
+				src, err = meowcaller.OpusFile(audioPath)
+			default:
+				src, err = meowcaller.MP3File(audioPath)
+			}
+			if err == nil && src != nil {
 				call.OnReady(func() {
 					logging.Log.Info().Str("call_id", call.ID()).Str("audio", audioPath).Msg("Playing audio to peer")
 					call.Play(src)
 				})
+			} else {
+				logging.Log.Warn().Err(err).Str("audio", audioPath).Msg("Failed to load audio file")
 			}
+		} else {
+			logging.Log.Warn().Str("audio", audioPath).Msg("Audio file not found")
 		}
 	}
 

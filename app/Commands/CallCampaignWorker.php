@@ -108,14 +108,8 @@ class CallCampaignWorker extends BaseCommand
             $audio = $db->table(self::TB_AUDIOS)
                 ->where('id', $campaign->audio_id)
                 ->get()->getRow();
-            if ($audio) {
-                // Copy audio to Go API storage
-                $goAudioDir = '/www/wwwroot/app_zapmatic_app/app_zapmatic_whatsmeow_api/storage/call_audio/';
-                $goAudioPath = $goAudioDir . basename($audio->file_path);
-                if (!file_exists($goAudioPath) && file_exists($audio->file_path)) {
-                    @copy($audio->file_path, $goAudioPath);
-                }
-                $payload['audio_id'] = basename($audio->file_path, '.' . pathinfo($audio->file_path, PATHINFO_EXTENSION));
+            if ($audio && file_exists($audio->file_path)) {
+                $payload['audio_path'] = $audio->file_path;
             }
         }
 
