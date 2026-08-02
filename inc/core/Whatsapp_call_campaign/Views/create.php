@@ -10,7 +10,13 @@
             </div>
             <div class="card-body position-relative">
 
-                <!-- 1. Seleção de contas -->
+                <!-- 1. Nome da campanha -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nome da campanha</label>
+                    <input type="text" class="form-control" name="name" required placeholder="Ex: Promoção Agosto">
+                </div>
+
+                <!-- 2. Seleção de contas -->
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label fw-bold mb-0">Selecionar instâncias WhatsApp</label>
@@ -36,12 +42,6 @@
                         </div>
                         <?php endforeach; ?>
                     </div>
-                </div>
-
-                <!-- 2. Nome da campanha -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nome da campanha</label>
-                    <input type="text" class="form-control" name="name" required placeholder="Ex: Promoção Agosto">
                 </div>
 
                 <!-- 3. Seleção de leads -->
