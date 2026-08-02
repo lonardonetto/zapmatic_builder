@@ -203,42 +203,35 @@ class Whatsapp_call_campaign extends Controller
 
         $phones = array_values(array_unique($phones));
 
+        // Detect available columns for backward compatibility
+        $availCols = [];
         try {
-        $this->db->table(self::TB_CAMPAIGNS)->insert([
+            $cols = $this->db->query("SHOW COLUMNS FROM " . self::TB_CAMPAIGNS)->getResultArray();
+            $availCols = array_column($cols, 'Field');
+        } catch (\Throwable $e) {}
+
+        $insertData = [
             'team_id' => $team_id,
             'instance_id' => $instance_id,
-            'call_mode' => $call_mode,
-            'instance_ids' => !empty($instance_ids) ? json_encode($instance_ids) : null,
             'audio_id' => !empty($audio_id) ? (int)$audio_id : null,
             'name' => $name,
+            'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
             'max_concurrent' => 1,
             'delay_between_calls' => $delay,
-            'delay_min' => $delay_min,
-            'delay_max' => $delay_max,
             'timeout_ring' => $timeout,
             'total_leads' => count($phones),
-            'schedule_time' => !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null,
-            'schedule_weekdays' => !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null,
-            'skip_team_holidays' => $skip_holidays,
-            'timezone' => !empty($timezone) ? $timezone : null,
-            'schedule_start' => $schedule_start,
-            'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
-        ]);
-        } catch (\Throwable $e) {
-            // Fallback: insert without new columns if they don't exist
-            $this->db->table(self::TB_CAMPAIGNS)->insert([
-                'team_id' => $team_id,
-                'instance_id' => $instance_id,
-                'audio_id' => !empty($audio_id) ? (int)$audio_id : null,
-                'name' => $name,
-                'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
-                'max_concurrent' => 1,
-                'delay_between_calls' => $delay,
-                'timeout_ring' => $timeout,
-                'total_leads' => count($phones),
-            ]);
-        }
+        ];
+        if (in_array('call_mode', $availCols)) $insertData['call_mode'] = $call_mode;
+        if (in_array('instance_ids', $availCols)) $insertData['instance_ids'] = !empty($instance_ids) ? json_encode($instance_ids) : null;
+        if (in_array('delay_min', $availCols)) $insertData['delay_min'] = $delay_min;
+        if (in_array('delay_max', $availCols)) $insertData['delay_max'] = $delay_max;
+        if (in_array('schedule_time', $availCols)) $insertData['schedule_time'] = !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null;
+        if (in_array('schedule_weekdays', $availCols)) $insertData['schedule_weekdays'] = !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null;
+        if (in_array('skip_team_holidays', $availCols)) $insertData['skip_team_holidays'] = $skip_holidays;
+        if (in_array('timezone', $availCols)) $insertData['timezone'] = !empty($timezone) ? $timezone : null;
+        if (in_array('schedule_start', $availCols)) $insertData['schedule_start'] = $schedule_start;
 
+        $this->db->table(self::TB_CAMPAIGNS)->insert($insertData);
         $campaign_id = (int) $this->db->insertID();
 
         $builder = $this->db->table(self::TB_LEADS);
