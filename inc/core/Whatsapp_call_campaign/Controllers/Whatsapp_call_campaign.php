@@ -586,7 +586,7 @@ class Whatsapp_call_campaign extends Controller
         $duration = 0;
 
         // Get duration with FFmpeg
-        $ffprobe = shell_exec("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
+        $ffprobe = $this->safeShell("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
         if ($ffprobe && is_numeric(trim($ffprobe))) {
             $duration = (int) round((float) trim($ffprobe));
         }
@@ -599,7 +599,7 @@ class Whatsapp_call_campaign extends Controller
                 escapeshellarg($filePath),
                 escapeshellarg($mp3Path)
             );
-            shell_exec($cmd);
+            $this->safeShell($cmd);
 
             if (file_exists($mp3Path) && filesize($mp3Path) > 0) {
                 @unlink($filePath);
@@ -608,7 +608,7 @@ class Whatsapp_call_campaign extends Controller
                 $ext = 'mp3';
 
                 // Re-read duration after conversion
-                $ffprobe = shell_exec("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
+                $ffprobe = $this->safeShell("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
                 if ($ffprobe && is_numeric(trim($ffprobe))) {
                     $duration = (int) round((float) trim($ffprobe));
                 }
@@ -675,5 +675,29 @@ class Whatsapp_call_campaign extends Controller
 
         echo json_encode(['status' => 'success', 'audios' => $audios]);
         exit;
+    }
+
+    /**
+     * Safe wrapper for shell_exec that handles disabled functions.
+     */
+    private function safeShell(string $cmd): ?string
+    {
+        try {
+            if (function_exists('shell_exec')) {
+                return $this->safeShell($cmd);
+            }
+            if (function_exists('exec')) {
+                $output = [];
+                exec($cmd, $output);
+                return implode("
+", $output);
+            }
+            if (function_exists('passthru')) {
+                ob_start();
+                passthru($cmd);
+                return ob_get_clean();
+            }
+        } catch (\Throwable $e) {}
+        return null;
     }
 }
