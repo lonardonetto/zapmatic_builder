@@ -45,6 +45,11 @@ class CallCampaignWorker extends BaseCommand
 
     private function processCampaign($db, $campaign)
     {
+        // Verificar janela de agendamento
+        if (!$this->isWithinScheduleWindow($campaign)) {
+            return; // Fora da janela, tenta no próximo ciclo
+        }
+
         // Check if all leads are done
         $pending = $db->table(self::TB_LEADS)
             ->where('campaign_id', $campaign->id)
@@ -230,6 +235,50 @@ class CallCampaignWorker extends BaseCommand
             ->where('id', $campaignId)
             ->set('calls_failed', 'calls_failed + 1', false)
             ->update();
+    }
+
+    private function isWithinScheduleWindow($campaign): bool
+    {
+        // Se não tem agendamento configurado, sempre pode rodar
+        if (empty($campaign->schedule_time) && empty($campaign->schedule_weekdays) && empty($campaign->skip_team_holidays)) {
+            return true;
+        }
+
+        $tz = !empty($campaign->timezone) ? $campaign->timezone : date_default_timezone_get();
+        try {
+            $now = new \DateTime('now', new \DateTimeZone($tz));
+        } catch (\Throwable $e) {
+            $now = new \DateTime('now', new \DateTimeZone('America/Sao_Paulo'));
+        }
+
+        // Verificar horários permitidos
+        $hours = json_decode($campaign->schedule_time ?? '[]', true) ?? [];
+        if (!empty($hours) && !in_array((string)$now->format('G'), $hours, true)) {
+            return false;
+        }
+
+        // Verificar dias da semana
+        $weekdays = json_decode($campaign->schedule_weekdays ?? '[]', true) ?? [];
+        if (!empty($weekdays) && !in_array((string)$now->format('N'), $weekdays, true)) {
+            return false;
+        }
+
+        // Verificar feriados
+        if (!empty($campaign->skip_team_holidays) && (int)$campaign->skip_team_holidays === 1) {
+            try {
+                $db = \Config\Database::connect();
+                $holidays = $db->table('sp_team_holidays')
+                    ->select('holiday_date')
+                    ->where('team_id', $campaign->team_id)
+                    ->get()->getResult();
+                $holidayDates = array_map(fn($r) => $r->holiday_date, $holidays);
+                if (in_array($now->format('Y-m-d'), $holidayDates, true)) {
+                    return false;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        return true;
     }
 
     private function getGoBaseUrl(): string

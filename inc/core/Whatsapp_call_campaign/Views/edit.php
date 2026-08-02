@@ -51,6 +51,51 @@
                             <textarea name="phones" class="form-control" rows="4" placeholder="5511999999999&#10;5521888888888"></textarea>
                             <small class="text-muted">Novos números serão adicionados. Leads já existentes mantidos.</small>
                         </div>
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <h6 class="fw-bold mb-3"><i class="fad fa-calendar-alt me-2 text-primary"></i>Janela de Execução</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Horários permitidos</label>
+                                        <?php $schedHours = json_decode($campaign->schedule_time ?? '[]', true) ?? []; ?>
+                                        <select name="schedule_time[]" class="form-select" multiple size="4">
+                                            <?php for ($h = 0; $h <= 23; $h++): ?>
+                                            <option value="<?php echo $h ?>" <?php echo in_array((string)$h, $schedHours) ? 'selected' : '' ?>><?php echo str_pad($h, 2, '0', STR_PAD_LEFT) ?>:00</option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Dias permitidos</label>
+                                        <?php $schedDays = json_decode($campaign->schedule_weekdays ?? '[]', true) ?? []; ?>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <?php
+                                            $dayNames = [1=>'Seg',2=>'Ter',3=>'Qua',4=>'Qui',5=>'Sex',6=>'Sáb',7=>'Dom'];
+                                            foreach ($dayNames as $val => $label):
+                                            ?>
+                                            <label class="btn btn-sm <?php echo in_array((string)$val, $schedDays) ? 'btn-primary' : 'btn-outline-secondary' ?>">
+                                                <input type="checkbox" name="schedule_weekdays[]" value="<?php echo $val ?>" class="d-none" <?php echo in_array((string)$val, $schedDays) ? 'checked' : '' ?>> <?php echo $label ?>
+                                            </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="skip_team_holidays" value="1" <?php echo !empty($campaign->skip_team_holidays) ? 'checked' : '' ?>>
+                                            <label class="form-check-label">Ignorar feriados</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-bold">Timezone</label>
+                                        <select name="timezone" class="form-select">
+                                            <option value="">Padrão</option>
+                                            <?php foreach (['America/Sao_Paulo','America/Manaus','America/Belem','America/Fortaleza','America/Bahia','America/Recife','America/Noronha'] as $tz): ?>
+                                            <option value="<?php echo $tz ?>" <?php echo ($campaign->timezone ?? '') === $tz ? 'selected' : '' ?>><?php echo $tz ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer">

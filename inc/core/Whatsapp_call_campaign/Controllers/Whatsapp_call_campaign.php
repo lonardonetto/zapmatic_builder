@@ -100,6 +100,12 @@ class Whatsapp_call_campaign extends Controller
         $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
 
+        // Agendamento
+        $schedule_time = $this->request->getPost('schedule_time') ?: [];
+        $schedule_weekdays = $this->request->getPost('schedule_weekdays') ?: [];
+        $skip_holidays = (int) ($this->request->getPost('skip_team_holidays') ?: 0);
+        $timezone = $this->request->getPost('timezone') ?: '';
+
         if (empty($name) || empty($instance_id)) {
             return redirect('whatsapp_call_campaign');
         }
@@ -150,6 +156,10 @@ class Whatsapp_call_campaign extends Controller
             'delay_between_calls' => $delay,
             'timeout_ring' => $timeout,
             'total_leads' => count($phones),
+            'schedule_time' => !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null,
+            'schedule_weekdays' => !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null,
+            'skip_team_holidays' => $skip_holidays,
+            'timezone' => !empty($timezone) ? $timezone : null,
         ]);
 
         $campaign_id = (int) $this->db->insertID();
@@ -300,6 +310,12 @@ class Whatsapp_call_campaign extends Controller
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
         $phones_raw = $this->request->getPost('phones') ?: '';
 
+        // Agendamento
+        $schedule_time = $this->request->getPost('schedule_time') ?: [];
+        $schedule_weekdays = $this->request->getPost('schedule_weekdays') ?: [];
+        $skip_holidays = (int) ($this->request->getPost('skip_team_holidays') ?: 0);
+        $timezone = $this->request->getPost('timezone') ?: '';
+
         $campaign = $this->db->table(self::TB_CAMPAIGNS)
             ->where('id', $campaign_id)
             ->where('team_id', $team_id)
@@ -309,6 +325,8 @@ class Whatsapp_call_campaign extends Controller
             return redirect('whatsapp_call_campaign');
         }
 
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+
         // Atualizar dados da campanha
         $updateData = [];
         if (!empty($name)) $updateData['name'] = $name;
@@ -316,10 +334,12 @@ class Whatsapp_call_campaign extends Controller
         if ($audio_id !== null) $updateData['audio_id'] = !empty($audio_id) ? (int)$audio_id : null;
         $updateData['delay_between_calls'] = $delay;
         $updateData['timeout_ring'] = $timeout;
+        $updateData['schedule_time'] = !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null;
+        $updateData['schedule_weekdays'] = !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null;
+        $updateData['skip_team_holidays'] = $skip_holidays;
+        $updateData['timezone'] = !empty($timezone) ? $timezone : null;
 
-        if (!empty($updateData)) {
-            $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->update($updateData);
-        }
+        $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->update($updateData);
 
         // Atualizar leads se fornecidos
         if (!empty($phones_raw)) {
