@@ -356,9 +356,12 @@ class Whatsapp_call_campaign extends Controller
         $audio_id = $this->request->getPost('audio_id');
         $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
-        $phones_raw = $this->request->getPost('phones') ?: '';
-        $lead_mode = $this->request->getPost('lead_mode') ?: 'keep';
-        $selected_contacts = $this->request->getPost('selected_contacts') ?: [];
+
+        // Leads: keep_phones[] (mantidos) + add_contacts[] + add_phones
+        $keep_phones = $this->request->getPost('keep_phones') ?: [];
+        $add_contacts = $this->request->getPost('add_contacts') ?: [];
+        $add_phones_raw = $this->request->getPost('add_phones') ?: '';
+        $add_mode = $this->request->getPost('add_mode') ?: 'contacts';
 
         // Agendamento
         $schedule_time = $this->request->getPost('schedule_time') ?: [];
@@ -405,49 +408,58 @@ class Whatsapp_call_campaign extends Controller
 
         $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->update($updateData);
 
-        // Atualizar leads conforme modo selecionado
-        if ($lead_mode !== 'keep') {
-            $newPhones = [];
-            $phoneNames = [];
+        // Atualizar leads: manter os que estão no formulário + adicionar novos
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
 
-            if ($lead_mode === 'all_contacts') {
-                $contacts = call_get_contacts_with_phones($team_id);
-                foreach ($contacts as $c) {
+        // Phones que o usuário manteve (não clicou ×)
+        $keepPhones = array_filter(array_map('trim', $keep_phones));
+
+        // Phones para adicionar dos contatos selecionados
+        $addFromContacts = [];
+        $phoneNames = [];
+        if (!empty($add_contacts)) {
+            $ids = is_array($add_contacts) ? $add_contacts : explode(',', $add_contacts);
+            $contacts = call_get_contacts_with_phones($team_id);
+            foreach ($contacts as $c) {
+                if (in_array((string)$c->id, $ids)) {
                     foreach ($c->valid_phones as $p) {
-                        $newPhones[] = $p;
+                        $addFromContacts[] = $p;
                         $phoneNames[$p] = $c->name;
                     }
                 }
-            } elseif ($lead_mode === 'selected_contacts' && !empty($selected_contacts)) {
-                $ids = is_array($selected_contacts) ? $selected_contacts : explode(',', $selected_contacts);
-                $contacts = call_get_contacts_with_phones($team_id);
-                foreach ($contacts as $c) {
-                    if (in_array((string)$c->id, $ids)) {
-                        foreach ($c->valid_phones as $p) {
-                            $newPhones[] = $p;
-                            $phoneNames[$p] = $c->name;
-                        }
-                    }
-                }
-            } else {
-                // Manual
-                $newPhones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
-                $newPhones = array_map('call_normalize_phone', $newPhones);
-                $newPhones = array_filter($newPhones, function($p) { return strlen($p) >= 12; });
             }
+        }
 
-            $newPhones = array_values(array_unique($newPhones));
+        // Phones para adicionar manualmente
+        $addManual = [];
+        if (!empty($add_phones_raw)) {
+            $addManual = array_filter(array_map('trim', preg_split('/[\n,]+/', $add_phones_raw)));
+            $addManual = array_map('call_normalize_phone', $addManual);
+            $addManual = array_filter($addManual, function($p) { return strlen($p) >= 12; });
+        }
 
-            if (!empty($newPhones)) {
-                // Deletar todos os leads pending atuais
-                $this->db->table(self::TB_LEADS)
-                    ->where('campaign_id', $campaign_id)
-                    ->where('status', 'pending')
-                    ->delete();
+        // Combinar: keep + add
+        $allPhones = array_merge($keepPhones, $addFromContacts, $addManual);
+        $allPhones = array_values(array_unique($allPhones));
 
-                // Inserir novos leads
-                $builder = $this->db->table(self::TB_LEADS);
-                foreach ($newPhones as $phone) {
+        if (!empty($allPhones)) {
+            // Deletar leads pending que não estão na nova lista
+            $this->db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign_id)
+                ->where('status', 'pending')
+                ->whereNotIn('phone', $allPhones)
+                ->delete();
+
+            // Adicionar leads novos que não existem
+            $existing = $this->db->table(self::TB_LEADS)
+                ->select('phone')
+                ->where('campaign_id', $campaign_id)
+                ->get()->getResult();
+            $existingPhones = array_column($existing, 'phone');
+
+            $builder = $this->db->table(self::TB_LEADS);
+            foreach ($allPhones as $phone) {
+                if (!in_array($phone, $existingPhones)) {
                     $builder->insert([
                         'campaign_id' => $campaign_id,
                         'phone' => $phone,
@@ -455,15 +467,15 @@ class Whatsapp_call_campaign extends Controller
                         'status' => 'pending',
                     ]);
                 }
-
-                // Atualizar total
-                $total = $this->db->table(self::TB_LEADS)
-                    ->where('campaign_id', $campaign_id)
-                    ->countAllResults();
-                $this->db->table(self::TB_CAMPAIGNS)
-                    ->where('id', $campaign_id)
-                    ->update(['total_leads' => $total]);
             }
+
+            // Atualizar total
+            $total = $this->db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign_id)
+                ->countAllResults();
+            $this->db->table(self::TB_CAMPAIGNS)
+                ->where('id', $campaign_id)
+                ->update(['total_leads' => $total]);
         }
 
         return redirect('whatsapp_call_campaign');

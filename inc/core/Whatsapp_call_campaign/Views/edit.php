@@ -44,56 +44,60 @@
                             <input type="number" name="timeout_ring" class="form-control" value="<?php echo (int)$campaign->timeout_ring ?>" min="10">
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-bold">Leads atuais (<?php echo count($leads) ?>)</label>
-                            <div class="border rounded p-2 mb-3" style="max-height:120px; overflow-y:auto;">
+                            <label class="form-label fw-bold">Leads (<span id="leads-count"><?php echo count($leads) ?></span>)</label>
+
+                            <!-- Lista atual de leads (editável) -->
+                            <div id="leads-list" class="border rounded p-2 mb-3" style="min-height:50px; max-height:200px; overflow-y:auto;">
                                 <?php foreach ($leads as $lead): ?>
-                                <span class="badge bg-light text-dark me-1 mb-1"><?php echo htmlspecialchars($lead->phone) ?> <?php echo htmlspecialchars($lead->name) ?></span>
+                                <span class="badge bg-light text-dark me-1 mb-1 lead-badge" data-phone="<?php echo htmlspecialchars($lead->phone) ?>">
+                                    <?php echo htmlspecialchars($lead->phone) ?> <?php echo htmlspecialchars($lead->name) ?>
+                                    <a href="javascript:void(0);" onclick="removeLead(this)" class="text-danger ms-1" title="Remover">×</a>
+                                    <input type="hidden" name="keep_phones[]" value="<?php echo htmlspecialchars($lead->phone) ?>">
+                                </span>
                                 <?php endforeach; ?>
+                                <?php if (empty($leads)): ?>
+                                <p class="text-muted small mb-0" id="leads-empty">Nenhum lead adicionado.</p>
+                                <?php endif; ?>
                             </div>
 
-                            <label class="form-label fw-bold">Alterar leads</label>
-                            <div class="d-flex gap-3 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeKeep" value="keep" checked onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeKeep">Manter atuais</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeAll" value="all_contacts" onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeAll">Todos os contatos (<?php echo count($contacts) ?>)</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeSelect" value="selected_contacts" onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeSelect">Selecionar contatos</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeManual" value="manual" onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeManual">Colar números</label>
-                                </div>
-                            </div>
-
-                            <div id="leadModeSelectPanel" class="d-none mb-3">
-                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
-                                    <?php if (!empty($contacts)): ?>
-                                    <?php foreach ($contacts as $c): ?>
-                                    <?php if ($c->phone_count > 0): ?>
-                                    <div class="form-check py-1">
-                                        <input class="form-check-input" type="checkbox" name="selected_contacts[]" value="<?php echo (int)$c->id ?>" id="edit_contact_<?php echo (int)$c->id ?>">
-                                        <label class="form-check-label" for="edit_contact_<?php echo (int)$c->id ?>">
-                                            <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
-                                            <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
-                                        </label>
+                            <!-- Adicionar leads -->
+                            <div class="border rounded p-3">
+                                <h6 class="fw-bold mb-3"><i class="fad fa-user-plus me-2 text-success"></i>Adicionar leads</h6>
+                                <div class="d-flex gap-3 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="add_mode" id="addModeContacts" value="contacts" checked onchange="toggleAddMode()">
+                                        <label class="form-check-label" for="addModeContacts">Contatos do sistema (<?php echo count($contacts) ?>)</label>
                                     </div>
-                                    <?php endif; ?>
-                                    <?php endforeach; ?>
-                                    <?php else: ?>
-                                    <p class="text-muted small mb-0">Nenhum contato encontrado.</p>
-                                    <?php endif; ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="add_mode" id="addModeManual" value="manual" onchange="toggleAddMode()">
+                                        <label class="form-check-label" for="addModeManual">Colar números</label>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div id="leadModeManualPanel" class="d-none">
-                                <textarea name="phones" class="form-control" rows="4" placeholder="5511999999999&#10;5521888888888"></textarea>
-                                <small class="text-muted">Um número por linha. Nono dígito será normalizado. Substitui os leads atuais.</small>
+                                <div id="addContactsPanel">
+                                    <div class="border rounded p-2 mb-2" style="max-height:200px; overflow-y:auto;">
+                                        <?php if (!empty($contacts)): ?>
+                                        <?php foreach ($contacts as $c): ?>
+                                        <?php if ($c->phone_count > 0): ?>
+                                        <div class="form-check py-1">
+                                            <input class="form-check-input" type="checkbox" name="add_contacts[]" value="<?php echo (int)$c->id ?>" id="edit_contact_<?php echo (int)$c->id ?>">
+                                            <label class="form-check-label" for="edit_contact_<?php echo (int)$c->id ?>">
+                                                <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
+                                                <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
+                                            </label>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php endforeach; ?>
+                                        <?php else: ?>
+                                        <p class="text-muted small mb-0">Nenhum contato encontrado.</p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+
+                                <div id="addManualPanel" class="d-none">
+                                    <textarea name="add_phones" class="form-control" rows="4" placeholder="5511999999999&#10;5521888888888"></textarea>
+                                    <small class="text-muted">Um número por linha. Nono dígito será normalizado.</small>
+                                </div>
                             </div>
                         </div>
                         <div class="col-12">
@@ -165,15 +169,28 @@
 
 <script>
 $(document).ready(function() {
-    // Toggle lead mode
-    function toggleLeadMode() {
-        var mode = $('input[name="lead_mode"]:checked').val();
-        $('#leadModeSelectPanel').toggleClass('d-none', mode !== 'selected_contacts');
-        $('#leadModeManualPanel').toggleClass('d-none', mode !== 'manual');
+    // Remove lead from list
+    window.removeLead = function(el) {
+        el.closest('.lead-badge').remove();
+        updateLeadsCount();
+    };
+
+    function updateLeadsCount() {
+        var count = document.querySelectorAll('.lead-badge').length;
+        var el = document.getElementById('leads-count');
+        if (el) el.textContent = count;
+        var empty = document.getElementById('leads-empty');
+        if (empty) empty.style.display = count > 0 ? 'none' : '';
     }
-    // Expose globally
-    window.toggleLeadMode = toggleLeadMode;
-    $('input[name="lead_mode"]').on('change', toggleLeadMode);
+
+    // Toggle add mode
+    function toggleAddMode() {
+        var mode = $('input[name="add_mode"]:checked').val();
+        $('#addContactsPanel').toggleClass('d-none', mode !== 'contacts');
+        $('#addManualPanel').toggleClass('d-none', mode !== 'manual');
+    }
+    window.toggleAddMode = toggleAddMode;
+    $('input[name="add_mode"]').on('change', toggleAddMode);
 
     // DateTimePicker
     var $tp = $('#call_time_post_edit');
