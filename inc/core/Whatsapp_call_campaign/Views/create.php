@@ -105,12 +105,16 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Áudio para tocar</label>
-                                    <select name="audio_id" class="form-select">
+                                    <div id="audio-preview-area"></div>
+                                    <select name="audio_id" id="audioSelectCreate" class="form-select mb-2" onchange="previewAudio(this)">
                                         <option value="">Nenhum</option>
                                         <?php foreach ($audios as $a): ?>
-                                        <option value="<?php _ec($a->id) ?>"><?php _ec($a->name) ?> (<?php _ec($a->duration_seconds) ?>s)</option>
+                                        <option value="<?php _ec($a->id) ?>" data-stream="<?php _e(base_url('call_audio_stream.php?id=' . $a->id)) ?>" data-format="<?php _ec($a->format) ?>"><?php _ec($a->name) ?> (<?php _ec($a->duration_seconds) ?>s)</option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadAudioCreateModal">
+                                        <i class="fas fa-upload me-1"></i>Upload novo áudio
+                                    </button>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-bold">Delay mín (s)</label>
@@ -336,4 +340,43 @@ document.querySelectorAll('button[type="submit"]').forEach(function(btn) {
         if (hidden) hidden.value = this.textContent.includes('Criar') ? '1' : '0';
     });
 });
+
+function previewAudio(sel) {
+    var area = document.getElementById('audio-preview-area');
+    if (!sel.value) { area.innerHTML = ''; return; }
+    var opt = sel.options[sel.selectedIndex];
+    var stream = opt.getAttribute('data-stream');
+    var format = opt.getAttribute('data-format') || 'mpeg';
+    area.innerHTML = '<div class="mb-2"><audio controls preload="none" style="width:100%;height:32px;"><source src="' + stream + '" type="audio/' + format + '"></audio></div>';
+}
 </script>
+
+<!-- Upload Audio Modal (create) -->
+<div class="modal fade" id="uploadAudioCreateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fad fa-music me-2"></i>Upload de Áudio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/upload_audio')) ?>" enctype="multipart/form-data">
+                <input type="hidden" name="redirect_back" value="1">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do áudio</label>
+                        <input type="text" name="audio_name" class="form-control" required placeholder="Ex: Promoção Agosto">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Arquivo</label>
+                        <input type="file" name="audio_file" class="form-control" accept=".mp3,.wav,.opus,.ogg,.oga,.flac,.aac,.m4a" required>
+                        <small class="text-muted">MP3, WAV, Opus, OGG, FLAC, AAC, M4A. Máx 10MB.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fad fa-upload me-1"></i>Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

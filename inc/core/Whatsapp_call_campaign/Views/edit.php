@@ -147,14 +147,15 @@
                                         <input type="hidden" name="audio_id" id="currentAudioId" value="">
                                         <?php endif; ?>
                                     </div>
-                                    <select id="audioSelect" class="form-select mb-2" onchange="changeAudio()">
+                                    <select id="audioSelect" class="form-select mb-2" onchange="previewAudioEdit(this)">
                                         <option value="">Trocar áudio...</option>
                                         <?php foreach ($audios as $a): ?>
                                         <?php if ((int)$a->id !== (int)($campaign->audio_id ?? 0)): ?>
-                                        <option value="<?php _ec($a->id) ?>"><?php _ec($a->name) ?> (<?php _ec(gmdate('i:s', $a->duration_seconds)) ?>)</option>
+                                        <option value="<?php _ec($a->id) ?>" data-stream="<?php _e(base_url('call_audio_stream.php?id=' . $a->id)) ?>" data-format="<?php _ec($a->format) ?>"><?php _ec($a->name) ?> (<?php _ec(gmdate('i:s', $a->duration_seconds)) ?>)</option>
                                         <?php endif; ?>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div id="edit-audio-preview-area"></div>
                                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadAudioEditModal">
                                         <i class="fas fa-upload me-1"></i>Upload novo áudio
                                     </button>
@@ -322,6 +323,18 @@ $(document).ready(function() {
         var section = document.getElementById('current-audio-section');
         section.innerHTML = '<p class="text-muted small mb-2">Nenhum áudio.</p><input type="hidden" name="audio_id" id="currentAudioId" value="">';
     };
+    // Preview audio when selecting from dropdown
+    window.previewAudioEdit = function(sel) {
+        var area = document.getElementById('edit-audio-preview-area');
+        if (!sel.value) { area.innerHTML = ''; return; }
+        var opt = sel.options[sel.selectedIndex];
+        var stream = opt.getAttribute('data-stream');
+        var format = opt.getAttribute('data-format') || 'mpeg';
+        area.innerHTML = '<div class="mt-2 mb-2"><audio controls preload="none" style="width:100%;height:32px;"><source src="' + stream + '" type="audio/' + format + '"></audio></div>';
+        // Also call changeAudio to update hidden field
+        changeAudio();
+    };
+
     window.changeAudio = function() {
         var sel = document.getElementById('audioSelect');
         if (sel.value) {
