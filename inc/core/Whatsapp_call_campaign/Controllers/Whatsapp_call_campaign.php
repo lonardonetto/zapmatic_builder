@@ -85,9 +85,6 @@ class Whatsapp_call_campaign extends Controller
 
     public function create()
     {
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json');
-
         $team_id = get_team("id");
         $name = $this->request->getPost('name');
         $instance_id = $this->request->getPost('instance_id');
@@ -97,19 +94,17 @@ class Whatsapp_call_campaign extends Controller
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
 
         if (empty($name) || empty($instance_id) || empty($phones_raw)) {
-            echo json_encode(['status' => 'error', 'message' => 'name, instance_id and phones are required']);
-            exit;
+            return redirect('whatsapp_call_campaign');
         }
 
         // Parse phones (one per line or comma-separated)
         $phones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
         if (empty($phones)) {
-            echo json_encode(['status' => 'error', 'message' => 'No valid phone numbers']);
-            exit;
+            return redirect('whatsapp_call_campaign');
         }
 
         // Create campaign
-        $campaign_id = $this->db->table(self::TB_CAMPAIGNS)->insert([
+        $this->db->table(self::TB_CAMPAIGNS)->insert([
             'team_id' => $team_id,
             'instance_id' => $instance_id,
             'audio_id' => !empty($audio_id) ? (int)$audio_id : null,
@@ -121,63 +116,38 @@ class Whatsapp_call_campaign extends Controller
             'total_leads' => count($phones),
         ]);
 
+        $campaign_id = (int) $this->db->insertID();
+
         // Insert leads
-        $batch = [];
+        $builder = $this->db->table(self::TB_LEADS);
         foreach ($phones as $phone) {
-            $batch[] = [
-                'campaign_id' => (int)$this->db->insertID(),
-                'phone' => $phone,
+            $builder->insert([
+                'campaign_id' => $campaign_id,
+                'phone' => trim($phone),
                 'name' => '',
                 'status' => 'pending',
-            ];
+            ]);
         }
 
-        // Batch insert
-        $builder = $this->db->table(self::TB_LEADS);
-        foreach ($batch as $row) {
-            $builder->insert($row);
-        }
-
-        echo json_encode(['status' => 'success', 'campaign_id' => (int)$this->db->insertID(), 'leads' => count($phones)]);
-        exit;
+        return redirect('whatsapp_call_campaign');
     }
 
     public function start($campaign_id = 0)
     {
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json');
-
         $team_id = get_team("id");
         $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
 
-        $campaign = $this->db->table(self::TB_CAMPAIGNS)
-            ->where('id', $campaign_id)
-            ->where('team_id', $team_id)
-            ->get()->getRow();
-
-        if (!$campaign) {
-            echo json_encode(['status' => 'error', 'message' => 'Campaign not found']);
-            exit;
-        }
-
-        if (!in_array($campaign->status, ['draft', 'paused'])) {
-            echo json_encode(['status' => 'error', 'message' => 'Campaign cannot be started (status: ' . $campaign->status . ')']);
-            exit;
-        }
-
         $this->db->table(self::TB_CAMPAIGNS)
             ->where('id', $campaign_id)
+            ->where('team_id', $team_id)
+            ->whereIn('status', ['draft', 'paused'])
             ->update(['status' => 'running']);
 
-        echo json_encode(['status' => 'success', 'message' => 'Campaign started']);
-        exit;
+        return redirect('whatsapp_call_campaign');
     }
 
     public function pause($campaign_id = 0)
     {
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json');
-
         $team_id = get_team("id");
         $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
 
@@ -187,23 +157,18 @@ class Whatsapp_call_campaign extends Controller
             ->where('status', 'running')
             ->update(['status' => 'paused']);
 
-        echo json_encode(['status' => 'success', 'message' => 'Campaign paused']);
-        exit;
+        return redirect('whatsapp_call_campaign');
     }
 
     public function delete($campaign_id = 0)
     {
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json');
-
         $team_id = get_team("id");
         $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
 
         $this->db->table(self::TB_LEADS)->where('campaign_id', $campaign_id)->delete();
         $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->where('team_id', $team_id)->delete();
 
-        echo json_encode(['status' => 'success', 'message' => 'Campaign deleted']);
-        exit;
+        return redirect('whatsapp_call_campaign');
     }
 
     public function status($campaign_id)
@@ -264,16 +229,12 @@ class Whatsapp_call_campaign extends Controller
 
     public function upload_audio()
     {
-        while (ob_get_level()) { ob_end_clean(); }
-        header('Content-Type: application/json');
-
         $team_id = get_team("id");
         $file = $this->request->getFile('audio_file');
         $name = $this->request->getPost('audio_name') ?: 'Audio';
 
         if (!$file || !$file->isValid()) {
-            echo json_encode(['status' => 'error', 'message' => 'No file uploaded']);
-            exit;
+            return redirect('whatsapp_call_campaign')->with('error', 'No file uploaded');
         }
 
         // Save to writable/call_audio/
@@ -294,7 +255,7 @@ class Whatsapp_call_campaign extends Controller
             $duration = (int) round((float) trim($ffprobe));
         }
 
-        $audio_id = $this->db->table(self::TB_AUDIOS)->insert([
+        $this->db->table(self::TB_AUDIOS)->insert([
             'team_id' => $team_id,
             'name' => $name,
             'original_name' => $file->getClientName(),
@@ -304,13 +265,7 @@ class Whatsapp_call_campaign extends Controller
             'file_size_bytes' => $file->getSize(),
         ]);
 
-        echo json_encode([
-            'status' => 'success',
-            'audio_id' => (int) $this->db->insertID(),
-            'name' => $name,
-            'duration' => $duration,
-        ]);
-        exit;
+        return redirect('whatsapp_call_campaign');
     }
 
     public function audios()
