@@ -271,15 +271,41 @@
                                 </div>
 
                                 <div class="row g-4">
+                                    <!-- Data/hora início -->
+                                    <div class="col-xl-6">
+                                        <label class="form-label d-block fw-bold">Agendar início</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fad fa-calendar-alt"></i></span>
+                                            <input type="text" class="form-control datetime" id="call_time_post" name="time_post" autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
+                                        </div>
+                                        <p class="fs-12 text-gray-600 mb-0 mt-1">Deixe vazio para iniciar imediatamente ao clicar em Iniciar.</p>
+                                    </div>
+
+                                    <!-- Timezone -->
+                                    <div class="col-xl-6">
+                                        <label class="form-label fw-bold">Timezone</label>
+                                        <select name="timezone" class="form-select">
+                                            <option value="">Padrão do sistema</option>
+                                            <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                                            <option value="America/Manaus">America/Manaus (AMT)</option>
+                                            <option value="America/Belem">America/Belem (BRT)</option>
+                                            <option value="America/Fortaleza">America/Fortaleza (BRT)</option>
+                                            <option value="America/Bahia">America/Bahia (BRT)</option>
+                                            <option value="America/Recife">America/Recife (BRT)</option>
+                                            <option value="America/Noronha">America/Noronha (FNT)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Horários permitidos -->
                                     <div class="col-xl-6">
                                         <label class="form-label d-block fw-bold">Horários permitidos</label>
-                                        <ul class="d-flex flex-wrap gap-3 mb-3" style="list-style:none;padding:0;">
-                                            <li><a href="javascript:void(0);" class="text-primary fw-bold" onclick="callSchedulePreset('daytime')">Daytime</a></li>
-                                            <li><a href="javascript:void(0);" class="text-primary fw-bold" onclick="callSchedulePreset('nighttime')">Nighttime</a></li>
-                                            <li><a href="javascript:void(0);" class="text-primary fw-bold" onclick="callSchedulePreset('odd')">Odd</a></li>
-                                            <li><a href="javascript:void(0);" class="text-primary fw-bold" onclick="callSchedulePreset('even')">Even</a></li>
+                                        <ul class="d-flex flex-wrap seclect-shedule-time gap-3 mb-3" style="list-style:none;padding:0;">
+                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="daytime">Daytime</a></li>
+                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="nighttime">Nighttime</a></li>
+                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="odd">Odd</a></li>
+                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="even">Even</a></li>
                                         </ul>
-                                        <select class="form-select call-schedule-time mb-2" name="schedule_time[]" multiple data-placeholder="Selecione os horários permitidos">
+                                        <select class="form-select call-schedule-time mb-2" data-control="select2" data-placeholder="Selecione os horários permitidos" multiple name="schedule_time[]">
                                             <?php for ($i = 0; $i <= 23; $i++): ?>
                                             <option value="<?php echo $i ?>"><?php echo str_pad($i, 2, '0', STR_PAD_LEFT) ?>:00</option>
                                             <?php endfor; ?>
@@ -288,6 +314,7 @@
                                         <p class="fs-12 text-danger mb-0">Se nenhum horário for selecionado, a campanha poderá rodar em qualquer hora do dia.</p>
                                     </div>
 
+                                    <!-- Dias permitidos -->
                                     <div class="col-xl-6">
                                         <label class="form-label d-block fw-bold">Dias permitidos</label>
                                         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -308,6 +335,7 @@
                                         <p class="fs-12 text-gray-600 mb-0 mt-2">Se nenhum dia for marcado, a campanha poderá rodar em qualquer dia.</p>
                                     </div>
 
+                                    <!-- Ignorar feriados -->
                                     <div class="col-12">
                                         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 p-3 rounded border border-primary border-dashed bg-white">
                                             <div class="form-check form-switch m-0">
@@ -318,20 +346,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-xl-6">
-                                        <label class="form-label fw-bold">Timezone</label>
-                                        <select name="timezone" class="form-select">
-                                            <option value="">Padrão do sistema</option>
-                                            <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
-                                            <option value="America/Manaus">America/Manaus (AMT)</option>
-                                            <option value="America/Belem">America/Belem (BRT)</option>
-                                            <option value="America/Fortaleza">America/Fortaleza (BRT)</option>
-                                            <option value="America/Bahia">America/Bahia (BRT)</option>
-                                            <option value="America/Recife">America/Recife (BRT)</option>
-                                            <option value="America/Noronha">America/Noronha (FNT)</option>
-                                        </select>
-                                    </div>
-
+                                    <!-- Resumo -->
                                     <div class="col-12">
                                         <div class="alert alert-light-primary border border-primary border-dashed mb-0">
                                             <div class="fw-600 text-gray-800 mb-1">Resumo da janela</div>
@@ -384,45 +399,96 @@
 
 
 <script>
-function toggleLeadMode() {
-    var mode = document.querySelector('input[name="lead_mode"]:checked').value;
-    document.getElementById('leadModeSelectPanel').classList.toggle('d-none', mode !== 'selected_contacts');
-    document.getElementById('leadModeManualPanel').classList.toggle('d-none', mode !== 'manual');
-}
+$(document).ready(function() {
+    // Toggle lead mode
+    $('input[name="lead_mode"]').on('change', function() {
+        var mode = $(this).val();
+        $('#leadModeSelectPanel').toggleClass('d-none', mode !== 'selected_contacts');
+        $('#leadModeManualPanel').toggleClass('d-none', mode !== 'manual');
+    });
 
-// Schedule: weekday presets
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('call-weekday-preset')) {
-        var vals = String(e.target.getAttribute('data-weekdays') || '').split(',');
-        document.querySelectorAll('.call-weekday-input').forEach(function(cb) {
-            cb.checked = vals.includes(cb.value);
+    // DateTimePicker for start time
+    var $timePost = $('#call_time_post');
+    if ($timePost.length && typeof $timePost.datetimepicker === 'function') {
+        $timePost.datetimepicker({
+            controlType: 'select',
+            oneLine: true,
+            dateFormat: 'dd/mm/yy',
+            timeFormat: 'HH:mm',
+            closeText: 'Fechar',
+            prevText: 'Anterior',
+            nextText: 'Próximo',
+            currentText: 'Hoje',
+            monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+            monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+            dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+            dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+            dayNamesMin: ['D','S','T','Q','Q','S','S'],
+            weekHeader: 'Sm',
+            firstDay: 0,
+            isRTL: false,
+            showMonthAfterYear: false,
+            yearSuffix: '',
+            timeOnlyTitle: 'Escolha o horário',
+            timeText: 'Horário',
+            hourText: 'Hora',
+            minuteText: 'Minuto',
+            secondText: 'Segundo'
         });
-        updateScheduleSummary();
     }
-    if (e.target.classList.contains('call-weekday-clear')) {
-        document.querySelectorAll('.call-weekday-input').forEach(function(cb) { cb.checked = false; });
-        updateScheduleSummary();
+
+    // Select2 for schedule_time
+    var $scheduleTime = $('.call-schedule-time');
+    if ($scheduleTime.length && typeof $scheduleTime.select2 === 'function') {
+        $scheduleTime.select2({
+            placeholder: 'Selecione os horários permitidos',
+            allowClear: true
+        });
+    }
+
+    // Schedule presets (daytime/nighttime/odd/even)
+    $(document).on('click', '.call-schedule-preset', function() {
+        var type = $(this).data('time');
+        var sel = document.querySelector('.call-schedule-time');
+        if (!sel) return;
+        for (var i = 0; i < sel.options.length; i++) {
+            var val = parseInt(sel.options[i].value);
+            var match = false;
+            if (type === 'daytime') match = (val >= 8 && val <= 20);
+            else if (type === 'nighttime') match = (val < 8 || val > 20);
+            else if (type === 'odd') match = (val % 2 === 1);
+            else if (type === 'even') match = (val % 2 === 0);
+            sel.options[i].selected = match;
+        }
+        if ($scheduleTime.length && typeof $scheduleTime.select2 === 'function') {
+            $scheduleTime.trigger('change.select2');
+        }
+        updateCallScheduleSummary();
+    });
+
+    // Weekday presets
+    $(document).on('click', '.call-weekday-preset', function() {
+        var vals = String($(this).data('weekdays') || '').split(',');
+        $('.call-weekday-input').each(function() {
+            this.checked = vals.includes(this.value);
+        });
+        updateCallScheduleSummary();
+    });
+    $(document).on('click', '.call-weekday-clear', function() {
+        $('.call-weekday-input').prop('checked', false);
+        updateCallScheduleSummary();
+    });
+
+    // Update summary on any schedule change
+    $(document).on('change', '.call-weekday-input, .call-schedule-time, #call_skip_holidays', function() {
+        updateCallScheduleSummary();
+    });
+    if ($scheduleTime.length) {
+        $scheduleTime.on('change', updateCallScheduleSummary);
     }
 });
 
-// Schedule: presets (daytime/nighttime/odd/even)
-function callSchedulePreset(type) {
-    var sel = document.querySelector('.call-schedule-time');
-    if (!sel) return;
-    for (var i = 0; i < sel.options.length; i++) {
-        var val = parseInt(sel.options[i].value);
-        var match = false;
-        if (type === 'daytime') match = (val >= 8 && val <= 20);
-        else if (type === 'nighttime') match = (val < 8 || val > 20);
-        else if (type === 'odd') match = (val % 2 === 1);
-        else if (type === 'even') match = (val % 2 === 0);
-        sel.options[i].selected = match;
-    }
-    updateScheduleSummary();
-}
-
-// Schedule: update summary
-function updateScheduleSummary() {
+function updateCallScheduleSummary() {
     var hours = [];
     var sel = document.querySelector('.call-schedule-time');
     if (sel) {
@@ -434,8 +500,8 @@ function updateScheduleSummary() {
     document.querySelectorAll('.call-weekday-input:checked').forEach(function(cb) {
         weekdays.push(cb.value);
     });
-    var skipHolidays = document.getElementById('call_skip_holidays');
-    var skip = skipHolidays ? skipHolidays.checked : false;
+    var skip = document.getElementById('call_skip_holidays');
+    var skipHolidays = skip ? skip.checked : false;
 
     var weekdayLabels = {1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb',7:'Dom'};
     var parts = [];
@@ -445,9 +511,9 @@ function updateScheduleSummary() {
     else parts.push(weekdays.map(function(w) { return weekdayLabels[w] || w; }).join(', '));
 
     if (hours.length > 0) {
-        parts.push(hours.map(function(h) { return h.padStart(2, '0') + ':00'; }).join(', '));
+        parts.push(hours.map(function(h) { return h.toString().padStart(2, '0') + ':00'; }).join(', '));
     }
-    if (skip) parts.push('Ignora feriados');
+    if (skipHolidays) parts.push('Ignora feriados');
 
     var summary = document.getElementById('call-schedule-summary');
     if (summary) {
@@ -455,17 +521,8 @@ function updateScheduleSummary() {
     }
 }
 
-// Listen for changes
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('call-weekday-input') ||
-        e.target.classList.contains('call-schedule-time') ||
-        e.target.id === 'call_skip_holidays') {
-        updateScheduleSummary();
-    }
-});
-
-// Auto-refresh running campaigns every 5 seconds
-(function() {
+// Auto-refresh running campaigns
+$(document).ready(function() {
     var pollTimer = null;
     function hasRunning() {
         return document.querySelector('tr[data-status="running"]') !== null;
@@ -500,5 +557,5 @@ document.addEventListener('change', function(e) {
     });
     var tbody = document.querySelector('tbody');
     if (tbody) observer.observe(tbody, { childList: true, subtree: true });
-})();
+});
 </script>
