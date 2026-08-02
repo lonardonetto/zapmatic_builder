@@ -95,11 +95,12 @@ class CallCampaignWorker extends BaseCommand
             return;
         }
 
-        // Get next pending lead
+        // Get next pending lead (random order for anti-ban)
         $lead = $db->table(self::TB_LEADS)
             ->where('campaign_id', $campaign->id)
             ->where('status', 'pending')
-            ->orderBy('id', 'ASC')
+            ->orderBy('RAND()')
+            ->limit(1)
             ->get()->getRow();
 
         if (!$lead) {
@@ -114,10 +115,26 @@ class CallCampaignWorker extends BaseCommand
                 'started_at' => date('Y-m-d H:i:s'),
             ]);
 
+        // Resolve instance_id (rotação vs paralelo)
+        $targetInstanceId = $campaign->instance_id;
+        if (($campaign->call_mode ?? 'rotation') === 'parallel' && !empty($campaign->instance_ids)) {
+            $instanceIds = json_decode($campaign->instance_ids, true);
+            if (!empty($instanceIds)) {
+                // Round-robin: pega o lead index modulo total instâncias
+                $totalLeads = (int)$campaign->total_leads;
+                $pendingCount = $db->table(self::TB_LEADS)
+                    ->where('campaign_id', $campaign->id)
+                    ->where('status', 'pending')
+                    ->countAllResults();
+                $leadIndex = $totalLeads - $pendingCount - 1;
+                $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
+            }
+        }
+
         // Place call via Go API
         $goBaseUrl = $this->getGoBaseUrl();
         $payload = [
-            'instance_id' => $campaign->instance_id,
+            'instance_id' => $targetInstanceId,
             'phone' => $lead->phone,
         ];
 
@@ -165,9 +182,11 @@ class CallCampaignWorker extends BaseCommand
         // Poll for call result in background
         $this->pollCallResult($db, $campaign->id, $lead->id, $callId, $campaign->timeout_ring + 60);
 
-        // Delay before next call
-        $delay = max(5, (int)$campaign->delay_between_calls);
-        CLI::write("[CallCampaignWorker] Waiting {$delay}s before next call...", 'cyan');
+        // Delay before next call (random between min and max for anti-ban)
+        $delayMin = max(5, (int)($campaign->delay_min ?? 10));
+        $delayMax = max($delayMin, (int)($campaign->delay_max ?? 60));
+        $delay = rand($delayMin, $delayMax);
+        CLI::write("[CallCampaignWorker] Waiting {$delay}s ({$delayMin}-{$delayMax}s) before next call...", 'cyan');
         sleep($delay);
     }
 

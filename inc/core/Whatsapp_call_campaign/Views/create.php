@@ -18,7 +18,24 @@
                             <label class="form-label fw-bold">Nome da campanha</label>
                             <input type="text" name="name" class="form-control" required placeholder="Ex: Promoção Agosto">
                         </div>
-                        <div class="col-md-6">
+                        <!-- Modo de chamada -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Modo de chamada</label>
+                            <div class="d-flex gap-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked onchange="toggleCallMode()">
+                                    <label class="form-check-label" for="modeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação (mais seguro)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel" onchange="toggleCallMode()">
+                                    <label class="form-check-label" for="modeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo (mais rápido)</label>
+                                </div>
+                            </div>
+                            <small class="text-muted">Rotação: 1 instância, fila sequencial. Paralelo: todas instâncias simultaneamente.</small>
+                        </div>
+
+                        <!-- Rotação: 1 instância -->
+                        <div class="col-md-6" id="rotationInstancePanel">
                             <label class="form-label fw-bold">Instância WhatsApp</label>
                             <select name="instance_id" class="form-select form-select-solid call-instance-select" required data-control="select2" data-hide-search="true" data-placeholder="Selecione...">
                                 <option value="">Selecione...</option>
@@ -27,6 +44,26 @@
                                 <?php endforeach; ?>
                             </select>
                         </div>
+
+                        <!-- Paralelo: múltiplas instâncias -->
+                        <div class="col-12 d-none" id="parallelInstancesPanel">
+                            <label class="form-label fw-bold">Instâncias (selecione as que estarão online)</label>
+                            <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
+                                <?php foreach ($accounts as $a): ?>
+                                <?php if ($a->status == 1): ?>
+                                <div class="form-check py-1">
+                                    <input class="form-check-input" type="checkbox" name="parallel_instances[]" value="<?php _ec($a->token) ?>" id="pinst_<?php _ec($a->id) ?>" checked>
+                                    <label class="form-check-label" for="pinst_<?php _ec($a->id) ?>">
+                                        <?php echo htmlspecialchars($a->name ?: $a->token) ?>
+                                        <span class="badge bg-success">Online</span>
+                                    </label>
+                                </div>
+                                <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                            <small class="text-muted">Leads serão distribuídos em round-robin entre as instâncias selecionadas.</small>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Áudio para tocar</label>
                             <select name="audio_id" class="form-select">
@@ -37,8 +74,12 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">Delay entre chamadas (s)</label>
-                            <input type="number" name="delay_between_calls" class="form-control" value="30" min="5">
+                            <label class="form-label fw-bold">Delay mín (s)</label>
+                            <input type="number" name="delay_min" class="form-control" value="10" min="5">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Delay máx (s)</label>
+                            <input type="number" name="delay_max" class="form-control" value="60" min="10">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Timeout toque (s)</label>
@@ -191,6 +232,15 @@
 
 <script>
 $(document).ready(function() {
+    // Toggle call mode
+    function toggleCallMode() {
+        var mode = $('input[name="call_mode"]:checked').val();
+        $('#rotationInstancePanel').toggleClass('d-none', mode !== 'rotation');
+        $('#parallelInstancesPanel').toggleClass('d-none', mode !== 'parallel');
+    }
+    window.toggleCallMode = toggleCallMode;
+    $('input[name="call_mode"]').on('change', toggleCallMode);
+
     // Toggle lead mode
     $('input[name="lead_mode"]').on('change', function() {
         var mode = $(this).val();

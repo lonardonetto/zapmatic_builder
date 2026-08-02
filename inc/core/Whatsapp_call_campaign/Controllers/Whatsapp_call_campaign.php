@@ -125,12 +125,24 @@ class Whatsapp_call_campaign extends Controller
         $team_id = get_team("id");
         $name = $this->request->getPost('name');
         $instance_id = $this->request->getPost('instance_id');
+        $call_mode = $this->request->getPost('call_mode') ?: 'rotation';
+        $parallel_instances = $this->request->getPost('parallel_instances') ?: [];
         $audio_id = $this->request->getPost('audio_id');
         $lead_mode = $this->request->getPost('lead_mode') ?: 'manual';
         $selected_contacts = $this->request->getPost('selected_contacts') ?: [];
         $phones_raw = $this->request->getPost('phones') ?: '';
         $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
+        $delay_min = max(5, (int) ($this->request->getPost('delay_min') ?? 10));
+        $delay_max = max($delay_min, (int) ($this->request->getPost('delay_max') ?? 60));
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
+
+        // Resolve instance_id para rotação vs paralelo
+        if ($call_mode === 'parallel' && !empty($parallel_instances)) {
+            $instance_ids = is_array($parallel_instances) ? $parallel_instances : explode(',', $parallel_instances);
+            $instance_id = $instance_ids[0]; // Primeira instância como fallback
+        } else {
+            $instance_ids = [$instance_id];
+        }
 
         // Agendamento
         $schedule_time = $this->request->getPost('schedule_time') ?: [];
@@ -195,11 +207,14 @@ class Whatsapp_call_campaign extends Controller
         $this->db->table(self::TB_CAMPAIGNS)->insert([
             'team_id' => $team_id,
             'instance_id' => $instance_id,
+            'call_mode' => $call_mode,
+            'instance_ids' => !empty($instance_ids) ? json_encode($instance_ids) : null,
             'audio_id' => !empty($audio_id) ? (int)$audio_id : null,
             'name' => $name,
-            'status' => 'draft',
             'max_concurrent' => 1,
             'delay_between_calls' => $delay,
+            'delay_min' => $delay_min,
+            'delay_max' => $delay_max,
             'timeout_ring' => $timeout,
             'total_leads' => count($phones),
             'schedule_time' => !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null,
