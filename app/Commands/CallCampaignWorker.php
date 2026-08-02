@@ -117,18 +117,27 @@ class CallCampaignWorker extends BaseCommand
 
         // Resolve instance_id (rotação vs paralelo)
         $targetInstanceId = $campaign->instance_id;
-        if (($campaign->call_mode ?? 'rotation') === 'parallel' && !empty($campaign->instance_ids)) {
-            $instanceIds = json_decode($campaign->instance_ids, true);
-            if (!empty($instanceIds)) {
-                // Round-robin: pega o lead index modulo total instâncias
-                $totalLeads = (int)$campaign->total_leads;
-                $pendingCount = $db->table(self::TB_LEADS)
-                    ->where('campaign_id', $campaign->id)
-                    ->where('status', 'pending')
-                    ->countAllResults();
-                $leadIndex = $totalLeads - $pendingCount - 1;
-                $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
-            }
+        $instanceIds = !empty($campaign->instance_ids) ? json_decode($campaign->instance_ids, true) : [$campaign->instance_id];
+        if (empty($instanceIds)) $instanceIds = [$campaign->instance_id];
+
+        if (($campaign->call_mode ?? 'rotation') === 'parallel') {
+            // Paralelo: round-robin entre instâncias
+            $totalLeads = (int)$campaign->total_leads;
+            $pendingCount = $db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign->id)
+                ->where('status', 'pending')
+                ->countAllResults();
+            $leadIndex = $totalLeads - $pendingCount - 1;
+            $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
+        } else {
+            // Rotação: alterna instância a cada chamada
+            $totalLeads = (int)$campaign->total_leads;
+            $pendingCount = $db->table(self::TB_LEADS)
+                ->where('campaign_id', $campaign->id)
+                ->where('status', 'pending')
+                ->countAllResults();
+            $leadIndex = $totalLeads - $pendingCount - 1;
+            $targetInstanceId = $instanceIds[$leadIndex % count($instanceIds)];
         }
 
         // Place call via Go API

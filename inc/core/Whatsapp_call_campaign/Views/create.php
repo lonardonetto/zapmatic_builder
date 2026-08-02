@@ -23,31 +23,20 @@
                             <label class="form-label fw-bold">Modo de chamada</label>
                             <div class="d-flex gap-3 mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked onchange="toggleCallMode()">
+                                    <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked>
                                     <label class="form-check-label" for="modeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação (mais seguro)</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel" onchange="toggleCallMode()">
+                                    <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel">
                                     <label class="form-check-label" for="modeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo (mais rápido)</label>
                                 </div>
                             </div>
-                            <small class="text-muted">Rotação: 1 instância, fila sequencial. Paralelo: todas instâncias simultaneamente.</small>
+                            <small class="text-muted">Rotação: 1 chamada por vez, alterna instâncias. Paralelo: N chamadas simultâneas.</small>
                         </div>
 
-                        <!-- Rotação: 1 instância -->
-                        <div class="col-md-6" id="rotationInstancePanel">
-                            <label class="form-label fw-bold">Instância WhatsApp</label>
-                            <select name="instance_id" class="form-select form-select-solid call-instance-select" required data-control="select2" data-hide-search="true" data-placeholder="Selecione...">
-                                <option value="">Selecione...</option>
-                                <?php foreach ($accounts as $a): ?>
-                                <option value="<?php _ec($a->token) ?>" data-img="<?php _ec(get_file_url($a->avatar)) ?>"><?php _ec($a->name ?: $a->token) ?> (<?php _ec($a->status == 1 ? 'Online' : 'Offline') ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- Paralelo: múltiplas instâncias -->
-                        <div class="col-12 d-none" id="parallelInstancesPanel">
-                            <label class="form-label fw-bold">Instâncias (selecione as que estarão online)</label>
+                        <!-- Instâncias (ambos modos precisam) -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Instâncias WhatsApp (selecione pelo menos 2)</label>
                             <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                                 <?php foreach ($accounts as $a): ?>
                                 <?php if ($a->status == 1): ?>
@@ -61,7 +50,7 @@
                                 <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
-                            <small class="text-muted">Leads serão distribuídos em round-robin entre as instâncias selecionadas.</small>
+                            <small class="text-muted">Rotação: alterna entre as selecionadas. Paralelo: usa todas ao mesmo tempo.</small>
                         </div>
 
                         <div class="col-md-6">

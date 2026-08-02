@@ -124,7 +124,6 @@ class Whatsapp_call_campaign extends Controller
     {
         $team_id = get_team("id");
         $name = $this->request->getPost('name');
-        $instance_id = $this->request->getPost('instance_id');
         $call_mode = $this->request->getPost('call_mode') ?: 'rotation';
         $parallel_instances = $this->request->getPost('parallel_instances') ?: [];
         $audio_id = $this->request->getPost('audio_id');
@@ -136,13 +135,13 @@ class Whatsapp_call_campaign extends Controller
         $delay_max = max($delay_min, (int) ($this->request->getPost('delay_max') ?? 60));
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
 
-        // Resolve instance_id para rotação vs paralelo
-        if ($call_mode === 'parallel' && !empty($parallel_instances)) {
-            $instance_ids = is_array($parallel_instances) ? $parallel_instances : explode(',', $parallel_instances);
-            $instance_id = $instance_ids[0]; // Primeira instância como fallback
-        } else {
-            $instance_ids = [$instance_id];
+        // Resolve instâncias
+        $instance_ids = is_array($parallel_instances) ? $parallel_instances : explode(',', $parallel_instances);
+        $instance_ids = array_filter($instance_ids);
+        if (empty($instance_ids)) {
+            return redirect('whatsapp_call_campaign');
         }
+        $instance_id = $instance_ids[0]; // fallback
 
         // Agendamento
         $schedule_time = $this->request->getPost('schedule_time') ?: [];
