@@ -28,12 +28,45 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Áudio</label>
-                            <select name="audio_id" class="form-select">
-                                <option value="">Nenhum</option>
-                                <?php foreach ($audios as $a): ?>
-                                <option value="<?php _ec($a->id) ?>" <?php echo ((int)$a->id === (int)($campaign->audio_id ?? 0)) ? 'selected' : '' ?>><?php _ec($a->name) ?> (<?php _ec($a->duration_seconds) ?>s)</option>
-                                <?php endforeach; ?>
-                            </select>
+                            <?php
+                            $currentAudio = null;
+                            if (!empty($campaign->audio_id)) {
+                                foreach ($audios as $a) {
+                                    if ((int)$a->id === (int)$campaign->audio_id) { $currentAudio = $a; break; }
+                                }
+                            }
+                            ?>
+                            <div id="current-audio-section">
+                                <?php if ($currentAudio): ?>
+                                <div class="d-flex align-items-center gap-2 border rounded p-2 mb-2">
+                                    <i class="fad fa-file-audio text-primary"></i>
+                                    <div class="flex-grow-1">
+                                        <strong><?php echo htmlspecialchars($currentAudio->name) ?></strong>
+                                        <small class="text-muted d-block"><?php echo strtoupper($currentAudio->format) ?> · <?php echo gmdate("i:s", $currentAudio->duration_seconds) ?></small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAudio()" title="Remover áudio"><i class="fas fa-times"></i></button>
+                                </div>
+                                <input type="hidden" name="audio_id" id="currentAudioId" value="<?php echo (int)$campaign->audio_id ?>">
+                                <?php else: ?>
+                                <p class="text-muted small mb-2" id="no-audio-msg">Nenhum áudio selecionado.</p>
+                                <input type="hidden" name="audio_id" id="currentAudioId" value="">
+                                <?php endif; ?>
+                            </div>
+                            <div id="change-audio-section">
+                                <select id="audioSelect" class="form-select" onchange="changeAudio()">
+                                    <option value="">Selecionar outro áudio...</option>
+                                    <?php foreach ($audios as $a): ?>
+                                    <?php if ((int)$a->id !== (int)($campaign->audio_id ?? 0)): ?>
+                                    <option value="<?php _ec($a->id) ?>"><?php _ec($a->name) ?> (<?php _ec(gmdate('i:s', $a->duration_seconds)) ?>)</option>
+                                    <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadAudioEditModal">
+                                        <i class="fas fa-upload me-1"></i>Upload novo áudio
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">Delay (s)</label>
@@ -175,6 +208,24 @@ $(document).ready(function() {
         updateLeadsCount();
     };
 
+    // Audio management
+    window.removeAudio = function() {
+        document.getElementById('currentAudioId').value = '';
+        var section = document.getElementById('current-audio-section');
+        section.innerHTML = '<p class="text-muted small mb-2">Nenhum áudio selecionado.</p><input type="hidden" name="audio_id" id="currentAudioId" value="">';
+    };
+
+    window.changeAudio = function() {
+        var sel = document.getElementById('audioSelect');
+        if (sel.value) {
+            document.getElementById('currentAudioId').value = sel.value;
+            // Visual feedback
+            var section = document.getElementById('current-audio-section');
+            section.innerHTML = '<div class="d-flex align-items-center gap-2 border rounded p-2 mb-2 bg-light"><i class="fad fa-file-audio text-primary"></i><div class="flex-grow-1"><strong>' + sel.options[sel.selectedIndex].text + '</strong><small class="text-muted d-block">Selecionado</small></div><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAudio()" title="Remover"><i class="fas fa-times"></i></button></div><input type="hidden" name="audio_id" id="currentAudioId" value="' + sel.value + '">';
+            sel.value = '';
+        }
+    };
+
     function updateLeadsCount() {
         var count = document.querySelectorAll('.lead-badge').length;
         var el = document.getElementById('leads-count');
@@ -211,3 +262,33 @@ $(document).ready(function() {
     }
 });
 </script>
+
+<!-- Upload Audio Modal (edit) -->
+<div class="modal fade" id="uploadAudioEditModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fad fa-music me-2"></i>Upload de Áudio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/upload_audio')) ?>" enctype="multipart/form-data">
+                <input type="hidden" name="redirect_back" value="1">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do áudio</label>
+                        <input type="text" name="audio_name" class="form-control" required placeholder="Ex: Promoção Agosto">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Arquivo</label>
+                        <input type="file" name="audio_file" class="form-control" accept=".mp3,.wav,.opus,.ogg,.oga,.flac,.aac,.m4a" required>
+                        <small class="text-muted">MP3, WAV, Opus, OGG, FLAC, AAC, M4A. Máx 10MB.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fad fa-upload me-1"></i>Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -611,6 +611,13 @@ class Whatsapp_call_campaign extends Controller
             'file_size_bytes' => filesize($filePath),
         ]);
 
+        // Redirect back if came from edit page
+        $redirect_back = $this->request->getPost('redirect_back');
+        if ($redirect_back) {
+            $referer = $this->request->getServer('HTTP_REFERER');
+            if ($referer) return redirect($referer);
+        }
+
         return redirect('whatsapp_call_campaign');
     }
 
