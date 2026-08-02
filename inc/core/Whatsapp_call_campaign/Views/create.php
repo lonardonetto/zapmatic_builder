@@ -1,26 +1,6 @@
 <div class="row">
 
-<style>
-/* Select2 Bootstrap match */
-.call-instance-select + .select2-container { width: 100% !important; }
-.call-instance-select + .select2-container .select2-selection--single {
-    height: 38px !important; border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important;
-    padding: 0 12px !important; font-size: 14px !important; background: #fff !important;
-}
-.call-instance-select + .select2-container .select2-selection--single .select2-selection__rendered {
-    line-height: 36px !important; padding-left: 0 !important; color: #333 !important;
-}
-.call-instance-select + .select2-container .select2-selection--single .select2-selection__arrow {
-    height: 36px !important; right: 8px !important;
-}
-.call-instance-select + .select2-container--open .select2-selection--single,
-.call-instance-select + .select2-container--focus .select2-selection--single {
-    border-color: #25D366 !important; box-shadow: 0 0 0 0.2rem rgba(37,211,102,.15) !important;
-}
-.select2-results__option { padding: 8px 12px !important; font-size: 14px !important; }
-.select2-results__option--highlighted { background: #25D366 !important; color: #fff !important; }
-.select2-dropdown { border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important; box-shadow: 0 4px 12px rgba(0,0,0,.1) !important; }
-</style>
+
 
     <div class="col-12">
         <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-light btn-sm mb-3">
@@ -40,10 +20,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Instância WhatsApp</label>
-                            <select name="instance_id" class="form-select call-instance-select" required data-placeholder="Selecione...">
+                            <select name="instance_id" class="form-select form-select-solid call-instance-select" required data-control="select2" data-hide-search="true" data-placeholder="Selecione...">
                                 <option value="">Selecione...</option>
                                 <?php foreach ($accounts as $a): ?>
-                                <option value="<?php _ec($a->token) ?>" data-avatar="<?php _ec(get_file_url($a->avatar)) ?>" data-name="<?php _ec($a->name ?: $a->token) ?>"><?php _ec($a->name ?: $a->token) ?> (<?php _ec($a->status == 1 ? 'Online' : 'Offline') ?>)</option>
+                                <option value="<?php _ec($a->token) ?>" data-img="<?php _ec(get_file_url($a->avatar)) ?>"><?php _ec($a->name ?: $a->token) ?> (<?php _ec($a->status == 1 ? 'Online' : 'Offline') ?>)</option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -229,31 +209,17 @@ $(document).ready(function() {
             dayNamesMin: ['D','S','T','Q','Q','S','S']
         });
     }
-    // Select2 - instance with avatar
-    var $inst = $('.call-instance-select');
-    if ($inst.length && typeof $inst.select2 === 'function') {
-        $inst.select2({
-            placeholder: 'Selecione...',
-            templateResult: function(opt) {
-                if (!opt.id) return opt.text;
-                var avatar = $(opt.element).data('avatar');
-                var name = $(opt.element).data('name') || opt.text;
-                if (!avatar) return $('<span>').text(name);
-                return $('<span><img src="' + avatar + '" style="width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
-            },
-            templateSelection: function(opt) {
-                if (!opt.id) return opt.text;
-                var avatar = $(opt.element).data('avatar');
-                var name = $(opt.element).data('name') || opt.text;
-                if (!avatar) return $('<span>').text(name);
-                return $('<span><img src="' + avatar + '" style="width:20px;height:20px;border-radius:50%;margin-right:6px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
-            }
-        });
-    }
-    // Select2 - schedule hours
+    // Select2 - schedule hours (theme auto-inits instance select via data-control)
     var $st = $('.call-schedule-time');
     if ($st.length && typeof $st.select2 === 'function') {
-        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true });
+        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true, theme: 'bootstrap5', selectionCssClass: ':all:', width: 'resolve' });
+    }
+        });
+    }
+    // Select2 - schedule hours (use data-control for theme auto-init)
+    var $st = $('.call-schedule-time');
+    if ($st.length && typeof $st.select2 === 'function') {
+        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true, theme: 'bootstrap-5', width: '100%' });
     }
     // Schedule presets
     $(document).on('click', '.call-schedule-preset', function() {

@@ -1,26 +1,6 @@
 <div class="row">
 
-<style>
-/* Select2 Bootstrap match */
-.call-instance-select + .select2-container { width: 100% !important; }
-.call-instance-select + .select2-container .select2-selection--single {
-    height: 38px !important; border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important;
-    padding: 0 12px !important; font-size: 14px !important; background: #fff !important;
-}
-.call-instance-select + .select2-container .select2-selection--single .select2-selection__rendered {
-    line-height: 36px !important; padding-left: 0 !important; color: #333 !important;
-}
-.call-instance-select + .select2-container .select2-selection--single .select2-selection__arrow {
-    height: 36px !important; right: 8px !important;
-}
-.call-instance-select + .select2-container--open .select2-selection--single,
-.call-instance-select + .select2-container--focus .select2-selection--single {
-    border-color: #25D366 !important; box-shadow: 0 0 0 0.2rem rgba(37,211,102,.15) !important;
-}
-.select2-results__option { padding: 8px 12px !important; font-size: 14px !important; }
-.select2-results__option--highlighted { background: #25D366 !important; color: #fff !important; }
-.select2-dropdown { border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important; box-shadow: 0 4px 12px rgba(0,0,0,.1) !important; }
-</style>
+
 
     <div class="col-12">
         <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-light btn-sm mb-3">
@@ -40,9 +20,9 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Instância</label>
-                            <select name="instance_id" class="form-select call-instance-select" data-placeholder="Selecione...">
+                            <select name="instance_id" class="form-select form-select-solid call-instance-select" data-control="select2" data-hide-search="true" data-placeholder="Selecione...">
                                 <?php foreach ($accounts as $a): ?>
-                                <option value="<?php _ec($a->token) ?>" data-avatar="<?php _ec(get_file_url($a->avatar)) ?>" data-name="<?php _ec($a->name ?: $a->token) ?>" <?php echo $a->token == $campaign->instance_id ? 'selected' : '' ?>><?php _ec($a->name ?: $a->token) ?></option>
+                                <option value="<?php _ec($a->token) ?>" data-img="<?php _ec(get_file_url($a->avatar)) ?>" <?php echo $a->token == $campaign->instance_id ? 'selected' : '' ?>><?php _ec($a->name ?: $a->token) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -65,14 +45,56 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold">Leads atuais (<?php echo count($leads) ?>)</label>
-                            <div class="border rounded p-2 mb-2" style="max-height:150px; overflow-y:auto;">
+                            <div class="border rounded p-2 mb-3" style="max-height:120px; overflow-y:auto;">
                                 <?php foreach ($leads as $lead): ?>
                                 <span class="badge bg-light text-dark me-1 mb-1"><?php echo htmlspecialchars($lead->phone) ?> <?php echo htmlspecialchars($lead->name) ?></span>
                                 <?php endforeach; ?>
                             </div>
-                            <label class="form-label fw-bold">Adicionar números (um por linha, será normalizado)</label>
-                            <textarea name="phones" class="form-control" rows="4" placeholder="5511999999999&#10;5521888888888"></textarea>
-                            <small class="text-muted">Novos números serão adicionados. Leads já existentes mantidos.</small>
+
+                            <label class="form-label fw-bold">Alterar leads</label>
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeKeep" value="keep" checked onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeKeep">Manter atuais</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeAll" value="all_contacts" onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeAll">Todos os contatos (<?php echo count($contacts) ?>)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeSelect" value="selected_contacts" onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeSelect">Selecionar contatos</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeManual" value="manual" onchange="toggleLeadMode()">
+                                    <label class="form-check-label" for="leadModeManual">Colar números</label>
+                                </div>
+                            </div>
+
+                            <div id="leadModeSelectPanel" class="d-none mb-3">
+                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                                    <?php if (!empty($contacts)): ?>
+                                    <?php foreach ($contacts as $c): ?>
+                                    <?php if ($c->phone_count > 0): ?>
+                                    <div class="form-check py-1">
+                                        <input class="form-check-input" type="checkbox" name="selected_contacts[]" value="<?php echo (int)$c->id ?>" id="edit_contact_<?php echo (int)$c->id ?>">
+                                        <label class="form-check-label" for="edit_contact_<?php echo (int)$c->id ?>">
+                                            <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
+                                            <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
+                                        </label>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php endforeach; ?>
+                                    <?php else: ?>
+                                    <p class="text-muted small mb-0">Nenhum contato encontrado.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <div id="leadModeManualPanel" class="d-none">
+                                <textarea name="phones" class="form-control" rows="4" placeholder="5511999999999&#10;5521888888888"></textarea>
+                                <small class="text-muted">Um número por linha. Nono dígito será normalizado. Substitui os leads atuais.</small>
+                            </div>
                         </div>
                         <div class="col-12">
                             <div class="p-4 rounded border border-primary border-dashed bg-white">
@@ -143,6 +165,16 @@
 
 <script>
 $(document).ready(function() {
+    // Toggle lead mode
+    function toggleLeadMode() {
+        var mode = $('input[name="lead_mode"]:checked').val();
+        $('#leadModeSelectPanel').toggleClass('d-none', mode !== 'selected_contacts');
+        $('#leadModeManualPanel').toggleClass('d-none', mode !== 'manual');
+    }
+    // Expose globally
+    window.toggleLeadMode = toggleLeadMode;
+    $('input[name="lead_mode"]').on('change', toggleLeadMode);
+
     // DateTimePicker
     var $tp = $('#call_time_post_edit');
     if ($tp.length && typeof $tp.datetimepicker === 'function') {
@@ -155,31 +187,10 @@ $(document).ready(function() {
             dayNamesMin: ['D','S','T','Q','Q','S','S']
         });
     }
-    // Select2 - instance with avatar
-    var $inst = $('.call-instance-select');
-    if ($inst.length && typeof $inst.select2 === 'function') {
-        $inst.select2({
-            placeholder: 'Selecione...',
-            templateResult: function(opt) {
-                if (!opt.id) return opt.text;
-                var avatar = $(opt.element).data('avatar');
-                var name = $(opt.element).data('name') || opt.text;
-                if (!avatar) return $('<span>').text(name);
-                return $('<span><img src="' + avatar + '" style="width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
-            },
-            templateSelection: function(opt) {
-                if (!opt.id) return opt.text;
-                var avatar = $(opt.element).data('avatar');
-                var name = $(opt.element).data('name') || opt.text;
-                if (!avatar) return $('<span>').text(name);
-                return $('<span><img src="' + avatar + '" style="width:20px;height:20px;border-radius:50%;margin-right:6px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
-            }
-        });
-    }
-    // Select2 - schedule hours
+    // Select2 - schedule hours (theme auto-inits instance select via data-control)
     var $st = $('.call-schedule-time');
     if ($st.length && typeof $st.select2 === 'function') {
-        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true });
+        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true, theme: 'bootstrap5', selectionCssClass: ':all:', width: 'resolve' });
     }
 });
 </script>

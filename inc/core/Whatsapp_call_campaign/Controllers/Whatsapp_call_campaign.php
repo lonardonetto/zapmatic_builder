@@ -357,12 +357,27 @@ class Whatsapp_call_campaign extends Controller
         $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
         $phones_raw = $this->request->getPost('phones') ?: '';
+        $lead_mode = $this->request->getPost('lead_mode') ?: 'keep';
+        $selected_contacts = $this->request->getPost('selected_contacts') ?: [];
 
         // Agendamento
         $schedule_time = $this->request->getPost('schedule_time') ?: [];
         $schedule_weekdays = $this->request->getPost('schedule_weekdays') ?: [];
         $skip_holidays = (int) ($this->request->getPost('skip_team_holidays') ?: 0);
         $timezone = $this->request->getPost('timezone') ?: '';
+        $time_post_raw = trim($this->request->getPost('time_post') ?: '');
+        $clear_time_post = (int) ($this->request->getPost('clear_time_post') ?: 0);
+        $schedule_start = null;
+        if ($clear_time_post === 1) {
+            $time_post_raw = '';
+        }
+        if (!empty($time_post_raw)) {
+            $tz = !empty($timezone) ? $timezone : date_default_timezone_get();
+            try {
+                $dt = \DateTime::createFromFormat('d/m/Y H:i', $time_post_raw, new \DateTimeZone($tz));
+                if ($dt) $schedule_start = $dt->format('Y-m-d H:i:s');
+            } catch (\Throwable $e) {}
+        }
 
         $campaign = $this->db->table(self::TB_CAMPAIGNS)
             ->where('id', $campaign_id)
@@ -386,43 +401,59 @@ class Whatsapp_call_campaign extends Controller
         $updateData['schedule_weekdays'] = !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null;
         $updateData['skip_team_holidays'] = $skip_holidays;
         $updateData['timezone'] = !empty($timezone) ? $timezone : null;
+        if ($schedule_start !== null) $updateData['schedule_start'] = $schedule_start;
 
         $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->update($updateData);
 
-        // Atualizar leads se fornecidos
-        if (!empty($phones_raw)) {
-            include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+        // Atualizar leads conforme modo selecionado
+        if ($lead_mode !== 'keep') {
+            $newPhones = [];
+            $phoneNames = [];
 
-            $phones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
-            $phones = array_map('call_normalize_phone', $phones);
-            $phones = array_filter($phones, function($p) { return strlen($p) >= 12; });
-            $phones = array_values(array_unique($phones));
+            if ($lead_mode === 'all_contacts') {
+                $contacts = call_get_contacts_with_phones($team_id);
+                foreach ($contacts as $c) {
+                    foreach ($c->valid_phones as $p) {
+                        $newPhones[] = $p;
+                        $phoneNames[$p] = $c->name;
+                    }
+                }
+            } elseif ($lead_mode === 'selected_contacts' && !empty($selected_contacts)) {
+                $ids = is_array($selected_contacts) ? $selected_contacts : explode(',', $selected_contacts);
+                $contacts = call_get_contacts_with_phones($team_id);
+                foreach ($contacts as $c) {
+                    if (in_array((string)$c->id, $ids)) {
+                        foreach ($c->valid_phones as $p) {
+                            $newPhones[] = $p;
+                            $phoneNames[$p] = $c->name;
+                        }
+                    }
+                }
+            } else {
+                // Manual
+                $newPhones = array_filter(array_map('trim', preg_split('/[\n,]+/', $phones_raw)));
+                $newPhones = array_map('call_normalize_phone', $newPhones);
+                $newPhones = array_filter($newPhones, function($p) { return strlen($p) >= 12; });
+            }
 
-            if (!empty($phones)) {
-                // Remover leads antigos que não estão na nova lista
+            $newPhones = array_values(array_unique($newPhones));
+
+            if (!empty($newPhones)) {
+                // Deletar todos os leads pending atuais
                 $this->db->table(self::TB_LEADS)
                     ->where('campaign_id', $campaign_id)
-                    ->whereNotIn('phone', $phones)
                     ->where('status', 'pending')
                     ->delete();
 
-                // Adicionar leads novos
-                $existing = $this->db->table(self::TB_LEADS)
-                    ->select('phone')
-                    ->where('campaign_id', $campaign_id)
-                    ->get()->getResult();
-                $existingPhones = array_column($existing, 'phone');
-
+                // Inserir novos leads
                 $builder = $this->db->table(self::TB_LEADS);
-                foreach ($phones as $phone) {
-                    if (!in_array($phone, $existingPhones)) {
-                        $builder->insert([
-                            'campaign_id' => $campaign_id,
-                            'phone' => $phone,
-                            'name' => '',
-                            'status' => 'pending',
-                        ]);
-                    }
+                foreach ($newPhones as $phone) {
+                    $builder->insert([
+                        'campaign_id' => $campaign_id,
+                        'phone' => $phone,
+                        'name' => $phoneNames[$phone] ?? '',
+                        'status' => 'pending',
+                    ]);
                 }
 
                 // Atualizar total
