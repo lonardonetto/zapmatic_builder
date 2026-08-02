@@ -27,7 +27,7 @@ class CallCampaignWorker extends BaseCommand
             try {
                 // Find running campaigns
                 $campaigns = $db->table(self::TB_CAMPAIGNS)
-                    ->where('status', 'running')
+                    ->whereIn('status', ['running', 'scheduled'])
                     ->get()->getResult();
 
                 foreach ($campaigns as $campaign) {
@@ -45,7 +45,20 @@ class CallCampaignWorker extends BaseCommand
 
     private function processCampaign($db, $campaign)
     {
-        // Verificar janela de agendamento
+        // Verificar agendamento inicial (schedule_start)
+        if ($campaign->status === 'scheduled' && !empty($campaign->schedule_start)) {
+            $start = strtotime($campaign->schedule_start);
+            if ($start > time()) {
+                return; // Ainda não é hora
+            }
+            // Hora de iniciar
+            $db->table(self::TB_CAMPAIGNS)
+                ->where('id', $campaign->id)
+                ->update(['status' => 'running']);
+            $campaign->status = 'running';
+        }
+
+        // Verificar janela de agendamento (dias/horários)
         if (!$this->isWithinScheduleWindow($campaign)) {
             return; // Fora da janela, tenta no próximo ciclo
         }

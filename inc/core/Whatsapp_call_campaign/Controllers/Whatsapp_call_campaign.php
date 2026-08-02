@@ -105,6 +105,15 @@ class Whatsapp_call_campaign extends Controller
         $schedule_weekdays = $this->request->getPost('schedule_weekdays') ?: [];
         $skip_holidays = (int) ($this->request->getPost('skip_team_holidays') ?: 0);
         $timezone = $this->request->getPost('timezone') ?: '';
+        $time_post_raw = trim($this->request->getPost('time_post') ?: '');
+        $schedule_start = null;
+        if (!empty($time_post_raw)) {
+            $tz = !empty($timezone) ? $timezone : date_default_timezone_get();
+            try {
+                $dt = \DateTime::createFromFormat('d/m/Y H:i', $time_post_raw, new \DateTimeZone($tz));
+                if ($dt) $schedule_start = $dt->format('Y-m-d H:i:s');
+            } catch (\Throwable $e) {}
+        }
 
         if (empty($name) || empty($instance_id)) {
             return redirect('whatsapp_call_campaign');
@@ -160,6 +169,8 @@ class Whatsapp_call_campaign extends Controller
             'schedule_weekdays' => !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null,
             'skip_team_holidays' => $skip_holidays,
             'timezone' => !empty($timezone) ? $timezone : null,
+            'schedule_start' => $schedule_start,
+            'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
         ]);
 
         $campaign_id = (int) $this->db->insertID();

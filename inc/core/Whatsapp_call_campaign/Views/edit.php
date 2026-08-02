@@ -52,39 +52,18 @@
                             <small class="text-muted">Novos números serão adicionados. Leads já existentes mantidos.</small>
                         </div>
                         <div class="col-12">
-                            <div class="border rounded p-3">
-                                <h6 class="fw-bold mb-3"><i class="fad fa-calendar-alt me-2 text-primary"></i>Janela de Execução</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">Horários permitidos</label>
-                                        <?php $schedHours = json_decode($campaign->schedule_time ?? '[]', true) ?? []; ?>
-                                        <select name="schedule_time[]" class="form-select" multiple size="4">
-                                            <?php for ($h = 0; $h <= 23; $h++): ?>
-                                            <option value="<?php echo $h ?>" <?php echo in_array((string)$h, $schedHours) ? 'selected' : '' ?>><?php echo str_pad($h, 2, '0', STR_PAD_LEFT) ?>:00</option>
-                                            <?php endfor; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">Dias permitidos</label>
-                                        <?php $schedDays = json_decode($campaign->schedule_weekdays ?? '[]', true) ?? []; ?>
-                                        <div class="d-flex flex-wrap gap-1">
-                                            <?php
-                                            $dayNames = [1=>'Seg',2=>'Ter',3=>'Qua',4=>'Qui',5=>'Sex',6=>'Sáb',7=>'Dom'];
-                                            foreach ($dayNames as $val => $label):
-                                            ?>
-                                            <label class="btn btn-sm <?php echo in_array((string)$val, $schedDays) ? 'btn-primary' : 'btn-outline-secondary' ?>">
-                                                <input type="checkbox" name="schedule_weekdays[]" value="<?php echo $val ?>" class="d-none" <?php echo in_array((string)$val, $schedDays) ? 'checked' : '' ?>> <?php echo $label ?>
-                                            </label>
-                                            <?php endforeach; ?>
+                            <div class="p-4 rounded border border-primary border-dashed bg-white">
+                                <h4 class="mb-3"><i class="fad fa-calendar-alt me-2 text-primary"></i>Janela de Execução</h4>
+                                <div class="row g-4">
+                                    <div class="col-xl-6">
+                                        <label class="form-label d-block fw-bold">Agendar início</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fad fa-calendar-alt"></i></span>
+                                            <input type="text" class="form-control datetime" id="call_time_post_edit" name="time_post" autocomplete="off" placeholder="dd/mm/aaaa HH:mm" value="<?php echo !empty($campaign->schedule_start) ? date('d/m/Y H:i', strtotime($campaign->schedule_start)) : '' ?>">
                                         </div>
+                                        <p class="fs-12 text-gray-600 mb-0 mt-1">Deixe vazio para iniciar imediatamente.</p>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="skip_team_holidays" value="1" <?php echo !empty($campaign->skip_team_holidays) ? 'checked' : '' ?>>
-                                            <label class="form-check-label">Ignorar feriados</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-8">
+                                    <div class="col-xl-6">
                                         <label class="form-label fw-bold">Timezone</label>
                                         <select name="timezone" class="form-select">
                                             <option value="">Padrão</option>
@@ -92,6 +71,38 @@
                                             <option value="<?php echo $tz ?>" <?php echo ($campaign->timezone ?? '') === $tz ? 'selected' : '' ?>><?php echo $tz ?></option>
                                             <?php endforeach; ?>
                                         </select>
+                                    </div>
+                                    <div class="col-xl-6">
+                                        <label class="form-label d-block fw-bold">Horários permitidos</label>
+                                        <?php $schedHours = json_decode($campaign->schedule_time ?? '[]', true) ?? []; ?>
+                                        <select class="form-select call-schedule-time mb-2" data-control="select2" data-placeholder="Selecione os horários permitidos" multiple name="schedule_time[]">
+                                            <?php for ($i = 0; $i <= 23; $i++): ?>
+                                            <option value="<?php echo $i ?>" <?php echo in_array((string)$i, $schedHours) ? 'selected' : '' ?>><?php echo str_pad($i, 2, '0', STR_PAD_LEFT) ?>:00</option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-xl-6">
+                                        <label class="form-label d-block fw-bold">Dias permitidos</label>
+                                        <div class="d-flex flex-wrap gap-2 mb-3">
+                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5,6,7">Todos</button>
+                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5">Dias úteis</button>
+                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="6,7">Fim de semana</button>
+                                            <button type="button" class="btn btn-light btn-sm call-weekday-clear">Limpar</button>
+                                        </div>
+                                        <?php $schedDays = json_decode($campaign->schedule_weekdays ?? '[]', true) ?? []; ?>
+                                        <?php $weekday_options = call_schedule_weekday_options(); ?>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <?php foreach ($weekday_options as $wv => $wm): ?>
+                                            <input type="checkbox" class="btn-check call-weekday-input" name="schedule_weekdays[]" id="edit_weekday_<?php echo $wv ?>" value="<?php echo $wv ?>" autocomplete="off" <?php echo in_array((string)$wv, $schedDays) ? 'checked' : '' ?>>
+                                            <label class="btn btn-sm btn-outline btn-outline-primary" for="edit_weekday_<?php echo $wv ?>"><?php echo $wm['short'] ?></label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="skip_team_holidays" value="1" <?php echo !empty($campaign->skip_team_holidays) ? 'checked' : '' ?>>
+                                            <label class="form-check-label">Ignorar feriados da equipe</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -106,3 +117,25 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    // DateTimePicker
+    var $tp = $('#call_time_post_edit');
+    if ($tp.length && typeof $tp.datetimepicker === 'function') {
+        $tp.datetimepicker({
+            controlType: 'select', oneLine: true, dateFormat: 'dd/mm/yy', timeFormat: 'HH:mm',
+            closeText: 'Fechar', prevText: 'Anterior', nextText: 'Próximo', currentText: 'Hoje',
+            monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+            dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+            dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+            dayNamesMin: ['D','S','T','Q','Q','S','S']
+        });
+    }
+    // Select2
+    var $st = $('.call-schedule-time');
+    if ($st.length && typeof $st.select2 === 'function') {
+        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true });
+    }
+});
+</script>
