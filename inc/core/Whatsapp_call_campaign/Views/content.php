@@ -81,6 +81,45 @@
     </div>
 </div>
 
+<!-- Audio Library -->
+<?php if (!empty($audios)): ?>
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-12 mb-4">
+            <div class="card-header border-0">
+                <h6 class="mb-0"><i class="fad fa-music me-2 text-primary"></i> Biblioteca de Áudios</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Nome</th>
+                                <th>Formato</th>
+                                <th>Duração</th>
+                                <th>Tamanho</th>
+                                <th>Criado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($audios as $a): ?>
+                            <tr>
+                                <td class="ps-3"><i class="fad fa-file-audio me-2 text-muted"></i><?php echo htmlspecialchars($a->name) ?></td>
+                                <td><span class="badge bg-light text-dark"><?php echo strtoupper(htmlspecialchars($a->format)) ?></span></td>
+                                <td><?php echo $a->duration_seconds > 0 ? gmdate("i:s", $a->duration_seconds) : '—' ?></td>
+                                <td><?php echo $a->file_size_bytes > 0 ? round($a->file_size_bytes / 1024 / 1024, 1) . ' MB' : '—' ?></td>
+                                <td class="text-muted small"><?php echo htmlspecialchars($a->created_at) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Modal: Criar Campanha -->
 <div class="modal fade" id="createCampaignModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -154,8 +193,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Arquivo (MP3, WAV, Opus)</label>
-                        <input type="file" name="audio_file" class="form-control" accept=".mp3,.wav,.opus" required>
-                        <small class="text-muted">Máximo 10MB. O áudio será tocado para o lead quando atender a chamada.</small>
+                        <input type="file" name="audio_file" class="form-control" accept=".mp3,.wav,.opus,.ogg,.oga,.flac,.aac,.m4a" required>
+                        <small class="text-muted">MP3, WAV, Opus, OGG, FLAC, AAC, M4A. Máximo 10MB. Formatos não-MP3 serão convertidos automaticamente.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

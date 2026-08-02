@@ -234,7 +234,7 @@ class Whatsapp_call_campaign extends Controller
         $name = $this->request->getPost('audio_name') ?: 'Audio';
 
         if (!$file || !$file->isValid()) {
-            return redirect('whatsapp_call_campaign')->with('error', 'No file uploaded');
+            return redirect('whatsapp_call_campaign');
         }
 
         // Save to writable/call_audio/
@@ -247,12 +247,37 @@ class Whatsapp_call_campaign extends Controller
         $file->move($dir, $newName);
 
         $filePath = $dir . $newName;
+        $ext = strtolower($file->getClientExtension());
         $duration = 0;
 
-        // Try to get duration with FFmpeg if available
+        // Get duration with FFmpeg
         $ffprobe = shell_exec("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
         if ($ffprobe && is_numeric(trim($ffprobe))) {
             $duration = (int) round((float) trim($ffprobe));
+        }
+
+        // Convert OGG/FLAC/AAC to MP3 for meowcaller compatibility
+        if (in_array($ext, ['ogg', 'oga', 'flac', 'aac', 'm4a', 'wma'])) {
+            $mp3Path = preg_replace('/\.[^.]+$/', '.mp3', $filePath);
+            $cmd = sprintf(
+                'ffmpeg -y -i %s -codec:a libmp3lame -q:a 2 -ar 16000 -ac 1 %s 2>&1',
+                escapeshellarg($filePath),
+                escapeshellarg($mp3Path)
+            );
+            shell_exec($cmd);
+
+            if (file_exists($mp3Path) && filesize($mp3Path) > 0) {
+                @unlink($filePath);
+                $filePath = $mp3Path;
+                $newName = basename($mp3Path);
+                $ext = 'mp3';
+
+                // Re-read duration after conversion
+                $ffprobe = shell_exec("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
+                if ($ffprobe && is_numeric(trim($ffprobe))) {
+                    $duration = (int) round((float) trim($ffprobe));
+                }
+            }
         }
 
         $this->db->table(self::TB_AUDIOS)->insert([
@@ -261,8 +286,8 @@ class Whatsapp_call_campaign extends Controller
             'original_name' => $file->getClientName(),
             'file_path' => $filePath,
             'duration_seconds' => $duration,
-            'format' => $file->getClientExtension(),
-            'file_size_bytes' => $file->getSize(),
+            'format' => $ext,
+            'file_size_bytes' => filesize($filePath),
         ]);
 
         return redirect('whatsapp_call_campaign');
