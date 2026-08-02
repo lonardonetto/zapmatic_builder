@@ -17,9 +17,9 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Instância</label>
-                            <select name="instance_id" class="form-select">
+                            <select name="instance_id" class="form-select call-instance-select" data-control="select2" data-placeholder="Selecione...">
                                 <?php foreach ($accounts as $a): ?>
-                                <option value="<?php _ec($a->token) ?>" <?php echo $a->token == $campaign->instance_id ? 'selected' : '' ?>><?php _ec($a->name ?: $a->token) ?></option>
+                                <option value="<?php _ec($a->token) ?>" data-avatar="<?php _ec(get_file_url($a->avatar)) ?>" data-name="<?php _ec($a->name ?: $a->token) ?>" <?php echo $a->token == $campaign->instance_id ? 'selected' : '' ?>><?php _ec($a->name ?: $a->token) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -132,7 +132,28 @@ $(document).ready(function() {
             dayNamesMin: ['D','S','T','Q','Q','S','S']
         });
     }
-    // Select2
+    // Select2 - instance with avatar
+    var $inst = $('.call-instance-select');
+    if ($inst.length && typeof $inst.select2 === 'function') {
+        $inst.select2({
+            placeholder: 'Selecione...',
+            templateResult: function(opt) {
+                if (!opt.id) return opt.text;
+                var avatar = $(opt.element).data('avatar');
+                var name = $(opt.element).data('name') || opt.text;
+                if (!avatar) return $('<span>').text(name);
+                return $('<span><img src="' + avatar + '" style="width:24px;height:24px;border-radius:50%;margin-right:8px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
+            },
+            templateSelection: function(opt) {
+                if (!opt.id) return opt.text;
+                var avatar = $(opt.element).data('avatar');
+                var name = $(opt.element).data('name') || opt.text;
+                if (!avatar) return $('<span>').text(name);
+                return $('<span><img src="' + avatar + '" style="width:20px;height:20px;border-radius:50%;margin-right:6px;vertical-align:middle;object-fit:cover;">' + name + '</span>');
+            }
+        });
+    }
+    // Select2 - schedule hours
     var $st = $('.call-schedule-time');
     if ($st.length && typeof $st.select2 === 'function') {
         $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true });
