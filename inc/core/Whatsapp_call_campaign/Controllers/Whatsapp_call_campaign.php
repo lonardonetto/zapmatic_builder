@@ -203,6 +203,7 @@ class Whatsapp_call_campaign extends Controller
 
         $phones = array_values(array_unique($phones));
 
+        try {
         $this->db->table(self::TB_CAMPAIGNS)->insert([
             'team_id' => $team_id,
             'instance_id' => $instance_id,
@@ -223,6 +224,20 @@ class Whatsapp_call_campaign extends Controller
             'schedule_start' => $schedule_start,
             'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
         ]);
+        } catch (\Throwable $e) {
+            // Fallback: insert without new columns if they don't exist
+            $this->db->table(self::TB_CAMPAIGNS)->insert([
+                'team_id' => $team_id,
+                'instance_id' => $instance_id,
+                'audio_id' => !empty($audio_id) ? (int)$audio_id : null,
+                'name' => $name,
+                'status' => !empty($schedule_start) ? 'scheduled' : 'draft',
+                'max_concurrent' => 1,
+                'delay_between_calls' => $delay,
+                'timeout_ring' => $timeout,
+                'total_leads' => count($phones),
+            ]);
+        }
 
         $campaign_id = (int) $this->db->insertID();
 
