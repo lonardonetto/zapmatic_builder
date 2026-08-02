@@ -1,3 +1,20 @@
+## v8.5.0 — 02/08/2026
+
+**Campanhas de chamada WhatsApp completas**
+
+- 3 modos de chamada: Fila, Alternado, Simultâneo (curl_multi)
+- Agendamento completo (igual bulk): horários, dias, feriados, timezone
+- Áudio preview (player HTML5) + upload inline (OGG/FLAC auto-conversão)
+- Leads editáveis: remover individual, adicionar por contatos ou manual
+- Select All/Deselect All para instâncias
+- Dashboard em tempo real (polling a cada 3s)
+- Shuffle anti-ban (ORDER BY RAND)
+- Delay aleatório entre min e max
+- Normalização 9º dígito em TODAS as rotas (send_pedido, campaigns, bulk, etc)
+- Go API: meowcaller integrado, endpoints /call/*
+- pair_status.php standalone endpoint
+- sp_call_campaigns, sp_call_leads, sp_call_audios + migrations
+
 # Changelog Zapmatic
 
 Todas as versões do sistema. Atualizado automaticamente com cada release.
