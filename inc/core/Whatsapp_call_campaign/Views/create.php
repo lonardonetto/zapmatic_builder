@@ -17,7 +17,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Instância WhatsApp</label>
-                            <select name="instance_id" class="form-select call-instance-select" required data-control="select2" data-placeholder="Selecione...">
+                            <select name="instance_id" class="form-select call-instance-select" required data-placeholder="Selecione...">
                                 <option value="">Selecione...</option>
                                 <?php foreach ($accounts as $a): ?>
                                 <option value="<?php _ec($a->token) ?>" data-avatar="<?php _ec(get_file_url($a->avatar)) ?>" data-name="<?php _ec($a->name ?: $a->token) ?>"><?php _ec($a->name ?: $a->token) ?> (<?php _ec($a->status == 1 ? 'Online' : 'Offline') ?>)</option>

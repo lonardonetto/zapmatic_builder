@@ -17,7 +17,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Instância</label>
-                            <select name="instance_id" class="form-select call-instance-select" data-control="select2" data-placeholder="Selecione...">
+                            <select name="instance_id" class="form-select call-instance-select" data-placeholder="Selecione...">
                                 <?php foreach ($accounts as $a): ?>
                                 <option value="<?php _ec($a->token) ?>" data-avatar="<?php _ec(get_file_url($a->avatar)) ?>" data-name="<?php _ec($a->name ?: $a->token) ?>" <?php echo $a->token == $campaign->instance_id ? 'selected' : '' ?>><?php _ec($a->name ?: $a->token) ?></option>
                                 <?php endforeach; ?>
