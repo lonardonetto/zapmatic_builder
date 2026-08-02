@@ -205,12 +205,12 @@
                          
                             <li class="d-flex justify-content-between align-items-center border-bottom py-2">
                                 <div class="p-t-4 p-b-4 pricing-feature-name"><?php _e("Max storage size")?></div>
-                                <div class="h-40 me-2 fs-14 pricing-feature-icon py-2 fw-6 text-gray-700"><?php _e( sprintf( __("%sMB"), $permissions["max_storage_size"])  )?></div>
+                                <div class="h-40 me-2 fs-14 pricing-feature-icon py-2 fw-6 text-gray-700"><?php _e( sprintf( __("%sMB"), $permissions["max_storage_size"] ?? '—')  )?></div>
                             </li>
 
                             <li class="d-flex justify-content-between align-items-center border-bottom py-2">
                                 <div class="p-t-4 p-b-4 pricing-feature-name"><?php _e("Max file size")?></div>
-                                <div class="h-40 me-2 fs-14 pricing-feature-icon py-2 fw-6 text-gray-700"><?php _e( sprintf( __("%sMB"), $permissions["max_file_size"])  )?></div>
+                                <div class="h-40 me-2 fs-14 pricing-feature-icon py-2 fw-6 text-gray-700"><?php _e( sprintf( __("%sMB"), $permissions["max_file_size"] ?? '—')  )?></div>
                             </li>
                         </ul>
 
