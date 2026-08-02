@@ -265,7 +265,26 @@
                                         <div class="text-gray-700" id="call-schedule-summary"><?php _e("Sem restrição.")?></div>
                                     </div>
                                 </div>
-                            </ Upload Audio Modal (edit) -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-dark"><?php _e("Voltar")?></a>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-success"><i class="fad fa-bolt me-1"></i>Salvar</button>
+                        <button type="submit" class="btn btn-success"><i class="fal fa-paper-plane me-1"></i>Salvar e Agendar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Upload Audio Modal (edit) -->
 <div class="modal fade" id="uploadAudioEditModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
