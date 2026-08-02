@@ -1,241 +1,256 @@
-<div class="row">
+<div class="container my-5">
+    <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-dark btn-sm mb-4">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
 
-
-
-    <div class="col-12">
-        <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-light btn-sm mb-3">
-            <i class="fas fa-arrow-left me-1"></i> Voltar
-        </a>
-        <div class="card border-0 shadow-sm rounded-12">
-            <div class="card-header border-0">
-                <h5 class="mb-0"><i class="fad fa-phone-volume me-2 text-success"></i>Nova Campanha de Chamada</h5>
+    <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/create')) ?>">
+        <div class="card b-r-6">
+            <div class="card-header">
+                <h3 class="card-title"><i class="<?php _ec($config['icon']) ?> me-2" style="color:<?php _ec($config['color']) ?>"></i> Nova Campanha de Chamada</h3>
             </div>
-            <form method="POST" action="<?php _e(base_url('whatsapp_call_campaign/create')) ?>">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <!-- Dados básicos -->
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Nome da campanha</label>
-                            <input type="text" name="name" class="form-control" required placeholder="Ex: Promoção Agosto">
-                        </div>
-                        <!-- Modo de chamada -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Modo de chamada</label>
-                            <div class="d-flex gap-3 mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked>
-                                    <label class="form-check-label" for="modeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação (mais seguro)</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel">
-                                    <label class="form-check-label" for="modeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo (mais rápido)</label>
-                                </div>
+            <div class="card-body position-relative">
+
+                <!-- 1. Seleção de contas -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Selecionar instâncias WhatsApp</label>
+                    <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                        <?php foreach ($accounts as $a): ?>
+                        <div class="d-flex align-items-center py-2 px-2 border-bottom">
+                            <?php $avatar = get_file_url($a->avatar); ?>
+                            <?php if (!empty($avatar)): ?>
+                            <img src="<?php _ec($avatar) ?>" style="width:32px;height:32px;border-radius:50%;margin-right:12px;object-fit:cover;">
+                            <?php endif; ?>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold"><?php echo htmlspecialchars($a->name ?: $a->token) ?></div>
+                                <small class="text-muted"><?php echo $a->status == 1 ? '🟢 Online' : '🔴 Offline' ?></small>
                             </div>
-                            <small class="text-muted">Rotação: 1 chamada por vez, alterna instâncias. Paralelo: N chamadas simultâneas.</small>
-                        </div>
-
-                        <!-- Instâncias (ambos modos precisam) -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Instâncias WhatsApp (selecione pelo menos 2)</label>
-                            <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
-                                <?php foreach ($accounts as $a): ?>
-                                <?php if ($a->status == 1): ?>
-                                <div class="form-check py-1">
-                                    <input class="form-check-input" type="checkbox" name="parallel_instances[]" value="<?php _ec($a->token) ?>" id="pinst_<?php _ec($a->id) ?>" checked>
-                                    <label class="form-check-label" for="pinst_<?php _ec($a->id) ?>">
-                                        <?php echo htmlspecialchars($a->name ?: $a->token) ?>
-                                        <span class="badge bg-success">Online</span>
-                                    </label>
-                                </div>
-                                <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                            <small class="text-muted">Rotação: alterna entre as selecionadas. Paralelo: usa todas ao mesmo tempo.</small>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Áudio para tocar</label>
-                            <select name="audio_id" class="form-select">
-                                <option value="">Nenhum (chamada sem áudio)</option>
-                                <?php foreach ($audios as $a): ?>
-                                <option value="<?php _ec($a->id) ?>"><?php _ec($a->name) ?> (<?php _ec($a->duration_seconds) ?>s)</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Delay mín (s)</label>
-                            <input type="number" name="delay_min" class="form-control" value="10" min="5">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Delay máx (s)</label>
-                            <input type="number" name="delay_max" class="form-control" value="60" min="10">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Timeout toque (s)</label>
-                            <input type="number" name="timeout_ring" class="form-control" value="30" min="10">
-                        </div>
-
-                        <!-- Leads -->
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Leads</label>
-                            <div class="d-flex gap-3 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeAll" value="all_contacts" onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeAll">Todos os contatos (<?php echo count($contacts) ?>)</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeSelect" value="selected_contacts" onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeSelect">Selecionar contatos</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="lead_mode" id="leadModeManual" value="manual" checked onchange="toggleLeadMode()">
-                                    <label class="form-check-label" for="leadModeManual">Colar números</label>
-                                </div>
-                            </div>
-
-                            <div id="leadModeSelectPanel" class="d-none mb-3">
-                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
-                                    <?php if (!empty($contacts)): ?>
-                                    <?php foreach ($contacts as $c): ?>
-                                    <?php if ($c->phone_count > 0): ?>
-                                    <div class="form-check py-1">
-                                        <input class="form-check-input" type="checkbox" name="selected_contacts[]" value="<?php echo (int)$c->id ?>" id="contact_<?php echo (int)$c->id ?>">
-                                        <label class="form-check-label" for="contact_<?php echo (int)$c->id ?>">
-                                            <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
-                                            <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
-                                        </label>
-                                    </div>
-                                    <?php endif; ?>
-                                    <?php endforeach; ?>
-                                    <?php else: ?>
-                                    <p class="text-muted small mb-0">Nenhum contato encontrado.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <div id="leadModeManualPanel">
-                                <textarea name="phones" class="form-control" rows="6" placeholder="5511999999999&#10;5521888888888&#10;5586777777777"></textarea>
-                                <small class="text-muted">Um número por linha. Nono dígito será normalizado automaticamente.</small>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="parallel_instances[]" value="<?php _ec($a->token) ?>" id="pinst_<?php _ec($a->id) ?>" <?php echo $a->status == 1 ? 'checked' : '' ?>>
                             </div>
                         </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
-                        <!-- Agendamento -->
-                        <div class="col-12">
-                            <div class="p-4 rounded border border-primary border-dashed bg-white">
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-                                    <div>
-                                        <h4 class="mb-0"><i class="fad fa-calendar-alt me-2 text-primary"></i>Janela de Execução</h4>
-                                        <span class="badge badge-light-info">Dias, horários e feriados</span>
+                <!-- 2. Nome da campanha -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nome da campanha</label>
+                    <input type="text" class="form-control" name="name" required placeholder="Ex: Promoção Agosto">
+                </div>
+
+                <!-- 3. Seleção de leads -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Grupo de contatos</label>
+                    <div class="d-flex gap-3 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="lead_mode" id="leadModeAll" value="all_contacts" onchange="toggleLeadMode()">
+                            <label class="form-check-label" for="leadModeAll">Todos (<?php echo count($contacts) ?> contatos)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="lead_mode" id="leadModeSelect" value="selected_contacts" onchange="toggleLeadMode()">
+                            <label class="form-check-label" for="leadModeSelect">Selecionar contatos</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="lead_mode" id="leadModeManual" value="manual" checked onchange="toggleLeadMode()">
+                            <label class="form-check-label" for="leadModeManual">Colar números</label>
+                        </div>
+                    </div>
+
+                    <div id="leadModeSelectPanel" class="d-none">
+                        <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                            <?php foreach ($contacts as $c): ?>
+                            <?php if ($c->phone_count > 0): ?>
+                            <div class="form-check py-1">
+                                <input class="form-check-input" type="checkbox" name="selected_contacts[]" value="<?php echo (int)$c->id ?>" id="contact_<?php echo (int)$c->id ?>">
+                                <label class="form-check-label" for="contact_<?php echo (int)$c->id ?>">
+                                    <?php echo htmlspecialchars($c->name ?: '(sem nome)') ?>
+                                    <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
+                                </label>
+                            </div>
+                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div id="leadModeManualPanel">
+                        <textarea name="phones" class="form-control" rows="5" placeholder="5511999999999&#10;5521888888888&#10;5586777777777"></textarea>
+                        <small class="text-muted">Um número por linha. Nono dígito será normalizado automaticamente.</small>
+                    </div>
+                </div>
+
+                <!-- 4. Modo de chamada + Delay -->
+                <div class="mb-3">
+                    <div class="card border b-r-6">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Modo de chamada</label>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="call_mode" id="modeRotation" value="rotation" checked>
+                                            <label class="form-check-label" for="modeRotation"><i class="fad fa-sync-alt me-1"></i>Rotação</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="call_mode" id="modeParallel" value="parallel">
+                                            <label class="form-check-label" for="modeParallel"><i class="fad fa-layer-group me-1"></i>Paralelo</label>
+                                        </div>
                                     </div>
-                                    <p class="text-gray-700 mb-0 fs-12">Defina quando a campanha pode rodar. O delay entre chamadas controla o espaçamento.</p>
+                                    <small class="text-muted">Rotação: 1 chamada por vez, alterna instâncias. Paralelo: N chamadas simultâneas.</small>
                                 </div>
-                                <div class="row g-4">
-                                    <div class="col-xl-6">
-                                        <label class="form-label d-block fw-bold">Agendar início</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text"><i class="fad fa-calendar-alt"></i></span>
-                                            <input type="text" class="form-control datetime" id="call_time_post" name="time_post" autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
-                                        </div>
-                                        <p class="fs-12 text-gray-600 mb-0 mt-1">Deixe vazio para iniciar imediatamente ao clicar em Iniciar.</p>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Áudio para tocar</label>
+                                    <select name="audio_id" class="form-select">
+                                        <option value="">Nenhum</option>
+                                        <?php foreach ($audios as $a): ?>
+                                        <option value="<?php _ec($a->id) ?>"><?php _ec($a->name) ?> (<?php _ec($a->duration_seconds) ?>s)</option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Delay mín (s)</label>
+                                    <select class="form-select" name="delay_min">
+                                        <?php for ($i = 5; $i <= 120; $i += ($i < 30 ? 5 : ($i < 60 ? 10 : 30))): ?>
+                                        <option value="<?php echo $i ?>" <?php echo $i === 10 ? 'selected' : '' ?>><?php echo $i ?>s</option>
+                                        <?php endfor; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Delay máx (s)</label>
+                                    <select class="form-select" name="delay_max">
+                                        <?php for ($i = 10; $i <= 300; $i += ($i < 60 ? 10 : 30)): ?>
+                                        <option value="<?php echo $i ?>" <?php echo $i === 60 ? 'selected' : '' ?>><?php echo $i ?>s</option>
+                                        <?php endfor; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Timeout toque (s)</label>
+                                    <select class="form-select" name="timeout_ring">
+                                        <?php for ($i = 10; $i <= 120; $i += 10): ?>
+                                        <option value="<?php echo $i ?>" <?php echo $i === 30 ? 'selected' : '' ?>><?php echo $i ?>s</option>
+                                        <?php endfor; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Time post -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Agendar início</label>
+                    <input type="text" class="form-control datetime" id="call_time_post" name="time_post" autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
+                    <div class="fs-12 text-gray-600 mt-1">Deixe vazio para iniciar imediatamente ao clicar em Criar.</div>
+                </div>
+
+                <!-- 6. Janela de disparo -->
+                <div class="mb-3">
+                    <div class="card border b-r-6 bg-light-info">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-4">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                        <h4 class="mb-0"><?php _e("Janela de execução")?></h4>
+                                        <span class="badge badge-light-info"><?php _e("Dias, horários e feriados")?></span>
                                     </div>
-                                    <div class="col-xl-6">
-                                        <label class="form-label fw-bold">Timezone</label>
-                                        <select name="timezone" class="form-select">
-                                            <option value="">Padrão do sistema</option>
-                                            <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
-                                            <option value="America/Manaus">America/Manaus (AMT)</option>
-                                            <option value="America/Belem">America/Belem (BRT)</option>
-                                            <option value="America/Fortaleza">America/Fortaleza (BRT)</option>
-                                            <option value="America/Bahia">America/Bahia (BRT)</option>
-                                            <option value="America/Recife">America/Recife (BRT)</option>
-                                            <option value="America/Noronha">America/Noronha (FNT)</option>
-                                        </select>
+                                    <p class="text-gray-700 mb-0"><?php _e("Defina quando a campanha pode rodar.")?></p>
+                                </div>
+                            </div>
+
+                            <div class="row g-4">
+                                <div class="col-xl-6">
+                                    <label class="form-label d-block fw-bold"><?php _e("Horários permitidos")?></label>
+                                    <ul class="d-flex flex-wrap seclect-shedule-time gap-3 mb-3" style="list-style:none;padding:0;">
+                                        <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="daytime"><?php _e("Daytime")?></a></li>
+                                        <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="nighttime"><?php _e("Nighttime")?></a></li>
+                                        <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="odd"><?php _e("Odd")?></a></li>
+                                        <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="even"><?php _e("Even")?></a></li>
+                                    </ul>
+                                    <select class="form-select call-schedule-time mb-2" data-control="select2" data-placeholder="<?php _e("Selecione os horários permitidos")?>" multiple name="schedule_time[]">
+                                        <?php for ($i = 0; $i <= 23; $i++): ?>
+                                        <option value="<?php echo $i ?>"><?php echo str_pad($i, 2, '0', STR_PAD_LEFT) ?>:00</option>
+                                        <?php endfor; ?>
+                                    </select>
+                                    <p class="fs-12 text-gray-600 mb-1"><?php _e("Escolha os horários em que a campanha poderá ser executada.")?></p>
+                                    <p class="fs-12 text-danger mb-0"><?php _e("Se nenhum horário for selecionado, a campanha poderá rodar em qualquer hora do dia.")?></p>
+                                </div>
+
+                                <div class="col-xl-6">
+                                    <label class="form-label d-block fw-bold"><?php _e("Dias permitidos")?></label>
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5,6,7"><?php _e("Todos")?></button>
+                                        <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5"><?php _e("Dias úteis")?></button>
+                                        <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="6,7"><?php _e("Fim de semana")?></button>
+                                        <button type="button" class="btn btn-light btn-sm call-weekday-clear"><?php _e("Limpar")?></button>
                                     </div>
-                                    <div class="col-xl-6">
-                                        <label class="form-label d-block fw-bold">Horários permitidos</label>
-                                        <ul class="d-flex flex-wrap seclect-shedule-time gap-3 mb-3" style="list-style:none;padding:0;">
-                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="daytime">Daytime</a></li>
-                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="nighttime">Nighttime</a></li>
-                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="odd">Odd</a></li>
-                                            <li><a href="javascript:void(0);" class="call-schedule-preset" data-time="even">Even</a></li>
-                                        </ul>
-                                        <select class="form-select call-schedule-time mb-2" data-control="select2" data-placeholder="Selecione os horários permitidos" multiple name="schedule_time[]">
-                                            <?php for ($i = 0; $i <= 23; $i++): ?>
-                                            <option value="<?php echo $i ?>"><?php echo str_pad($i, 2, '0', STR_PAD_LEFT) ?>:00</option>
-                                            <?php endfor; ?>
-                                        </select>
-                                        <p class="fs-12 text-gray-600 mb-1">Escolha os horários em que a campanha poderá ser executada.</p>
-                                        <p class="fs-12 text-danger mb-0">Se nenhum horário for selecionado, a campanha poderá rodar em qualquer hora do dia.</p>
+                                    <div class="d-flex flex-wrap gap-2" id="call-weekday-selector">
+                                        <?php $weekday_options = call_schedule_weekday_options(); ?>
+                                        <?php foreach ($weekday_options as $wv => $wm): ?>
+                                        <input type="checkbox" class="btn-check call-weekday-input" name="schedule_weekdays[]" id="create_weekday_<?php echo $wv ?>" value="<?php echo $wv ?>" autocomplete="off">
+                                        <label class="btn btn-sm btn-outline btn-outline-primary" for="create_weekday_<?php echo $wv ?>" title="<?php echo $wm['label'] ?>"><?php echo $wm['short'] ?></label>
+                                        <?php endforeach; ?>
                                     </div>
-                                    <div class="col-xl-6">
-                                        <label class="form-label d-block fw-bold">Dias permitidos</label>
-                                        <div class="d-flex flex-wrap gap-2 mb-3">
-                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5,6,7">Todos</button>
-                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="1,2,3,4,5">Dias úteis</button>
-                                            <button type="button" class="btn btn-light-primary btn-sm call-weekday-preset" data-weekdays="6,7">Fim de semana</button>
-                                            <button type="button" class="btn btn-light btn-sm call-weekday-clear">Limpar</button>
+                                    <p class="fs-12 text-gray-600 mb-0 mt-2"><?php _e("Se nenhum dia for marcado, a campanha poderá rodar em qualquer dia.")?></p>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 p-3 rounded border border-primary border-dashed bg-white">
+                                        <div class="form-check form-switch m-0">
+                                            <input class="form-check-input" type="checkbox" value="1" id="call_skip_holidays" name="skip_team_holidays">
+                                            <label class="form-check-label fw-bold" for="call_skip_holidays"><?php _e("Ignorar feriados da equipe")?></label>
                                         </div>
-                                        <div class="d-flex flex-wrap gap-2" id="call-weekday-selector">
-                                            <?php
-                                            $weekday_options = call_schedule_weekday_options();
-                                            foreach ($weekday_options as $wv => $wm):
-                                            ?>
-                                            <input type="checkbox" class="btn-check call-weekday-input" name="schedule_weekdays[]" id="create_weekday_<?php echo $wv ?>" value="<?php echo $wv ?>" autocomplete="off">
-                                            <label class="btn btn-sm btn-outline btn-outline-primary" for="create_weekday_<?php echo $wv ?>" title="<?php echo $wm['label'] ?>"><?php echo $wm['short'] ?></label>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <p class="fs-12 text-gray-600 mb-0 mt-2">Se nenhum dia for marcado, a campanha poderá rodar em qualquer dia.</p>
+                                        <div class="text-gray-600 fs-12"><?php _e("Ao ativar, as chamadas serão reagendadas quando a data local estiver marcada como feriado.")?></div>
                                     </div>
-                                    <div class="col-12">
-                                        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 p-3 rounded border border-primary border-dashed bg-white">
-                                            <div class="form-check form-switch m-0">
-                                                <input class="form-check-input" type="checkbox" value="1" id="call_skip_holidays" name="skip_team_holidays">
-                                                <label class="form-check-label fw-600 text-gray-700 ms-2" for="call_skip_holidays">Ignorar feriados da equipe</label>
-                                            </div>
-                                            <div class="text-gray-600 fs-12">Ao ativar, as chamadas serão automaticamente reagendadas quando a data local estiver marcada como feriado.</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="alert alert-light-primary border border-primary border-dashed mb-0">
-                                            <div class="fw-600 text-gray-800 mb-1">Resumo da janela</div>
-                                            <div class="text-gray-700" id="call-schedule-summary">Sem restrição. A campanha poderá rodar a qualquer momento.</div>
-                                        </div>
+                                </div>
+
+                                <div class="col-xl-6">
+                                    <label class="form-label fw-bold"><?php _e("Timezone")?></label>
+                                    <select name="timezone" class="form-select">
+                                        <option value="">Padrão do sistema</option>
+                                        <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                                        <option value="America/Manaus">America/Manaus (AMT)</option>
+                                        <option value="America/Belem">America/Belem (BRT)</option>
+                                        <option value="America/Fortaleza">America/Fortaleza (BRT)</option>
+                                        <option value="America/Bahia">America/Bahia (BRT)</option>
+                                        <option value="America/Recife">America/Recife (BRT)</option>
+                                        <option value="America/Noronha">America/Noronha (FNT)</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="alert alert-light-primary border border-primary border-dashed mb-0" id="call-schedule-summary-wrap">
+                                        <div class="fw-bold text-gray-800 mb-1"><?php _e("Resumo da janela")?></div>
+                                        <div class="text-gray-700" id="call-schedule-summary"><?php _e("Sem restrição. A campanha poderá rodar a qualquer momento.")?></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer justify-content-between d-flex">
-                    <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-light">Cancelar</a>
+
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-dark"><?php _e("Voltar")?></a>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-outline-success"><i class="fad fa-bolt me-1"></i>Criar Campanha</button>
-                        <button type="submit" class="btn btn-success"><i class="fad fa-calendar-check me-1"></i>Agendar</button>
+                        <button type="submit" class="btn btn-success"><i class="fal fa-paper-plane me-1"></i>Agendar</button>
                     </div>
                 </div>
-                <input type="hidden" name="clear_time_post" id="callClearTimePost" value="0">
-            </form>
+            </div>
         </div>
-    </div>
+        <input type="hidden" name="clear_time_post" id="callClearTimePost" value="0">
+    </form>
 </div>
 
 <script>
 $(document).ready(function() {
-    // Toggle call mode
-    function toggleCallMode() {
-        var mode = $('input[name="call_mode"]:checked').val();
-        $('#rotationInstancePanel').toggleClass('d-none', mode !== 'rotation');
-        $('#parallelInstancesPanel').toggleClass('d-none', mode !== 'parallel');
-    }
-    window.toggleCallMode = toggleCallMode;
-    $('input[name="call_mode"]').on('change', toggleCallMode);
-
     // Toggle lead mode
     $('input[name="lead_mode"]').on('change', function() {
         var mode = $(this).val();
         $('#leadModeSelectPanel').toggleClass('d-none', mode !== 'selected_contacts');
         $('#leadModeManualPanel').toggleClass('d-none', mode !== 'manual');
     });
+
     // DateTimePicker
     var $tp = $('#call_time_post');
     if ($tp.length && typeof $tp.datetimepicker === 'function') {
@@ -248,18 +263,7 @@ $(document).ready(function() {
             dayNamesMin: ['D','S','T','Q','Q','S','S']
         });
     }
-    // Select2 - schedule hours (theme auto-inits instance select via data-control)
-    var $st = $('.call-schedule-time');
-    if ($st.length && typeof $st.select2 === 'function') {
-        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true, theme: 'bootstrap5', selectionCssClass: ':all:', width: 'resolve' });
-    }
-        });
-    }
-    // Select2 - schedule hours (use data-control for theme auto-init)
-    var $st = $('.call-schedule-time');
-    if ($st.length && typeof $st.select2 === 'function') {
-        $st.select2({ placeholder: 'Selecione os horários permitidos', allowClear: true, theme: 'bootstrap-5', width: '100%' });
-    }
+
     // Schedule presets
     $(document).on('click', '.call-schedule-preset', function() {
         var type = $(this).data('time');
@@ -274,24 +278,25 @@ $(document).ready(function() {
             else if (type === 'even') match = (val % 2 === 0);
             sel.options[i].selected = match;
         }
-        if ($st.length && typeof $st.select2 === 'function') $st.trigger('change.select2');
-        updateCallScheduleSummary();
+        var $st = $('.call-schedule-time');
+        if ($st.length) $st.trigger('change.select2');
+        updateScheduleSummary();
     });
+
     // Weekday presets
     $(document).on('click', '.call-weekday-preset', function() {
         var vals = String($(this).data('weekdays') || '').split(',');
         $('.call-weekday-input').each(function() { this.checked = vals.includes(this.value); });
-        updateCallScheduleSummary();
+        updateScheduleSummary();
     });
     $(document).on('click', '.call-weekday-clear', function() {
         $('.call-weekday-input').prop('checked', false);
-        updateCallScheduleSummary();
+        updateScheduleSummary();
     });
-    $(document).on('change', '.call-weekday-input, .call-schedule-time, #call_skip_holidays', updateCallScheduleSummary);
-    if ($st.length) $st.on('change', updateCallScheduleSummary);
+    $(document).on('change', '.call-weekday-input, .call-schedule-time, #call_skip_holidays', updateScheduleSummary);
 });
 
-function updateCallScheduleSummary() {
+function updateScheduleSummary() {
     var hours = [];
     var sel = document.querySelector('.call-schedule-time');
     if (sel) { for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].selected) hours.push(sel.options[i].value); } }
@@ -311,7 +316,7 @@ function updateCallScheduleSummary() {
     if (summary) summary.textContent = parts.length > 0 ? parts.join(' | ') : 'Sem restrição. A campanha poderá rodar a qualquer momento.';
 }
 
-// "Criar Campanha" clears time_post, "Agendar" keeps it
+// Criar Campanha clears time_post, Agendar keeps it
 document.querySelectorAll('button[type="submit"]').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var hidden = document.getElementById('callClearTimePost');
