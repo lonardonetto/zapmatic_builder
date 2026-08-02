@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS sp_call_campaigns (
     status ENUM('draft','scheduled','running','paused','completed','failed') DEFAULT 'draft',
     max_concurrent INT DEFAULT 1,
     delay_between_calls INT DEFAULT 30,
+    delay_min INT DEFAULT 10,
+    delay_max INT DEFAULT 60,
     timeout_ring INT DEFAULT 30,
     record_response TINYINT(1) DEFAULT 0,
     schedule_start DATETIME DEFAULT NULL,
@@ -32,6 +34,12 @@ CREATE TABLE IF NOT EXISTS sp_call_campaigns (
     calls_failed INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    schedule_time VARCHAR(255) DEFAULT NULL,
+    schedule_weekdays VARCHAR(255) DEFAULT NULL,
+    skip_team_holidays TINYINT(1) DEFAULT 0,
+    timezone VARCHAR(100) DEFAULT NULL,
+    call_mode VARCHAR(20) DEFAULT 'fila',
+    instance_ids TEXT DEFAULT NULL,
     INDEX idx_team_status (team_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
