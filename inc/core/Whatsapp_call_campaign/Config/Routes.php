@@ -17,6 +17,7 @@ if(
 
 $routes->group('', ['namespace' => 'Core\Whatsapp_call_campaign\Controllers'], static function ($routes) {
     $routes->get('whatsapp_call_campaign', 'Whatsapp_call_campaign::index');
+    $routes->get('whatsapp_call_campaign/create', 'Whatsapp_call_campaign::create_page');
     $routes->post('whatsapp_call_campaign/create', 'Whatsapp_call_campaign::create');
     $routes->post('whatsapp_call_campaign/start', 'Whatsapp_call_campaign::start');
     $routes->post('whatsapp_call_campaign/pause', 'Whatsapp_call_campaign::pause');

@@ -88,6 +88,38 @@ class Whatsapp_call_campaign extends Controller
         return view('Core\Whatsapp\Views\index', $data);
     }
 
+    public function create_page()
+    {
+        $team_id = get_team("id");
+
+        $accounts = db_fetch("*", TB_ACCOUNTS, [
+            "social_network" => "whatsapp", "category" => "profile",
+            "login_type" => [1, 3], "team_id" => $team_id, "status" => 1
+        ], "created", "ASC");
+
+        $audios = $this->db->table(self::TB_AUDIOS)
+            ->where('team_id', $team_id)
+            ->orderBy('id', 'DESC')
+            ->get()->getResult();
+
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+        $contacts = call_get_contacts_with_phones($team_id);
+
+        $data = [
+            "title" => $this->config['name'] . ' - Nova',
+            "desc" => 'Criar nova campanha de chamada',
+            "config" => $this->config,
+            "content" => view('Core\Whatsapp_call_campaign\Views\create', [
+                "config" => $this->config,
+                "accounts" => $accounts,
+                "audios" => $audios,
+                "contacts" => $contacts,
+            ])
+        ];
+
+        return view('Core\Whatsapp\Views\index', $data);
+    }
+
     public function create()
     {
         $team_id = get_team("id");
