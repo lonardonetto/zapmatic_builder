@@ -106,7 +106,12 @@ class Whatsapp_call_campaign extends Controller
         $skip_holidays = (int) ($this->request->getPost('skip_team_holidays') ?: 0);
         $timezone = $this->request->getPost('timezone') ?: '';
         $time_post_raw = trim($this->request->getPost('time_post') ?: '');
+        $clear_time_post = (int) ($this->request->getPost('clear_time_post') ?: 0);
         $schedule_start = null;
+        // Se clicou "Criar Campanha" (sem agendamento), ignora time_post
+        if ($clear_time_post === 1) {
+            $time_post_raw = '';
+        }
         if (!empty($time_post_raw)) {
             $tz = !empty($timezone) ? $timezone : date_default_timezone_get();
             try {

@@ -358,10 +358,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer justify-content-between">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success"><i class="fad fa-plus me-1"></i>Criar Campanha</button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-success" onclick="document.getElementById('callClearTimePost').value='1'"><i class="fad fa-bolt me-1"></i>Criar Campanha</button>
+                        <button type="submit" class="btn btn-success"><i class="fad fa-calendar-check me-1"></i>Agendar</button>
+                    </div>
                 </div>
+                <input type="hidden" name="clear_time_post" id="callClearTimePost" value="0">
             </form>
         </div>
     </div>
