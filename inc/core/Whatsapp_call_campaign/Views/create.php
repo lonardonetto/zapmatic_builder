@@ -1,4 +1,27 @@
 <div class="row">
+
+<style>
+/* Select2 Bootstrap match */
+.call-instance-select + .select2-container { width: 100% !important; }
+.call-instance-select + .select2-container .select2-selection--single {
+    height: 38px !important; border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important;
+    padding: 0 12px !important; font-size: 14px !important; background: #fff !important;
+}
+.call-instance-select + .select2-container .select2-selection--single .select2-selection__rendered {
+    line-height: 36px !important; padding-left: 0 !important; color: #333 !important;
+}
+.call-instance-select + .select2-container .select2-selection--single .select2-selection__arrow {
+    height: 36px !important; right: 8px !important;
+}
+.call-instance-select + .select2-container--open .select2-selection--single,
+.call-instance-select + .select2-container--focus .select2-selection--single {
+    border-color: #25D366 !important; box-shadow: 0 0 0 0.2rem rgba(37,211,102,.15) !important;
+}
+.select2-results__option { padding: 8px 12px !important; font-size: 14px !important; }
+.select2-results__option--highlighted { background: #25D366 !important; color: #fff !important; }
+.select2-dropdown { border: 1px solid #dee2e6 !important; border-radius: 0.375rem !important; box-shadow: 0 4px 12px rgba(0,0,0,.1) !important; }
+</style>
+
     <div class="col-12">
         <a href="<?php _e(base_url('whatsapp_call_campaign')) ?>" class="btn btn-light btn-sm mb-3">
             <i class="fas fa-arrow-left me-1"></i> Voltar
