@@ -382,12 +382,17 @@ poll();
     private function fetch_changelog(): string
     {
         $url = 'https://raw.githubusercontent.com/lonardonetto/zapmatic_builder/main/CHANGELOG.md';
-        $ctx = stream_context_create(['http' => [
-            'header' => "User-Agent: Zapmatic-Updater\r\n",
-            'timeout' => 10,
-        ]]);
-        $result = @file_get_contents($url, false, $ctx);
-        return $result ?: '';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_USERAGENT => 'Zapmatic-Updater',
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => 0,
+        ]);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return (!empty($result) && mb_strpos($result, '#') !== false) ? $result : '';
     }
 
     // ──────────────────────────────────────────────
