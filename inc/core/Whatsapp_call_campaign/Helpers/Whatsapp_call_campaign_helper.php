@@ -193,3 +193,55 @@ if (!function_exists('call_schedule_label')) {
         return implode(' | ', $parts);
     }
 }
+
+if (!function_exists('call_schedule_weekday_options')) {
+    function call_schedule_weekday_options(): array
+    {
+        return [
+            '1' => ['short' => 'Seg', 'label' => 'Segunda-feira'],
+            '2' => ['short' => 'Ter', 'label' => 'Terça-feira'],
+            '3' => ['short' => 'Qua', 'label' => 'Quarta-feira'],
+            '4' => ['short' => 'Qui', 'label' => 'Quinta-feira'],
+            '5' => ['short' => 'Sex', 'label' => 'Sexta-feira'],
+            '6' => ['short' => 'Sáb', 'label' => 'Sábado'],
+            '7' => ['short' => 'Dom', 'label' => 'Domingo'],
+        ];
+    }
+}
+
+if (!function_exists('call_decode_schedule_values')) {
+    function call_decode_schedule_values($values): array
+    {
+        if (is_string($values)) {
+            $values = trim($values);
+            if ($values === '') return [];
+            $decoded = json_decode($values, true);
+            if (is_array($decoded)) $values = $decoded;
+            else $values = explode(',', $values);
+        }
+        if (!is_array($values)) return [];
+        return array_values(array_filter(array_map('strval', $values), fn($v) => $v !== ''));
+    }
+}
+
+if (!function_exists('call_describe_schedule_weekdays')) {
+    function call_describe_schedule_weekdays(array $weekdays): string
+    {
+        $options = call_schedule_weekday_options();
+        $weekdays = array_values(array_unique(array_map('strval', $weekdays)));
+        if (empty($weekdays) || implode(',', $weekdays) === '1,2,3,4,5,6,7') return 'Todos os dias';
+        if (implode(',', $weekdays) === '1,2,3,4,5') return 'Seg-Sex';
+        if (implode(',', $weekdays) === '6,7') return 'Sáb-Dom';
+        $labels = [];
+        foreach ($weekdays as $d) $labels[] = $options[$d]['short'] ?? $d;
+        return implode(', ', $labels);
+    }
+}
+
+if (!function_exists('call_describe_schedule_hours')) {
+    function call_describe_schedule_hours(array $hours): string
+    {
+        if (empty($hours)) return 'Qualquer horário';
+        return implode(', ', array_map(fn($h) => str_pad($h, 2, '0', STR_PAD_LEFT) . ':00', $hours));
+    }
+}
