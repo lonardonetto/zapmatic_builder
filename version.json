@@ -1,8 +1,8 @@
 {
-    "version": "8.4.0",
+    "version": "8.5.0",
     "channel": "stable",
-    "build_date": "2026-08-01T21:20:00-03:00",
+    "build_date": "2026-08-02T12:52:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Campanhas de chamada WhatsApp (meowcaller) - ligue para leads e toque audio automaticamente"
+    "notes": "Campanhas de chamada WhatsApp - 3 modos (Fila/Alternado/Simultaneo), agendamento completo, audio preview, 9o digito normalizado em todas as rotas"
 }
