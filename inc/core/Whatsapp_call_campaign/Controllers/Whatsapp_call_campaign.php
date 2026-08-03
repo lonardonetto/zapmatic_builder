@@ -139,7 +139,7 @@ class Whatsapp_call_campaign extends Controller
         $instance_ids = is_array($parallel_instances) ? $parallel_instances : explode(',', $parallel_instances);
         $instance_ids = array_filter($instance_ids);
         if (empty($instance_ids)) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
         $instance_id = $instance_ids[0]; // fallback
 
@@ -164,7 +164,7 @@ class Whatsapp_call_campaign extends Controller
         }
 
         if (empty($name) || empty($instance_id)) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
@@ -198,7 +198,7 @@ class Whatsapp_call_campaign extends Controller
         }
 
         if (empty($phones)) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         $phones = array_values(array_unique($phones));
@@ -244,7 +244,7 @@ class Whatsapp_call_campaign extends Controller
             ]);
         }
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function start($campaign_id = 0)
@@ -258,7 +258,7 @@ class Whatsapp_call_campaign extends Controller
             ->whereIn('status', ['draft', 'paused'])
             ->update(['status' => 'running']);
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function pause($campaign_id = 0)
@@ -272,7 +272,7 @@ class Whatsapp_call_campaign extends Controller
             ->where('status', 'running')
             ->update(['status' => 'paused']);
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function repeat($campaign_id = 0)
@@ -287,7 +287,7 @@ class Whatsapp_call_campaign extends Controller
             ->get()->getRow();
 
         if (!$campaign) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         // Resetar campanha
@@ -317,7 +317,7 @@ class Whatsapp_call_campaign extends Controller
                 'retry_count' => 0,
             ]);
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function edit($campaign_id = 0)
@@ -331,7 +331,7 @@ class Whatsapp_call_campaign extends Controller
             ->get()->getRow();
 
         if (!$campaign) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         $leads = $this->db->table(self::TB_LEADS)
@@ -410,7 +410,7 @@ class Whatsapp_call_campaign extends Controller
             ->get()->getRow();
 
         if (!$campaign) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
@@ -500,7 +500,7 @@ class Whatsapp_call_campaign extends Controller
                 ->update(['total_leads' => $total]);
         }
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function delete($campaign_id = 0)
@@ -511,7 +511,7 @@ class Whatsapp_call_campaign extends Controller
         $this->db->table(self::TB_LEADS)->where('campaign_id', $campaign_id)->delete();
         $this->db->table(self::TB_CAMPAIGNS)->where('id', $campaign_id)->where('team_id', $team_id)->delete();
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function status($campaign_id)
@@ -548,7 +548,7 @@ class Whatsapp_call_campaign extends Controller
             ->get()->getRow();
 
         if (!$campaign) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         $leads = $this->db->table(self::TB_LEADS)
@@ -577,7 +577,7 @@ class Whatsapp_call_campaign extends Controller
         $name = $this->request->getPost('audio_name') ?: 'Audio';
 
         if (!$file || !$file->isValid()) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         // Save to writable/call_audio/
@@ -637,10 +637,10 @@ class Whatsapp_call_campaign extends Controller
         $redirect_back = $this->request->getPost('redirect_back');
         if ($redirect_back) {
             $referer = $this->request->getServer('HTTP_REFERER');
-            if ($referer) return redirect($referer);
+            if ($referer) { header('Location: ' . $referer); exit; }
         }
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function delete_audio()
@@ -649,7 +649,7 @@ class Whatsapp_call_campaign extends Controller
         $audio_id = (int) $this->request->getPost('audio_id');
 
         if (!$audio_id) {
-            return redirect(base_url('whatsapp_call_campaign'));
+            header('Location: ' . base_url('whatsapp_call_campaign')); exit;
         }
 
         // Get audio file path before deleting
@@ -667,7 +667,7 @@ class Whatsapp_call_campaign extends Controller
             $this->db->table(self::TB_AUDIOS)->where('id', $audio_id)->where('team_id', $team_id)->delete();
         }
 
-        return redirect(base_url('whatsapp_call_campaign'));
+        header('Location: ' . base_url('whatsapp_call_campaign')); exit;
     }
 
     public function audios()
