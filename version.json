@@ -1,8 +1,8 @@
 {
-    "version": "8.5.1",
+    "version": "8.5.2",
     "channel": "stable",
-    "build_date": "2026-08-02T14:17:00-03:00",
+    "build_date": "2026-08-04T20:09:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Fix: changelog na tela de atualização (cURL), normalização 9º dígito, migrations registradas"
+    "notes": "Fix: módulo de ligação completo (11 servidores), deploy protege google-service-account.json, WhatsAppGatewayService sync real-time status, fix safeShell recursivo, fix upload audio path ffmpeg completo, fix update() parallel_instances, LID resolution preservado"
 }

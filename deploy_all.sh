@@ -19,6 +19,7 @@ deploy_local() {
     echo ""
     echo "--- $name ($path) ---"
     rsync -avz --delete --force \
+      --exclude='google-service-account.json' \
       "$MAIN/app/" "$path/app/" 2>&1 | tail -1
     rsync -avz --delete --force \
       "$MAIN/inc/" "$path/inc/" 2>&1 | tail -1
@@ -50,6 +51,7 @@ deploy_remote() {
 
     # Enviar app + inc
     rsync -avz --delete --force \
+      --exclude='google-service-account.json' \
       -e "sshpass -p '$pass' ssh -o StrictHostKeyChecking=no" \
       "$MAIN/app/" "$user@$ip:$path/app/" 2>&1 | tail -1
     rsync -avz --delete --force \
@@ -90,20 +92,6 @@ deploy_remote() {
     " 2>&1
 
     echo "  -> OK"
-}
-
-# Funcao para comparar bancos remotos
-check_db_remote() {
-    local name=$1
-    local ip=$2
-    local user=$3
-    local pass=$4
-    local db=$5
-    local socket=$6
-
-    total=$(sshpass -p "$pass" ssh -o StrictHostKeyChecking=no "$user@$ip" \
-      "mysql -u $db -p$(echo $pass) $db -S $socket -N -e \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$db';\" 2>/dev/null" 2>/dev/null)
-    echo "  DB $name: ${total:-ERRO}/66 tabelas"
 }
 
 # ========================================

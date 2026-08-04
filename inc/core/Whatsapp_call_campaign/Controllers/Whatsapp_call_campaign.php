@@ -374,10 +374,16 @@ class Whatsapp_call_campaign extends Controller
         $team_id = get_team("id");
         $campaign_id = (int) ($this->request->getPost('campaign_id') ?: $campaign_id);
         $name = $this->request->getPost('name');
-        $instance_id = $this->request->getPost('instance_id');
+        $parallel_instances = $this->request->getPost('parallel_instances') ?: [];
         $audio_id = $this->request->getPost('audio_id');
-        $delay = (int) ($this->request->getPost('delay_between_calls') ?? 30);
+        $call_mode = $this->request->getPost('call_mode') ?: 'fila';
+        $delay_min = max(5, (int) ($this->request->getPost('delay_min') ?? 10));
+        $delay_max = max($delay_min, (int) ($this->request->getPost('delay_max') ?? 60));
         $timeout = (int) ($this->request->getPost('timeout_ring') ?? 30);
+
+        // Resolve instâncias
+        $instance_ids = is_array($parallel_instances) ? $parallel_instances : explode(',', $parallel_instances);
+        $instance_ids = array_filter($instance_ids);
 
         // Leads: keep_phones[] (mantidos) + add_contacts[] + add_phones
         $keep_phones = $this->request->getPost('keep_phones') ?: [];
@@ -418,9 +424,14 @@ class Whatsapp_call_campaign extends Controller
         // Atualizar dados da campanha
         $updateData = [];
         if (!empty($name)) $updateData['name'] = $name;
-        if (!empty($instance_id)) $updateData['instance_id'] = $instance_id;
+        if (!empty($instance_ids)) {
+            $updateData['instance_id'] = $instance_ids[0];
+            $updateData['instance_ids'] = json_encode(array_values($instance_ids));
+        }
         if ($audio_id !== null) $updateData['audio_id'] = !empty($audio_id) ? (int)$audio_id : null;
-        $updateData['delay_between_calls'] = $delay;
+        $updateData['call_mode'] = $call_mode;
+        $updateData['delay_min'] = $delay_min;
+        $updateData['delay_max'] = $delay_max;
         $updateData['timeout_ring'] = $timeout;
         $updateData['schedule_time'] = !empty($schedule_time) ? json_encode(call_normalize_schedule_hours($schedule_time)) : null;
         $updateData['schedule_weekdays'] = !empty($schedule_weekdays) ? json_encode(call_normalize_schedule_weekdays($schedule_weekdays)) : null;
@@ -593,8 +604,14 @@ class Whatsapp_call_campaign extends Controller
         $ext = strtolower($file->getClientExtension());
         $duration = 0;
 
+        // Resolve full paths for ffmpeg/ffprobe (www user may not have /usr/bin in PATH)
+        $ffmpeg = trim((string) $this->safeShell("which ffmpeg 2>/dev/null") ?: '');
+        if (empty($ffmpeg)) $ffmpeg = '/usr/bin/ffmpeg';
+        $ffprobeBin = trim((string) $this->safeShell("which ffprobe 2>/dev/null") ?: '');
+        if (empty($ffprobeBin)) $ffprobeBin = '/usr/bin/ffprobe';
+
         // Get duration with FFmpeg
-        $ffprobe = $this->safeShell("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
+        $ffprobe = $this->safeShell($ffprobeBin . " -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
         if ($ffprobe && is_numeric(trim($ffprobe))) {
             $duration = (int) round((float) trim($ffprobe));
         }
@@ -603,7 +620,8 @@ class Whatsapp_call_campaign extends Controller
         if (in_array($ext, ['ogg', 'oga', 'flac', 'aac', 'm4a', 'wma'])) {
             $mp3Path = preg_replace('/\.[^.]+$/', '.mp3', $filePath);
             $cmd = sprintf(
-                'ffmpeg -y -i %s -codec:a libmp3lame -q:a 2 -ar 16000 -ac 1 %s 2>&1',
+                '%s -y -i %s -codec:a libmp3lame -q:a 2 -ar 16000 -ac 1 %s 2>&1',
+                escapeshellarg($ffmpeg),
                 escapeshellarg($filePath),
                 escapeshellarg($mp3Path)
             );
@@ -616,7 +634,7 @@ class Whatsapp_call_campaign extends Controller
                 $ext = 'mp3';
 
                 // Re-read duration after conversion
-                $ffprobe = $this->safeShell("ffprobe -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
+                $ffprobe = $this->safeShell($ffprobeBin . " -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
                 if ($ffprobe && is_numeric(trim($ffprobe))) {
                     $duration = (int) round((float) trim($ffprobe));
                 }
@@ -692,7 +710,7 @@ class Whatsapp_call_campaign extends Controller
     {
         try {
             if (function_exists('shell_exec')) {
-                return $this->safeShell($cmd);
+                return shell_exec($cmd);
             }
             if (function_exists('exec')) {
                 $output = [];

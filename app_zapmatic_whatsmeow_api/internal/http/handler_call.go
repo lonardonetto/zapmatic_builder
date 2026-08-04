@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,13 +122,17 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 			ext = ".mp3"
 		}
 		if _, err := os.Stat(audioPath); err == nil {
-			switch ext {
-			case ".mp3":
-				audioSrc, err = meowcaller.MP3File(audioPath)
+			extLower := strings.ToLower(ext)
+			switch extLower {
 			case ".wav":
 				audioSrc, err = meowcaller.WAVFile(audioPath)
 			case ".opus":
 				audioSrc, err = meowcaller.OpusFile(audioPath)
+			case ".ogg", ".oga":
+				audioSrc, err = meowcaller.OpusFile(audioPath)
+				if err != nil {
+					audioSrc, err = meowcaller.MP3File(audioPath)
+				}
 			default:
 				audioSrc, err = meowcaller.MP3File(audioPath)
 			}
