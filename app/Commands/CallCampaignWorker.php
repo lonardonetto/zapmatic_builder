@@ -105,7 +105,7 @@ class CallCampaignWorker extends BaseCommand
             // Build batch
             $batch = [];
             $goBaseUrl = $this->getGoBaseUrl();
-            $audioPath = $this->getAudioPath($db, $campaign);
+            $audioInfo = $this->getAudioInfo($db, $campaign);
 
             foreach ($leads as $i => $lead) {
                 $targetInstance = $instanceIds[$i % count($instanceIds)];
@@ -113,7 +113,7 @@ class CallCampaignWorker extends BaseCommand
                     'status' => 'ringing', 'started_at' => date('Y-m-d H:i:s'),
                 ]);
                 $payload = ['instance_id' => $targetInstance, 'phone' => $lead->phone];
-                if ($audioPath) $payload['audio_path'] = $audioPath;
+                if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
                 $batch[] = [
                     'lead_id' => $lead->id,
                     'campaign_id' => $campaign->id,
@@ -186,8 +186,10 @@ class CallCampaignWorker extends BaseCommand
         $goBaseUrl = $this->getGoBaseUrl();
         $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
 
-        $audioPath = $this->getAudioPath($db, $campaign);
-        if ($audioPath) $payload['audio_path'] = $audioPath;
+        $audioInfo = $this->getAudioInfo($db, $campaign);
+
+        $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
+        if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
 
         CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id})", 'yellow');
         $result = $this->goApiPost($goBaseUrl . '/call/start', $payload);
@@ -213,11 +215,14 @@ class CallCampaignWorker extends BaseCommand
         sleep($delay);
     }
 
-    private function getAudioPath($db, $campaign)
+    private function getAudioInfo($db, $campaign)
     {
         if (empty($campaign->audio_id)) return null;
         $audio = $db->table(self::TB_AUDIOS)->where('id', $campaign->audio_id)->get()->getRow();
-        return ($audio && file_exists($audio->file_path)) ? $audio->file_path : null;
+        if ($audio && file_exists($audio->file_path)) {
+            return ['path' => $audio->file_path, 'duration' => (int)($audio->duration_seconds ?? 0)];
+        }
+        return null;
     }
 
     private function goApiMultiPost(array $batch): array

@@ -64,7 +64,8 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		InstanceID string `json:"instance_id"`
 		Phone      string `json:"phone"`
 		AudioID    string `json:"audio_id"`
-		AudioPath  string `json:"audio_path"`
+		AudioPath     string `json:"audio_path"`
+		AudioDuration int    `json:"audio_duration"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON"})
@@ -155,6 +156,19 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		if audioSrc != nil {
 			logging.Log.Info().Str("call_id", call.ID()).Msg("Playing audio to peer")
 			call.Play(audioSrc)
+
+				// Auto-hangup: encerrar chamada apos duracao do audio + margem de 2s
+				if body.AudioDuration > 0 {
+					hangupDelay := time.Duration(body.AudioDuration+2) * time.Second
+					logging.Log.Info().Str("call_id", call.ID()).Int("duration", body.AudioDuration).Dur("hangup_in", hangupDelay).Msg("Auto-hangup scheduled")
+					go func() {
+						time.Sleep(hangupDelay)
+						if entry.Status == "active" || entry.Status == "ringing" {
+							logging.Log.Info().Str("call_id", call.ID()).Msg("Auto-hangup: audio finished, ending call")
+							call.Hangup()
+						}
+					}()
+				}
 		}
 	})
 
