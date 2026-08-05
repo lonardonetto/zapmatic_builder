@@ -191,7 +191,7 @@ class CallCampaignWorker extends BaseCommand
         $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
         if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
 
-        CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id})", 'yellow');
+        CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id}) audio_duration=" . ($payload['audio_duration'] ?? '0'), 'yellow');
         $result = $this->goApiPost($goBaseUrl . '/call/start', $payload);
 
         if (!$result || ($result->status ?? '') !== 'success') {
