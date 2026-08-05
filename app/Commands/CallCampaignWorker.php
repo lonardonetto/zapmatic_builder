@@ -294,7 +294,15 @@ class CallCampaignWorker extends BaseCommand
                     ->where('id', $campaignId)
                     ->set('calls_answered', 'calls_answered + 1', false)
                     ->update();
-                CLI::write("[CallCampaignWorker] Call answered!", 'green');
+                CLI::write("[CallCampaignWorker] Call answered! Waiting for audio to finish...", 'green');
+
+                // Aguardar o áudio terminar antes de prosseguir para próxima chamada
+                $audioInfo = $this->getAudioInfo($db, (object)['audio_id' => $db->table(self::TB_CAMPAIGNS)->where('id', $campaignId)->get()->getRow()->audio_id ?? null]);
+                if ($audioInfo && $audioInfo['duration'] > 0) {
+                    $waitTime = $audioInfo['duration'] + 3; // duração + margem
+                    CLI::write("[CallCampaignWorker] Waiting {$waitTime}s for audio to finish...", 'cyan');
+                    sleep($waitTime);
+                }
                 return;
             }
 
