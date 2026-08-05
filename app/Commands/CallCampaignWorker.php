@@ -191,7 +191,7 @@ class CallCampaignWorker extends BaseCommand
         $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
         if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
 
-        CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id}) audio_duration=" . ($payload['audio_duration'] ?? '0'), 'yellow');
+        CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id})", 'yellow');
         $result = $this->goApiPost($goBaseUrl . '/call/start', $payload);
 
         if (!$result || ($result->status ?? '') !== 'success') {
@@ -294,15 +294,7 @@ class CallCampaignWorker extends BaseCommand
                     ->where('id', $campaignId)
                     ->set('calls_answered', 'calls_answered + 1', false)
                     ->update();
-                CLI::write("[CallCampaignWorker] Call answered! Waiting for audio to finish...", 'green');
-
-                // Aguardar o áudio terminar antes de prosseguir para próxima chamada
-                $audioInfo = $this->getAudioInfo($db, (object)['audio_id' => $db->table(self::TB_CAMPAIGNS)->where('id', $campaignId)->get()->getRow()->audio_id ?? null]);
-                if ($audioInfo && $audioInfo['duration'] > 0) {
-                    $waitTime = $audioInfo['duration'] + 3; // duração + margem
-                    CLI::write("[CallCampaignWorker] Waiting {$waitTime}s for audio to finish...", 'cyan');
-                    sleep($waitTime);
-                }
+                CLI::write("[CallCampaignWorker] Call answered!", 'green');
                 return;
             }
 

@@ -358,7 +358,7 @@ class Bot_builderModel
         return $bot ? $bot->team_id : null;
     }
 
-    public function create_session($bot_id, $phone, $instance_id = null, $initial_context = '{}', $reply_phone = null) {
+    public function create_session($bot_id, $phone, $instance_id = null, $initial_context = '{}') {
         // End existing sessions for this phone on this instance
         $q = $this->db->table('sp_bb_sessions')
             ->where('phone', $phone)
@@ -366,27 +366,18 @@ class Bot_builderModel
         if($instance_id) $q->where('instance_id', $instance_id);
         $q->update(['is_completed' => 1]);
 
-        $insertData = [
+        $this->db->table('sp_bb_sessions')->insert([
             'bot_id' => $bot_id,
             'phone' => $phone,
             'instance_id' => $instance_id,
             'context' => $initial_context,
             'is_completed' => 0,
             'created_at' => date('Y-m-d H:i:s')
-        ];
-        if ($reply_phone) $insertData['reply_phone'] = $reply_phone;
-        
-        $this->db->table('sp_bb_sessions')->insert($insertData);
+        ]);
         return $this->db->insertID();
     }
 
     public function update_session($id, $data) {
-        if (isset($data['is_completed']) && $data['is_completed'] == 1) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-            $caller = $trace[1]['function'] ?? 'unknown';
-            $line = $trace[1]['line'] ?? '?';
-            file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | [MODEL_DEBUG] SET is_completed=1 session={$id} called_by={$caller} line={$line}\n", FILE_APPEND);
-        }
         $this->db->table('sp_bb_sessions')->where('id', $id)->update($data);
     }
 

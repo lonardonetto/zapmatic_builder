@@ -1074,22 +1074,13 @@ public function save_bot_settings()
             $identity = $this->resolve_message_identity($message);
             $phone = $identity['session_phone'];
 
-            $reply_phone = $identity['reply_phone'];
-            $text = $this->extract_text($message);
-            $type = $this->get_message_type($message);
-
-            // ★ CORREÇÃO: para grupos, usar o remoteJid como phone E reply_phone
-            $remote_jid = $message['key']['remoteJid'] ?? '';
-            if (strpos($remote_jid, '@g.us') !== false) {
-                $phone = $remote_jid;
-                $reply_phone = $remote_jid;
-            }
-
-            // ★ IGNORAR STATUS BROADCAST
+            // ★ IGNORAR STATUS BROADCAST (status do WhatsApp) e broadcast lists
+            // O autoresponder NAO pode responder a atualizacoes de status
             if (strpos($phone, '@broadcast') !== false) {
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏭️ Ignorando status@broadcast\n", FILE_APPEND);
                 continue;
             }
+            $reply_phone = $identity['reply_phone'];
             $text = $this->extract_text($message);
             $type = $this->get_message_type($message);
 
@@ -1292,21 +1283,6 @@ public function save_bot_settings()
                 }
             }
 
-            // ★ FIX: se não encontrou sessão ativa, buscar sessão completed em input_text e reabrir
-            if (!$session) {
-                $paused = $this->model->db->table('sp_bb_sessions')
-                    ->where('phone', $session_key)
-                    ->where('is_completed', 1)
-                    ->where('current_block_id IS NOT NULL')
-                    ->orderBy('updated_at', 'DESC')
-                    ->get()->getRow();
-                if ($paused) {
-                    $this->model->update_session($paused->id, ['is_completed' => 0]);
-                    $session = $paused;
-                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ♻️ Reabrindo sessão #{$paused->id} (input_text pendente)\n", FILE_APPEND);
-                }
-            }
-
             if ($session && isset($session->bot_status) && $session->bot_status === 'human_handoff') {
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | 👨💻 Handoff Ativo. Mensagem ignorada pelo bot.\n", FILE_APPEND);
                 $handled_count++;
@@ -1332,10 +1308,10 @@ public function save_bot_settings()
                 
                 $session_bot = $this->model->get_bot($session->bot_id);
                 $timeout_minutes = max(1, intval($session_bot->session_timeout ?? 60));
-                $last_update = !empty($session->updated_at) ? strtotime($session->updated_at) : strtotime($session->created_at ?? date('Y-m-d H:i:s'));
-                if ($last_update && (time() - $last_update) > ($timeout_minutes * 60)) {
+                $last_update = strtotime($session->updated_at ?? $session->created_at ?? date('Y-m-d H:i:s'));
+                if ((time() - $last_update) > ($timeout_minutes * 60)) {
                     file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏱️ Session #{$session->id} expired due to inactivity ({$timeout_minutes}m). Restarting flow.\n", FILE_APPEND);
-                    file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+                    $this->model->update_session($session->id, ['is_completed' => 1]);
                     $session = null;
                 }
             }
@@ -2089,7 +2065,7 @@ public function save_bot_settings()
                                 'send_at' => time() + $seconds
                             ]);
                         } else {
-                            file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+                            $this->model->update_session($session->id, ['is_completed' => 1]);
                         }
                         
                         return; // End gracefully, async worker will resume
@@ -2273,7 +2249,7 @@ public function save_bot_settings()
                     $parent_session_id = $context['_parent_session'] ?? null;
                     if($parent_session_id) {
                         // Mark this child session as done
-                        file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+                        $this->model->update_session($session->id, ['is_completed' => 1]);
                         // Resume parent
                         $parent_session = $this->model->get_session_by_id($parent_session_id);
                         if($parent_session) {
@@ -2293,7 +2269,7 @@ public function save_bot_settings()
                         return;
                     }
                     // If no parent, just end
-                    file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+                    $this->model->update_session($session->id, ['is_completed' => 1]);
                     return;
 
                 case 'invalid':
@@ -2505,7 +2481,6 @@ public function save_bot_settings()
                     $sheetId = $bData->spreadsheet_id ?? '';
                     $sheet   = $bData->sheet_name ?? 'Sheet1';
                     $values  = $this->replace_vars($bData->values ?? '', $context);
-                    file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . " | [intg_sheets DEBUG] block_id={$current_block_id} values={$values} | context_keys=" . implode(',', array_keys($context)) . "\n", FILE_APPEND);
                     $varName = $bData->variable ?? 'sheets_result';
                     
                     try {
@@ -3018,7 +2993,7 @@ public function save_bot_settings()
                     break;
 
                 case 'end':
-                    file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+                    $this->model->update_session($session->id, ['is_completed' => 1]);
                     return;
 
                 default:
@@ -3035,7 +3010,7 @@ public function save_bot_settings()
         }
 
         if (!$current_block) {
-            file_put_contents(WRITEPATH . 'bot_builder_webhook.log', date('Y-m-d H:i:s') . ' | [COMPLETE_DEBUG] SET is_completed=1 at line ' . __LINE__ . ' for session=' . ($session->id ?? '?') . ' block=' . ($session->current_block_id ?? '?') . '\n', FILE_APPEND); $this->model->update_session($session->id, ['is_completed' => 1]);
+            $this->model->update_session($session->id, ['is_completed' => 1]);
         }
 
         $this->save_state($session->id, $current_block_id, $context);
