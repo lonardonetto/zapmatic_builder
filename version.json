@@ -1,8 +1,8 @@
 {
     "version": "8.5.5",
     "channel": "stable",
-    "build_date": "2026-08-05T16:45:00-03:00",
+    "build_date": "2026-08-05T17:40:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Fix: bot builder groups - reply_phone para grupos, intg_sheets com wa_phone + selection09, variável selection9→selection09"
+    "notes": "Fix bot builder: edges condition invertidos, bloco 47c3ba5a restaurado, variable selection09, wa_phone nos intg_sheets, debounce desabilitado bot 126"
 }
