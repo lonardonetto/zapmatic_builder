@@ -69,6 +69,7 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON"})
+	logging.Log.Info().Str("instance", body.InstanceID).Str("phone", body.Phone).Int("audio_duration", body.AudioDuration).Str("audio_path", body.AudioPath).Msg("Call start request received")
 		return
 	}
 	if body.InstanceID == "" || body.Phone == "" {

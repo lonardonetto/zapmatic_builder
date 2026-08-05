@@ -1074,6 +1074,12 @@ public function save_bot_settings()
             $identity = $this->resolve_message_identity($message);
             $phone = $identity['session_phone'];
 
+            // ★ CORREÇÃO: para grupos, usar o remoteJid (chat do grupo) como phone
+            $remote_jid = $message['key']['remoteJid'] ?? '';
+            if (strpos($remote_jid, '@g.us') !== false) {
+                $phone = $remote_jid; // phone = grupo para keyword matching e bot lookup
+            }
+
             // ★ IGNORAR STATUS BROADCAST (status do WhatsApp) e broadcast lists
             // O autoresponder NAO pode responder a atualizacoes de status
             if (strpos($phone, '@broadcast') !== false) {
