@@ -1072,21 +1072,25 @@ public function save_bot_settings()
             if (isset($message['key']['fromMe']) && $message['key']['fromMe']) continue;
 
             $identity = $this->resolve_message_identity($message);
+            file_put_contents(WRITEPATH . "bot_builder_webhook.log", date("Y-m-d H:i:s") . " | DEBUG identity: phone=" . ($identity["session_phone"] ?? "NULL") . " reply=" . ($identity["reply_phone"] ?? "NULL") . " remoteJid=" . ($message["key"]["remoteJid"] ?? "NULL") . "\n", FILE_APPEND);
             $phone = $identity['session_phone'];
 
-            // ★ CORREÇÃO: para grupos, usar o remoteJid (chat do grupo) como phone
+            $reply_phone = $identity['reply_phone'];
+            $text = $this->extract_text($message);
+            $type = $this->get_message_type($message);
+
+            // ★ CORREÇÃO: para grupos, usar o remoteJid como phone E reply_phone
             $remote_jid = $message['key']['remoteJid'] ?? '';
             if (strpos($remote_jid, '@g.us') !== false) {
-                $phone = $remote_jid; // phone = grupo para keyword matching e bot lookup
+                $phone = $remote_jid;
+                $reply_phone = $remote_jid;
             }
 
-            // ★ IGNORAR STATUS BROADCAST (status do WhatsApp) e broadcast lists
-            // O autoresponder NAO pode responder a atualizacoes de status
+            // ★ IGNORAR STATUS BROADCAST
             if (strpos($phone, '@broadcast') !== false) {
                 file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⏭️ Ignorando status@broadcast\n", FILE_APPEND);
                 continue;
             }
-            $reply_phone = $identity['reply_phone'];
             $text = $this->extract_text($message);
             $type = $this->get_message_type($message);
 
