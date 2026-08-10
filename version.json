@@ -1,8 +1,8 @@
 {
-    "version": "8.5.3",
+    "version": "8.5.8",
     "channel": "stable",
-    "build_date": "2026-08-05T18:15:00-03:00",
+    "build_date": "2026-08-10T13:46:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "Bot GRUPOS (127): Feito e Não concluído ambos perguntam 'O que foi feito?' antes de CONCLUIR"
+    "notes": "v8.5.8 - LID→PN resolver (handler_groups.go + GetPNForLID fallback) + Paulo call module fix + mapa refatoração"
 }

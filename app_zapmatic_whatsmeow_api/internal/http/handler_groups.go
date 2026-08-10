@@ -238,7 +238,15 @@ func (r *Router) handleResolveParticipant(w http.ResponseWriter, req *http.Reque
 				return
 			}
 		}
-		logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in group participants")
+		logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in group participants, trying store")
+		// Fallback: try direct LID→PN mapping from local store
+		pnJid, err := client.Store.LIDs.GetPNForLID(ctx, types.NewJID(cleanLid, types.HiddenUserServer))
+		if err == nil && pnJid.User != "" && pnJid.User != cleanLid {
+			phone := pnJid.User
+			logging.Log.Info().Str("instance", instanceID).Str("lid", cleanLid).Str("phone", phone).Msg("LID resolved via store LID→PN mapping")
+			r.writeJSON(w, http.StatusOK, map[string]string{"status": "success", "phone": phone})
+			return
+		}
 		r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "lid not found in group"})
 		return
 	}
@@ -264,6 +272,15 @@ func (r *Router) handleResolveParticipant(w http.ResponseWriter, req *http.Reque
 		}
 	}
 
-	logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in any group")
+	// Fallback: try direct LID→PN mapping from local store (works even without groups)
+	pnJid, err := client.Store.LIDs.GetPNForLID(ctx, types.NewJID(cleanLid, types.HiddenUserServer))
+	if err == nil && pnJid.User != "" && pnJid.User != cleanLid {
+		phone := pnJid.User
+		logging.Log.Info().Str("instance", instanceID).Str("lid", cleanLid).Str("phone", phone).Msg("LID resolved via store LID→PN mapping")
+		r.writeJSON(w, http.StatusOK, map[string]string{"status": "success", "phone": phone})
+		return
+	}
+
+	logging.Log.Warn().Str("instance", instanceID).Str("lid", cleanLid).Msg("LID not found in any group nor in local store")
 	r.writeJSON(w, http.StatusOK, map[string]string{"status": "error", "message": "lid not found"})
 }
