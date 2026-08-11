@@ -1,11 +1,31 @@
 const { chromium } = require('playwright');
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
+
+// Lê o .env do sistema automaticamente — funciona em qualquer domínio
+function parseEnv() {
+    const envFile = path.resolve(__dirname, '..', '.env');
+    if (!fs.existsSync(envFile)) {
+        console.error('❌ .env não encontrado em', envFile);
+        process.exit(1);
+    }
+    const env = {};
+    const content = fs.readFileSync(envFile, 'utf8');
+    for (const line of content.split('\n')) {
+        const m = line.match(/^\s*([a-z_.]+)\s*=\s*(.+)/i);
+        if (m) env[m[1]] = m[2].trim();
+    }
+    return env;
+}
+
+const env = parseEnv();
 
 const dbConfig = {
-    host: 'localhost',
-    user: 'db_zapmatic_sql',
-    password: 'inTwk7z37PnhWcY5',
-    database: 'db_zapmatic_sql',
+    host: env['database.default.hostname'] || 'localhost',
+    user: env['database.default.username'] || '',
+    password: env['database.default.password'] || '',
+    database: env['database.default.database'] || '',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -24,7 +44,6 @@ async function getBrowser(job) {
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         };
         if (job.proxy) {
-            // Rotação de proxies: escolhe um proxy aleatório da lista separada por quebra de linha
             const proxies = job.proxy.split('\n').map(p => p.trim()).filter(p => p);
             if (proxies.length > 0) {
                 const selectedProxy = proxies[Math.floor(Math.random() * proxies.length)];
@@ -42,7 +61,6 @@ const LISTING_SELECTOR = 'div[role="feed"] a[href*="/maps/place/"]';
 async function processJob(job, db) {
     console.log(`Starting job ${job.id}: ${job.keyword} in ${job.location}`);
     
-    // Mark as running
     await db.query('UPDATE sp_gmscraper_jobs SET status = 1 WHERE id = ?', [job.id]);
     
     let context = null;
@@ -54,12 +72,10 @@ async function processJob(job, db) {
         });
         const page = await context.newPage();
         
-        // Go to Google Maps
         const query = encodeURIComponent(`${job.keyword} ${job.location}`);
         const url = `https://www.google.com/maps/search/${query}`;
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
         
-        // Wait for results
         try {
             await page.waitForSelector(LISTING_SELECTOR, { timeout: 15000 });
         } catch(e) {
@@ -68,7 +84,6 @@ async function processJob(job, db) {
             return;
         }
 
-        // Preload seen phones from DB to avoid duplicates if job resumes
         const [existingLeads] = await db.query('SELECT phone FROM sp_gmscraper_leads WHERE job_id = ?', [job.id]);
         let seen = new Set(existingLeads.map(row => row.phone));
         let extractedCount = existingLeads.length;
@@ -77,7 +92,6 @@ async function processJob(job, db) {
         let lastCount = 0;
         let noNewStreak = 0;
 
-        // Scroll to find elements
         while (currentCount < job.limit_leads) {
             const count = await page.$$eval(LISTING_SELECTOR, els => els.length);
             if (count >= job.limit_leads || noNewStreak >= 10) break;
@@ -93,14 +107,12 @@ async function processJob(job, db) {
             currentCount = count;
         }
 
-        // Gather links
         const links = await page.$$eval(LISTING_SELECTOR, els => els.map(e => e.href));
         console.log(`Found ${links.length} potential leads. Processing up to ${job.limit_leads}...`);
         
         for (const link of links) {
             if (extractedCount >= job.limit_leads) break;
             
-            // Check if job was paused or deleted
             const [check] = await db.query('SELECT status FROM sp_gmscraper_jobs WHERE id = ?', [job.id]);
             if (!check.length || check[0].status !== 1) {
                 console.log(`Job ${job.id} stopped or paused.`);
@@ -111,12 +123,10 @@ async function processJob(job, db) {
                 console.log(`[Job ${job.id}] Navigating to: ${link.substring(0, 80)}...`);
                 await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 45000 });
                 
-                // Aguarda o h1 aparecer de forma inteligente (máximo 10s)
                 try {
                     await page.waitForSelector('h1', { timeout: 10000 });
                 } catch(e) {}
                 
-                // Mais 2 segundos para os botões carregarem
                 await sleep(2000);
 
                 const data = await page.evaluate(() => {
@@ -144,7 +154,6 @@ async function processJob(job, db) {
                         }
                     }
 
-                    // Tenta achar o telefone pelo icone de telefone se o semantic falhar
                     if (!phone) {
                         const img = document.querySelector('img[src*="phone"]');
                         if (img && img.closest('button')) {
@@ -172,25 +181,21 @@ async function processJob(job, db) {
                     if (!seen.has(data.phone)) {
                         seen.add(data.phone);
                         
-                        // Insert into leads table
                         await db.query(
                             'INSERT INTO sp_gmscraper_leads (job_id, team_id, name, phone, rating, reviews, address, website, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                             [job.id, job.team_id, data.name, data.phone, data.rating, data.reviews, data.address, data.website, Math.floor(Date.now() / 1000)]
                         );
 
-                        // Get real phonebook ID
                         const [pbRows] = await db.query('SELECT id FROM sp_whatsapp_contacts WHERE ids = ?', [job.target_phonebook]);
                         const phonebookIdInt = pbRows.length > 0 ? pbRows[0].id : null;
                         
                         let cleanPhone = data.phone.replace(/\D/g, '');
-                        // Add DDI if provided and not already present
                         const ddi = job.ddi || '55';
                         if (cleanPhone.length <= 11) {
                             cleanPhone = ddi + cleanPhone;
                         }
 
                         if (phonebookIdInt) {
-                            // Insert into Whatsapp phone numbers
                             const pids = Math.random().toString(36).substring(2, 15);
                             await db.query(
                                 'INSERT INTO sp_whatsapp_phone_numbers (ids, team_id, pid, phone, params, is_valid) VALUES (?, ?, ?, ?, ?, 1)',
@@ -201,10 +206,8 @@ async function processJob(job, db) {
                         extractedCount++;
                         console.log(`[Job ${job.id}] Extracted: ${data.name} - ${cleanPhone} (${extractedCount}/${job.limit_leads})`);
                         
-                        // Update progress
                         await db.query('UPDATE sp_gmscraper_jobs SET current_count = ? WHERE id = ?', [extractedCount, job.id]);
                         
-                        // Human Delay
                         if (extractedCount < job.limit_leads) {
                             console.log(`[Job ${job.id}] Waiting ${job.delay_seconds} seconds before next...`);
                             await sleep(job.delay_seconds * 1000);
@@ -241,7 +244,6 @@ async function startDaemon() {
     
     while (true) {
         try {
-            // Find a pending job
             const [rows] = await db.query('SELECT * FROM sp_gmscraper_jobs WHERE status = 0 LIMIT 1');
             if (rows.length > 0) {
                 await processJob(rows[0], db);
@@ -249,7 +251,6 @@ async function startDaemon() {
         } catch(e) {
             console.error("Daemon error:", e);
         }
-        // Check every 10 seconds
         await sleep(10000);
     }
 }
