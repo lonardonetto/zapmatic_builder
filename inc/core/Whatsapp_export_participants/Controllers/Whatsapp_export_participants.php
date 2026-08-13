@@ -354,6 +354,8 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         }
 
         $db = \Config\Database::connect();
+
+        // Fila de criação de listas de contatos
         $builder = $db->table('sp_export_participants_queue');
         $builder->where('status', 'pending');
         $builder->where('attempts < max_attempts');
@@ -368,7 +370,252 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
             $this->processJob($job);
         }
 
+        // Fila de clone de grupos
+        $cloneBuilder = $db->table('sp_clone_group_queue');
+        $cloneBuilder->where('status', 'pending');
+        $cloneBuilder->where('attempts < max_attempts');
+        if ($team_id !== null) {
+            $cloneBuilder->where('team_id', $team_id);
+        }
+        $cloneBuilder->orderBy('id', 'ASC');
+        $cloneBuilder->limit(\Core\Whatsapp_export_participants\Libraries\ExportQueue::BATCH_SIZE);
+        $cloneJobs = $cloneBuilder->get()->getResult();
+
+        foreach ($cloneJobs as $job) {
+            $this->processCloneJob($job);
+        }
+
         return "ok";
+    }
+
+    /**
+     * Enfileira o clone de um grupo: extrai os participantes (sem admins, sem
+     * o próprio número, deduplicados) e cria um job na fila de clone.
+     */
+    public function clone_group($account_id = false, $group_id = false)
+    {
+        $team_id = (int)get_team("id");
+        $access_token = get_team("ids");
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], $team_id));
+
+        if (empty($account)) {
+            ms([
+                "status" => "error",
+                "message" => __("WhatsApp account does not exist")
+            ]);
+        }
+
+        if (!\Core\Whatsapp_export_participants\Libraries\GroupCloner::supportsClone($account->login_type ?? 2)) {
+            ms([
+                "status" => "error",
+                "message" => __("Clone de grupo disponível apenas para contas Go (login_type=3)")
+            ]);
+        }
+
+        $result = $this->fetch_groups($account, $access_token);
+
+        if (empty($result) || $result->status == "error") {
+            ms([
+                "status" => "error",
+                "message" => __("Failed to fetch groups")
+            ]);
+        }
+
+        $participants = null;
+        $group_name = "Group";
+        if (!empty($result->data)) {
+            foreach ($result->data as $value) {
+                if ($value->id == $group_id) {
+                    $participants = $value->participants;
+                    $group_name = $value->name;
+                    break;
+                }
+            }
+        }
+
+        if ($participants === null) {
+            ms([
+                "status" => "error",
+                "message" => __("Group not found")
+            ]);
+        }
+
+        // Filtra para o clone: sem admins, sem o próprio número, sem duplicados.
+        $selfJid = !empty($account->username) ? $account->username . '@s.whatsapp.net' : (!empty($account->pid) ? $account->pid : null);
+        $clean = \Core\Whatsapp_export_participants\Libraries\GroupCloner::filterClone($participants, $selfJid);
+
+        if (empty($clean)) {
+            ms([
+                "status" => "error",
+                "message" => __("Não há participantes para clonar além do seu próprio número.")
+            ]);
+        }
+
+        $targetName = post("target_name");
+        if ($targetName === null || trim((string)$targetName) === '') {
+            $targetName = \Core\Whatsapp_export_participants\Libraries\GroupCloner::buildTargetName($group_name);
+        } else {
+            $targetName = \Core\Whatsapp_export_participants\Libraries\GroupCloner::buildTargetName((string)$targetName);
+        }
+
+        $job = \Core\Whatsapp_export_participants\Libraries\GroupCloner::createJob(
+            $team_id,
+            (string)$account->ids,
+            (string)$group_id,
+            $targetName,
+            count($clean)
+        );
+
+        $db = \Config\Database::connect();
+        $db->table('sp_clone_group_queue')->insert([
+            'ids'          => ids(),
+            'team_id'      => $job['team_id'],
+            'account_id'   => $job['account_id'],
+            'group_id'     => $job['group_id'],
+            'group_name'   => $group_name,
+            'target_name'  => $job['target_name'],
+            'status'       => $job['status'],
+            'total'        => $job['total'],
+            'done'         => $job['done'],
+            'attempts'     => $job['attempts'],
+            'max_attempts' => $job['max_attempts'],
+            'error_log'    => null,
+            'new_group_jid'=> null,
+            'created'      => time(),
+            'changed'      => time(),
+        ]);
+
+        // Os participantes são re-lidos do gateway no momento do processamento
+        // (processCloneJob), então o job guarda apenas o total e o nome destino.
+        ms([
+            "status" => "success",
+            "message" => sprintf(__("Grupo enfileirado para clonagem com %s participantes. Ele será criado em background."), $job['total'])
+        ]);
+    }
+
+    /**
+     * Processa um job de clone da fila: chama o gateway Go para criar o grupo
+     * e adicionar os participantes em lotes.
+     */
+    private function processCloneJob($job)
+    {
+        $db = \Config\Database::connect();
+        $teamId = (int)$job->team_id;
+
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["ids" => $job->account_id], $teamId));
+        if (empty($account)) {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'account not found',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $result = $this->fetch_groups($account, $this->team_access_token($teamId));
+        if (empty($result) || $result->status == "error") {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => isset($result->message) ? $result->message : 'failed to fetch groups',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $participants = null;
+        if (!empty($result->data)) {
+            foreach ($result->data as $value) {
+                if ($value->id == $job->group_id) {
+                    $participants = $value->participants;
+                    break;
+                }
+            }
+        }
+
+        if ($participants === null) {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'group not found',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $selfJid = !empty($account->username) ? $account->username . '@s.whatsapp.net' : (!empty($account->pid) ? $account->pid : null);
+        $clean = \Core\Whatsapp_export_participants\Libraries\GroupCloner::filterClone($participants, $selfJid);
+
+        if (empty($clean)) {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'no valid participants',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($account->token);
+        $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
+
+        $headers = ['Content-Type: application/json'];
+        if (!empty($gateway['api_key'])) {
+            $headers[] = 'X-Zapmatic-Gateway-Key: ' . $gateway['api_key'];
+        }
+
+        $body = json_encode([
+            'instance_id'  => $account->token,
+            'name'         => $job->target_name,
+            'participants' => array_values($clean),
+        ]);
+
+        $ch = curl_init($baseUrl . '/groups/clone');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 5,
+        ]);
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => $curlError,
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $decoded = json_decode($response ?: '{}', true);
+        if (!is_array($decoded) || ($decoded['status'] ?? '') !== 'success') {
+            $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => isset($decoded['message']) ? $decoded['message'] : 'clone failed',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $added = (int)($decoded['added'] ?? count($clean));
+        $newGroupJid = (string)($decoded['group_jid'] ?? '');
+
+        $db->table('sp_clone_group_queue')->where('id', $job->id)->update([
+            'status'        => 'completed',
+            'done'          => $added,
+            'total'         => max((int)$job->total, $added),
+            'new_group_jid' => $newGroupJid !== '' ? $newGroupJid : null,
+            'error_log'     => null,
+            'changed'       => time(),
+        ]);
     }
 
     /**

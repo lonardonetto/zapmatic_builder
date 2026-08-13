@@ -100,6 +100,12 @@
     border: 1px solid var(--sp-gray-200, #eff2f5);
 }
 .wep-btn-copy:hover { color: var(--sp-gray-900, #181C32); border-color: var(--sp-gray-400, #B5B5C3); text-decoration: none; }
+.wep-btn-clone {
+    background: var(--sp-gray-100, #f5f8fa);
+    color: var(--sp-gray-800, #3F4254);
+    border: 1px solid var(--sp-gray-300, #E4E6EF);
+}
+.wep-btn-clone:hover { border-color: var(--sp-success, #50cd89); color: var(--sp-success, #50cd89); }
 
 .wep-empty {
     background: var(--sp-white, #fff);
@@ -276,6 +282,15 @@
                        data-confirm="<?php _e('Criar lista de contatos com os participantes deste grupo? Os números serão normalizados (9º dígito) e validados.') ?>">
                         <i class="fas fa-address-book"></i> <?php _e("Criar Lista de Contatos") ?>
                     </a>
+                    <?php if (isset($account->login_type) && (int)$account->login_type === 3) : ?>
+                        <button type="button" class="wep-btn wep-btn-clone"
+                                data-group-id="<?php _e($value->id) ?>"
+                                data-group-name="<?php echo htmlspecialchars($value->name, ENT_QUOTES); ?>"
+                                data-account-id="<?php _e($account->ids) ?>"
+                                data-target-name="<?php echo htmlspecialchars(\Core\Whatsapp_export_participants\Libraries\GroupCloner::buildTargetName($value->name), ENT_QUOTES); ?>">
+                            <i class="fas fa-clone"></i> <?php _e("Clonar grupo") ?>
+                        </button>
+                    <?php endif ?>
                 </div>
             </div>
         <?php endforeach ?>
@@ -292,6 +307,134 @@
         <p><?php _e("Selecione uma conta WhatsApp para carregar os grupos.") ?></p>
     </div>
 <?php endif ?>
+
+<!-- Modal de clonagem de grupo (estilo moderno do tema) -->
+<style>
+    .wep-clone-modal .modal-dialog {
+        max-width: 430px;
+        transform: translateY(18px) scale(0.96);
+        transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+    .wep-clone-modal.show .modal-dialog {
+        transform: translateY(0) scale(1);
+    }
+    .wep-clone-modal .modal-content {
+        border: 0;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+    .wep-clone-modal .modal-body { padding: 28px; }
+    .wep-clone-hero {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .wep-clone-icon {
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        color: #0d6efd;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.14), rgba(13, 202, 240, 0.18));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        font-size: 22px;
+    }
+    .wep-clone-title {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    .wep-clone-subtitle {
+        margin: 4px 0 0;
+        font-size: 0.92rem;
+        color: #64748b;
+    }
+    .wep-clone-message {
+        margin: 0 0 18px;
+        font-size: 0.98rem;
+        line-height: 1.65;
+        color: #334155;
+    }
+    .wep-clone-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+    }
+    .wep-clone-input {
+        height: 48px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        font-size: 0.98rem;
+        padding: 0 16px;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .wep-clone-input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+    }
+    .wep-clone-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+    .wep-clone-actions .btn {
+        flex: 1 1 0;
+        min-height: 46px;
+        border-radius: 14px;
+        font-weight: 600;
+    }
+    .wep-clone-actions .btn-light {
+        background: #eef2f7;
+        border-color: #e2e8f0;
+        color: #475569;
+    }
+    .wep-clone-confirm {
+        background: linear-gradient(135deg, #0d6efd, #0b57d0);
+        border-color: transparent;
+        color: #ffffff;
+        box-shadow: 0 14px 34px rgba(13, 110, 253, 0.22);
+    }
+    .wep-clone-confirm:hover { color: #ffffff; filter: brightness(1.05); }
+</style>
+
+<div class="modal fade wep-clone-modal" id="wep-clone-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="wep-clone-hero">
+                    <div class="wep-clone-icon">
+                        <i class="fad fa-clone"></i>
+                    </div>
+                    <div>
+                        <h5 class="wep-clone-title"><?php _e("Clonar grupo") ?></h5>
+                        <p class="wep-clone-subtitle"><?php _e("Crie um grupo novo com os mesmos participantes.") ?></p>
+                    </div>
+                </div>
+
+                <p class="wep-clone-message"><?php _e("Será criado um grupo novo com os mesmos participantes. O seu número vira administrador e não entra na lista.") ?></p>
+
+                <label class="wep-clone-label" for="wep-clone-name"><?php _e("Nome do novo grupo") ?></label>
+                <input type="text" id="wep-clone-name" class="form-control wep-clone-input" maxlength="25" autocomplete="off">
+
+                <div class="wep-clone-actions">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal"><?php _e("Cancelar") ?></button>
+                    <button type="button" class="btn wep-clone-confirm" id="wep-clone-confirm">
+                        <i class="fad fa-clone me-2"></i> <?php _e("Clonar grupo") ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script type="text/javascript">
 $(function() {
@@ -324,6 +467,83 @@ $(function() {
         $search.on('input', filterGroups);
         $clear.on('click', function() {
             $search.val('').trigger('input').trigger('focus');
+        });
+    }
+
+    // ===== Clonar grupo =====
+    var $cloneModal = $('#wep-clone-modal');
+    var cloneAccountId = null;
+    var cloneGroupId = null;
+    var cloneBaseUrl = '<?php _e(get_module_url("clone_group")) ?>';
+
+    $grid.on('click', '.wep-btn-clone', function() {
+        var $btn = $(this);
+        cloneAccountId = $btn.data('account-id');
+        cloneGroupId = $btn.data('group-id');
+        $('#wep-clone-name').val($btn.data('target-name') || '');
+        $cloneModal.modal('show');
+    });
+
+    $('#wep-clone-confirm').on('click', function() {
+        if (!cloneAccountId || !cloneGroupId) {
+            return;
+        }
+        var name = ($('#wep-clone-name').val() || '').trim();
+        if (!name) {
+            Core.notify('<?php _e('Informe o nome do novo grupo.') ?>', 'error');
+            return;
+        }
+
+        $cloneModal.modal('hide');
+
+        // Contagem regressiva nativa + confirma\u00e7\u00e3o (igual aos outros bot\u00f5es)
+        Core.showConfirmDialog({
+            title: '<?php _e('Confirmar clonagem') ?>',
+            message: '<?php _e('Criar o grupo') ?> "' + name + '" <?php _e('com os mesmos participantes do grupo original?') ?>',
+            hint: '<?php _e('O seu número vira administrador do novo grupo e não entra na lista de participantes.') ?>',
+            confirmText: '<?php _e('Clonar grupo') ?>',
+            releaseDelay: 2000,
+            onConfirm: function() {
+                runClone(name);
+            }
+        });
+    });
+
+    function runClone(name) {
+        // Anima\u00e7\u00e3o de cria\u00e7\u00e3o nativa do tema (anel girando + barra de progresso)
+        var actionDialog = Core.showActionDialog({
+            type: 'duplicate',
+            icon: 'fad fa-clone',
+            title: '<?php _e('Clonando grupo') ?>',
+            message: '<?php _e('Estamos criando o grupo novo e adicionando os participantes. Isso pode levar alguns segundos.') ?>'
+        });
+
+        // Delay m\u00ednimo para a anima\u00e7\u00e3o ser percept\u00edvel
+        var startedAt = Date.now();
+        var MIN_DELAY = 1800;
+
+        $.post(
+            cloneBaseUrl + '/' + cloneAccountId + '/' + encodeURIComponent(cloneGroupId),
+            $.param({ csrf: csrf, target_name: name }),
+            function(result) {
+                try {
+                    if (typeof result !== 'object') { result = $.parseJSON(result); }
+                } catch (e) { result = null; }
+
+                var remaining = Math.max(0, MIN_DELAY - (Date.now() - startedAt));
+                setTimeout(function() {
+                    if (result && result.status === 'success') {
+                        Core.finishActionDialog('success', result.message || '<?php _e('Grupo enfileirado para clonagem.') ?>', actionDialog);
+                    } else {
+                        Core.finishActionDialog('error', (result && result.message) || '<?php _e('Não foi possível clonar o grupo.') ?>', actionDialog);
+                    }
+                }, remaining);
+            }
+        ).fail(function() {
+            var remaining = Math.max(0, MIN_DELAY - (Date.now() - startedAt));
+            setTimeout(function() {
+                Core.finishActionDialog('error', '<?php _e('Não foi possível comunicar com o servidor. Tente novamente.') ?>', actionDialog);
+            }, remaining);
         });
     }
 });

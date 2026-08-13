@@ -1,0 +1,62 @@
+{
+  "feature": "clonar-grupo",
+  "timestamp": "2026-08-13T22:14:42.756Z",
+  "gitRev": "7ae510f",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 29,
+  "results": {
+    "AC-014": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_nome_do_clone_e_original_copia_truncado @spec:AC-014",
+      "method": "tap"
+    },
+    "AC-015": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_admins_do_grupo_origem_sao_mantidos @spec:AC-015",
+      "method": "tap"
+    },
+    "AC-016": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_proprio_numero_fica_de_fora_e_sem_duplicados @spec:AC-016",
+      "method": "tap"
+    },
+    "AC-017": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_job_nasce_pendente_com_payload_e_progresso_zero @spec:AC-017",
+      "method": "tap"
+    },
+    "AC-018": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_participantes_divididos_em_lotes_de_50 @spec:AC-018",
+      "method": "tap"
+    },
+    "AC-019": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_progresso_e_razao_entre_concluidos_e_total @spec:AC-019",
+      "method": "tap"
+    },
+    "AC-020": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_clone_recusado_para_conta_que_nao_e_go @spec:AC-020",
+      "method": "tap"
+    },
+    "AC-021": {
+      "status": "pass",
+      "testName": "GroupClonerTest::test_escopo_de_conta_injeta_team_id_valido @spec:AC-021",
+      "method": "tap"
+    },
+    "AC-022": {
+      "status": "pass",
+      "testName": "TestTruncateGroupNameTo25 @spec:AC-022",
+      "method": "tap"
+    },
+    "AC-023": {
+      "status": "pass",
+      "testName": "TestChunkParticipantsBatches @spec:AC-023",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

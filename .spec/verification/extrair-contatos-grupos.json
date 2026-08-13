@@ -1,11 +1,11 @@
 {
   "feature": "extrair-contatos-grupos",
-  "timestamp": "2026-08-13T20:36:02.956Z",
-  "gitRev": "c04c90f",
+  "timestamp": "2026-08-13T22:14:43.776Z",
+  "gitRev": "7ae510f",
   "command": "node tests/run_all.mjs",
   "reporter": "tap",
   "exitCode": 0,
-  "testsParsed": 16,
+  "testsParsed": 29,
   "results": {
     "AC-001": {
       "status": "pass",

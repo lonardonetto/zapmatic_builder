@@ -266,10 +266,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "extrair-contatos-grupos",
       "ref": "—",
-      "ocorrencias": 1,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-13T20:01:07.358Z",
-      "ultimaVez": "2026-08-13T20:01:07.358Z",
-      "gitRev": "c04c90f"
+      "ultimaVez": "2026-08-13T22:14:30.970Z",
+      "gitRev": "7ae510f"
     },
     "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-003": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
@@ -297,6 +297,141 @@
       "primeiraVez": "2026-08-13T20:16:22.553Z",
       "ultimaVez": "2026-08-13T20:16:22.553Z",
       "gitRev": "c04c90f"
+    },
+    "ARQUIVO_INEXISTENTE::clonar-grupo::T-007": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "clonar-grupo",
+      "ref": "T-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.219Z",
+      "ultimaVez": "2026-08-13T21:17:11.219Z",
+      "gitRev": "7ae510f"
+    },
+    "ARQUIVO_INEXISTENTE::clonar-grupo::T-008": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "clonar-grupo",
+      "ref": "T-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "ARQUIVO_INEXISTENTE::clonar-grupo::T-009": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "clonar-grupo",
+      "ref": "T-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "ARQUIVO_INEXISTENTE::clonar-grupo::T-012": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "clonar-grupo",
+      "ref": "T-012",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-014": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-015": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-016": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-017": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-018": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-018",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-019": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-020": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-020",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-021": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-021",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-022": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-022",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "AC_SEM_TESTE::clonar-grupo::AC-023": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "clonar-grupo",
+      "ref": "AC-023",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T21:17:11.220Z",
+      "ultimaVez": "2026-08-13T21:17:11.220Z",
+      "gitRev": "7ae510f"
+    },
+    "VERIFY_OBSOLETO::clonar-grupo::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "clonar-grupo",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T22:14:30.969Z",
+      "ultimaVez": "2026-08-13T22:14:30.970Z",
+      "gitRev": "7ae510f"
     }
   }
 }

@@ -27,12 +27,15 @@ class PhoneNormalizer
 
     /**
      * Remove o sufixo @s.whatsapp.net e qualquer ruído, retornando apenas dígitos.
+     * Também remove o sufixo de dispositivo (":57") presente no pid de algumas
+     * contas Go (ex.: "556284824395:57@s.whatsapp.net" -> "556284824395").
      */
     public static function fromJid(string $jid): string
     {
         $jid = (string)$jid;
         $jid = preg_replace('/@s\.whatsapp\.net$/', '', $jid);
         $jid = preg_replace('/@g\.us$/', '', $jid);
+        $jid = preg_replace('/:\d+$/', '', $jid);
         return self::clean($jid);
     }
 

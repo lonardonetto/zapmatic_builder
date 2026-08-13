@@ -53,6 +53,7 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 	r.mux.HandleFunc("/groups/list", r.corsMiddleware(r.authGuard(r.handleListGroups)))
 	r.mux.HandleFunc("/groups/find-member", r.corsMiddleware(r.authGuard(r.handleFindMemberGroups)))
 	r.mux.HandleFunc("/groups/participant", r.corsMiddleware(r.authGuard(r.handleResolveParticipant)))
+	r.mux.HandleFunc("/groups/clone", r.corsMiddleware(r.authGuard(r.handleCloneGroup)))
 
 	// Call endpoints (meowcaller)
 	r.mux.HandleFunc("/call/start", r.corsMiddleware(r.authGuard(r.handleCallStart)))
