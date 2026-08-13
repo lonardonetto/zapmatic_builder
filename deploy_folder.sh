@@ -216,6 +216,31 @@ else
     fi
     echo "OK"
 fi
+# ========================================
+# SERVIDOR MetaSenderPro (92.113.149.185)
+# ========================================
+echo ""
+echo "=== SERVIDOR 92.113.149.185 ==="
+
+METASENDERPRO_PATH="/www/wwwroot/app_zapmatic_app"
+echo -n "  MetaSenderPro... "
+
+if [ $DRY_RUN = true ]; then
+    echo "(dry-run: $SOURCE -> $METASENDERPRO_PATH/$TARGET)"
+else
+    if [ $IS_FILE = true ]; then
+        sshpass -p 'Hacker5030' ssh -o StrictHostKeyChecking=no MetaSenderPro@92.113.149.185 \
+          "mkdir -p $(dirname $METASENDERPRO_PATH/$TARGET)" 2>/dev/null
+        sshpass -p 'Hacker5030' scp -o StrictHostKeyChecking=no "$SOURCE" \
+          MetaSenderPro@92.113.149.185:"$METASENDERPRO_PATH/$TARGET" 2>/dev/null
+    else
+        rsync -avz --delete --force \
+          -e "sshpass -p 'Hacker5030' ssh -o StrictHostKeyChecking=no" \
+          "$SOURCE/" MetaSenderPro@92.113.149.185:"$METASENDERPRO_PATH/$TARGET/" 2>/dev/null
+    fi
+    echo "OK"
+fi
+
 
 echo ""
 echo "=========================================="

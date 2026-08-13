@@ -203,6 +203,7 @@ class Bot_builderModel
     public function get_bot($id) {
         return $this->db->table('sp_bot_builders')
             ->where('id', $id)
+            ->where('team_id', get_team('id'))
             ->get()->getRow();
     }
 
@@ -212,10 +213,18 @@ class Bot_builderModel
     }
 
     public function update($id, $data) {
-        return $this->db->table('sp_bot_builders')->where('id', $id)->update($data);
+        return $this->db->table('sp_bot_builders')
+            ->where('id', $id)
+            ->where('team_id', get_team('id'))
+            ->update($data);
     }
 
     public function delete($id) {
+        $bot = $this->db->table('sp_bot_builders')
+            ->where('id', $id)
+            ->where('team_id', get_team('id'))
+            ->get()->getRow();
+        if(!$bot) return;
         $this->db->table('sp_bb_blocks')->where('bot_id', $id)->delete();
         $this->db->table('sp_bb_edges')->where('bot_id', $id)->delete();
         $this->db->table('sp_bb_sessions')->where('bot_id', $id)->delete();
@@ -255,7 +264,10 @@ class Bot_builderModel
                     'created_at' => date('Y-m-d H:i:s')
                 ];
                 if($block['type'] === 'start') {
-                    $this->db->table('sp_bot_builders')->where('id', $bot_id)->update(['start_block_id' => $block['id']]);
+                    $this->db->table('sp_bot_builders')
+                        ->where('id', $bot_id)
+                        ->where('team_id', get_team('id'))
+                        ->update(['start_block_id' => $block['id']]);
                 }
             }
             if(!empty($batch)) $this->db->table('sp_bb_blocks')->insertBatch($batch);
@@ -335,6 +347,12 @@ class Bot_builderModel
     }
 
     public function get_sessions($bot_id) {
+        $bot = $this->db->table('sp_bot_builders')
+            ->select('team_id')
+            ->where('id', $bot_id)
+            ->where('team_id', get_team('id'))
+            ->get()->getRow();
+        if(!$bot) return [];
         return $this->db->table('sp_bb_sessions')
             ->where('bot_id', $bot_id)
             ->orderBy('id', 'DESC')

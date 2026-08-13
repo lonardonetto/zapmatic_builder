@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ type GroupParticipantInfo struct {
 	ID    string `json:"id"`
 	LID   string `json:"lid"`
 	Admin bool   `json:"admin"`
+	Name  string `json:"name,omitempty"`
 }
 
 type GroupInfo struct {
@@ -27,6 +29,55 @@ type GroupInfo struct {
 	Announce      bool                   `json:"announce"`
 	Owner         string                 `json:"owner"`
 	ProfilePicURL string                 `json:"profilePicUrl"`
+}
+
+// defaultGroupPageLimit é o tamanho de página usado quando `limit` é ausente
+// ou inválido (<= 0).
+const defaultGroupPageLimit = 50
+
+// parsePositiveInt converte um parâmetro de query em inteiro positivo; valor
+// ausente ou inválido retorna 0 (o paginador trata 0 como "não informado").
+func parsePositiveInt(raw string) int {
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return 0
+	}
+	return n
+}
+
+// selectGroups decide entre o comportamento legado (sem `page` → retorna
+// todos) e a paginação (com `page` → fatia + total). `page` explícito mas
+// inválido (<=0) devolve vazio, sem erro. Devolve (grupos, total, page).
+func selectGroups(groups []GroupInfo, pageRaw string, limit int) ([]GroupInfo, int, int) {
+	total := len(groups)
+	if pageRaw == "" {
+		return groups, total, 0
+	}
+	page := parsePositiveInt(pageRaw)
+	pageGroups, total := paginateGroups(groups, page, limit)
+	return pageGroups, total, page
+}
+
+// paginateGroups devolve a fatia correspondente a `page` (1-based) com
+// `limit` itens, além do total. `page` <= 0 ou além do fim devolve fatia
+// vazia, nunca erro. `limit` <= 0 cai no defaultGroupPageLimit.
+func paginateGroups(groups []GroupInfo, page, limit int) ([]GroupInfo, int) {
+	total := len(groups)
+	if limit <= 0 {
+		limit = defaultGroupPageLimit
+	}
+	if page < 1 {
+		return []GroupInfo{}, total
+	}
+	offset := (page - 1) * limit
+	if offset >= total {
+		return []GroupInfo{}, total
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return groups[offset:end], total
 }
 
 func (r *Router) handleListGroups(w http.ResponseWriter, req *http.Request) {
@@ -71,10 +122,29 @@ func (r *Router) handleListGroups(w http.ResponseWriter, req *http.Request) {
 				if phone == "" {
 					phone = p.JID.User
 				}
+				name := ""
+				if client.Store != nil && client.Store.Contacts != nil {
+					// O store de contatos indexa por JID de telefone (5562...@s.whatsapp.net).
+					// Tenta PhoneNumber primeiro; cai para JID quando PhoneNumber é vazio.
+					contactJID := p.PhoneNumber
+					if contactJID.IsEmpty() {
+						contactJID = p.JID
+					}
+					if !contactJID.IsEmpty() {
+						contact, err := client.Store.Contacts.GetContact(ctx, contactJID)
+						if err == nil && contact.Found {
+							name = contact.PushName
+							if name == "" {
+								name = contact.FullName
+							}
+						}
+					}
+				}
 				participants = append(participants, GroupParticipantInfo{
 					ID:    phone,
 					LID:   p.LID.User,
 					Admin: p.IsAdmin || p.IsSuperAdmin,
+					Name:  name,
 				})
 			}
 
@@ -102,11 +172,18 @@ func (r *Router) handleListGroups(w http.ResponseWriter, req *http.Request) {
 
 	wg.Wait()
 
-	logging.Log.Info().Str("instance", instanceID).Int("groups", len(groups)).Msg("Groups listed")
+	pageRaw := req.URL.Query().Get("page")
+	limit := parsePositiveInt(req.URL.Query().Get("limit"))
+	pageGroups, total, page := selectGroups(groups, pageRaw, limit)
+
+	logging.Log.Info().Str("instance", instanceID).Int("groups", len(groups)).Str("page", pageRaw).Int("limit", limit).Int("total", total).Msg("Groups listed")
 
 	r.writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status": "success",
-		"groups": groups,
+		"groups": pageGroups,
+		"total":  total,
+		"page":   page,
+		"limit":  limit,
 	})
 }
 

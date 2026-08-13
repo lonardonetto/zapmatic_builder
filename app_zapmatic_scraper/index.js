@@ -68,20 +68,57 @@ async function processJob(job, db) {
         const browser = await getBrowser(job);
         context = await browser.newContext({
             viewport: { width: 1280, height: 800 },
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            locale: 'pt-BR',
+            extraHTTPHeaders: { 'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8' }
         });
         const page = await context.newPage();
-        
+
+        // Pre-consentimento de cookies do Google (GDPR da UE).
+        // Se o IP do servidor for geolocalizado na Europa, o Google redireciona
+        // para consent.google.com. Estes cookies evitam o redirect.
+        await context.addCookies([
+            { name: 'CONSENT', value: 'YES+cb.20220301-11-p0.pt-BR+FX+001', domain: '.google.com', path: '/' },
+            { name: 'SOCS', value: 'CAESHAgBEhJnd3NfMjAyNTAxMDItMF9SQzIaAnB0IAEaBgiA_LyaBg', domain: '.google.com', path: '/' },
+            { name: 'NID', value: '204=abcdefghijklmnopqrstuvwxyz', domain: '.google.com', path: '/' }
+        ]);
+
         const query = encodeURIComponent(`${job.keyword} ${job.location}`);
-        const url = `https://www.google.com/maps/search/${query}`;
+        const url = `https://www.google.com/maps/search/${query}?hl=pt-BR&gl=BR`;
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        
+
+        // Se cair na tela de consentimento, tenta aceitar automaticamente.
         try {
-            await page.waitForSelector(LISTING_SELECTOR, { timeout: 15000 });
+            if (page.url().includes('consent.google.com')) {
+                console.log('[Job ' + job.id + '] Tela de consentimento detectada, tentando aceitar...');
+                for (let i = 0; i < 3; i++) {
+                    const btns = page.locator('button, [role="button"]');
+                    const acceptBtn = btns.filter({ hasText: /aceitar|concordar|accept all|aceito|agree|allow all|sim/i }).first();
+                    if (await acceptBtn.count() > 0) {
+                        await acceptBtn.click({ timeout: 3000 }).catch(() => {});
+                        await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+                        await sleep(2000);
+                        break;
+                    }
+                    await sleep(2000);
+                }
+            }
+        } catch (e) {
+            console.log('[Job ' + job.id + '] Consent handling: ' + e.message);
+        }
+
+        try {
+            await page.waitForSelector(LISTING_SELECTOR, { timeout: 20000 });
         } catch(e) {
-            console.log(`No results found for ${job.keyword}`);
-            await db.query('UPDATE sp_gmscraper_jobs SET status = 2, error_msg = ? WHERE id = ?', ['Nenhum resultado encontrado.', job.id]);
-            return;
+            await sleep(3000);
+            try {
+                await page.waitForSelector(LISTING_SELECTOR, { timeout: 15000 });
+            } catch(e2) {
+                const finalUrl = page.url();
+                console.log(`No results found for ${job.keyword} (final URL: ${finalUrl})`);
+                await db.query('UPDATE sp_gmscraper_jobs SET status = 2, error_msg = ? WHERE id = ?', ['Nenhum resultado encontrado.', job.id]);
+                return;
+            }
         }
 
         const [existingLeads] = await db.query('SELECT phone FROM sp_gmscraper_leads WHERE job_id = ?', [job.id]);

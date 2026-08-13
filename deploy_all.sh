@@ -133,6 +133,7 @@ deploy_remote "Elite" "193.180.211.190" "admin" "Leonetto1982" "/www/wwwroot/eli
 echo ""
 echo "=== SERVIDOR 92.113.144.161 ==="
 deploy_remote "PlusZap" "92.113.144.161" "admin" "Leonetto1982" "/www/wwwroot/app_zapmatic_app" 8100 "/tmp/mysql.sock" "zapmatic-whatsmeow-pluszap"
+deploy_remote "MetaSenderPro" "92.113.149.185" "MetaSenderPro" "Hacker5030" "/www/wwwroot/app_zapmatic_app" 8101 "/tmp/mysql.sock" "zapmatic-whatsmeow-metasenderpro"
 
 echo ""
 echo "=========================================="

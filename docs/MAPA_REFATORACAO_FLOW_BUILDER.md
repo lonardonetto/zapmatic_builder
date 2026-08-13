@@ -90,3 +90,5 @@
 ---
 
 | 2026-08-10 | **Fase S: LID→número** | `handler_groups.go` (main + paulo) | Fallback `GetPNForLID` adicionado ao endpoint `/groups/participant`. Agora resolve LID mesmo sem grupo, via banco local do whatsmeow (`client.Store.LIDs.GetPNForLID`). PHP inalterado (zero mudança no Bot_builder.php). | **Antes:** LIDs de chat privado não resolviam → `wa_phone` = LID bruto na planilha. **Depois:** `268542897311803 → 556282501519`, `120796072644628 → 5521970402529`. Ambos gateways (main=8090, paulo=8091) atualizados e testados. |
+
+| 2026-08-10 | **Astros** | handler_groups.go + handler_call.go + CallCampaignWorker.php + binário Go | Sincronização completa a partir do main. Arquivos copiados (MD5 idênticos), binário recompilado (Auto-hangup=2, GetPNForLID=6), reiniciado. Worker bot já lê o novo CallCampaignWorker. | **Antes:** 48% alinhado. **Depois:** handler_groups=LID→PN, handler_call=auto-hangup, CallCampaignWorker=getAudioInfo. LID testado: 71249279586343→558399647615. Health 17/21. Backups salvos. |

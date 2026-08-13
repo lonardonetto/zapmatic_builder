@@ -1,0 +1,27 @@
+{
+  "projectsRoot": "/www/wwwroot/app_zapmatic_app",
+  "specDir": ".spec",
+  "testGlobs": [
+    "tests/**",
+    "app_zapmatic_whatsmeow_api/internal/**/*_test.go"
+  ],
+  "srcGlobs": [
+    "inc/core/Whatsapp_export_participants/Libraries/**",
+    "inc/core/Whatsapp_export_participants/Controllers/**",
+    "inc/core/Whatsapp_export_participants/Views/**",
+    "inc/core/Whatsapp_export_participants/Config.php"
+  ],
+  "ignoreGlobs": [
+    "node_modules/**",
+    ".git/**",
+    "vendor/**",
+    "inc/**/Libraries/vendor/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".spec/**",
+    "app_zapmatic_whatsmeow_api/vendor/**"
+  ],
+  "testCommand": "node tests/run_all.mjs",
+  "reporter": "tap"
+}

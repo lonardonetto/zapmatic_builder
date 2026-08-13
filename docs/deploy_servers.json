@@ -4,7 +4,12 @@
         "name": "Zapmatic (main/producao)",
         "path": "/www/wwwroot/app_zapmatic_app",
         "domain": "zapmatic.tec.br",
-        "db": { "host": "localhost", "user": "db_zapmatic_sql", "password": "inTwk7z37PnhWcY5", "name": "db_zapmatic_sql" },
+        "db": {
+            "host": "localhost",
+            "user": "db_zapmatic_sql",
+            "password": "inTwk7z37PnhWcY5",
+            "name": "db_zapmatic_sql"
+        },
         "porta_baileys": 9000,
         "porta_go": 8090,
         "go_service": "zapmatic-whatsmeow"
@@ -14,7 +19,12 @@
             "name": "Paulo",
             "path": "/www/wwwroot/app_paulo_app",
             "domain": "atualizaleads.app.br",
-            "db": { "host": "localhost", "user": "sql_paulo_db", "password": "H4R5PD5fW5GMDJSt", "name": "sql_paulo_db" },
+            "db": {
+                "host": "localhost",
+                "user": "sql_paulo_db",
+                "password": "H4R5PD5fW5GMDJSt",
+                "name": "sql_paulo_db"
+            },
             "porta_baileys": 9981,
             "porta_go": 8091,
             "go_service": "zapmatic-whatsmeow-paulo"
@@ -23,7 +33,12 @@
             "name": "Elias",
             "path": "/www/wwwroot/app_elias_app",
             "domain": "multiconnecta.com.br",
-            "db": { "host": "localhost", "user": "sql_elias_db", "password": "H57YaZSNnCEWy6zG", "name": "sql_elias_db" },
+            "db": {
+                "host": "localhost",
+                "user": "sql_elias_db",
+                "password": "H57YaZSNnCEWy6zG",
+                "name": "sql_elias_db"
+            },
             "porta_baileys": 9769,
             "porta_go": 8092,
             "go_service": "zapmatic-whatsmeow-elias"
@@ -32,7 +47,12 @@
             "name": "Renovo",
             "path": "/www/wwwroot/renovo_app",
             "domain": "renovo.app",
-            "db": { "host": "localhost", "user": "db_renovo_sql", "password": "inTwk7z37PnhWcY5", "name": "db_renovo_sql" },
+            "db": {
+                "host": "localhost",
+                "user": "db_renovo_sql",
+                "password": "inTwk7z37PnhWcY5",
+                "name": "db_renovo_sql"
+            },
             "porta_baileys": 9989,
             "porta_go": 8093,
             "go_service": "zapmatic-whatsmeow-renovo"
@@ -41,7 +61,12 @@
             "name": "Astros",
             "path": "/www/wwwroot/app.astroscomunicacaodigital.com",
             "domain": "app.astroscomunicacaodigital.com",
-            "db": { "host": "localhost", "user": "sql_eudezio_db", "password": "TJ8SA88YLJNRiNdG", "name": "sql_eudezio_db" },
+            "db": {
+                "host": "localhost",
+                "user": "sql_eudezio_db",
+                "password": "TJ8SA88YLJNRiNdG",
+                "name": "sql_eudezio_db"
+            },
             "porta_baileys": 9939,
             "porta_go": 8094,
             "go_service": "zapmatic-whatsmeow-astros"
@@ -59,7 +84,12 @@
                     "name": "Kivozap",
                     "path": "/www/wwwroot/app_abner_app",
                     "domain": "kivozap.com.br",
-                    "db": { "host": "localhost", "user": "db_abner_sql", "password": "inTwk7z37PnhWcY5", "name": "db_abner_sql" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "db_abner_sql",
+                        "password": "inTwk7z37PnhWcY5",
+                        "name": "db_abner_sql"
+                    },
                     "porta_baileys": 9033,
                     "porta_go": 8095,
                     "go_service": "zapmatic-whatsmeow-kivozap",
@@ -69,7 +99,12 @@
                     "name": "AgenciaMCW",
                     "path": "/www/wwwroot/app_frank_agencia",
                     "domain": "chatbot.agenciamcw.com.br",
-                    "db": { "host": "localhost", "user": "sql_frank_db", "password": "apw4iTDGjePic8cb", "name": "sql_frank_db" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "sql_frank_db",
+                        "password": "apw4iTDGjePic8cb",
+                        "name": "sql_frank_db"
+                    },
                     "porta_baileys": 9900,
                     "porta_go": 8096,
                     "go_service": "zapmatic-whatsmeow-agenciamcw",
@@ -79,7 +114,12 @@
                     "name": "Chatbut",
                     "path": "/www/wwwroot/app_alex_pedidu_app",
                     "domain": "chatbut.com.br",
-                    "db": { "host": "localhost", "user": "sql_alex_db", "password": "6eNEfwPxHjdT757w", "name": "sql_alex_db" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "sql_alex_db",
+                        "password": "6eNEfwPxHjdT757w",
+                        "name": "sql_alex_db"
+                    },
                     "porta_baileys": 9865,
                     "porta_go": 8097,
                     "go_service": "zapmatic-whatsmeow-chatbut",
@@ -98,7 +138,12 @@
                     "name": "IaClicks",
                     "path": "/www/wwwroot/app_zapmatic_app",
                     "domain": "iaclicks.com",
-                    "db": { "host": "localhost", "user": "sql_iaclicks_db", "password": "FxMzzfdLPr2yDS2F", "name": "sql_iaclicks_db" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "sql_iaclicks_db",
+                        "password": "FxMzzfdLPr2yDS2F",
+                        "name": "sql_iaclicks_db"
+                    },
                     "porta_baileys": 9000,
                     "porta_go": 8098,
                     "go_service": "zapmatic-whatsmeow-iaclicks",
@@ -117,7 +162,12 @@
                     "name": "Elite",
                     "path": "/www/wwwroot/elitecomunicacao.zapmatic.tec.br",
                     "domain": "elitecomunicacao.zapmatic.tec.br",
-                    "db": { "host": "localhost", "user": "sql_zapmatic_db", "password": "fe5kwDTMy3JdxDhT", "name": "sql_zapmatic_db" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "sql_zapmatic_db",
+                        "password": "fe5kwDTMy3JdxDhT",
+                        "name": "sql_zapmatic_db"
+                    },
                     "porta_baileys": 9000,
                     "porta_go": 8099,
                     "go_service": "zapmatic-whatsmeow-elite",
@@ -136,10 +186,39 @@
                     "name": "PlusZap",
                     "path": "/www/wwwroot/app_zapmatic_app",
                     "domain": "pluszap.com",
-                    "db": { "host": "localhost", "user": "sql_zapmatic_db", "password": "ZnCYYPwZwYxw8b6r", "name": "sql_zapmatic_db" },
+                    "db": {
+                        "host": "localhost",
+                        "user": "sql_zapmatic_db",
+                        "password": "ZnCYYPwZwYxw8b6r",
+                        "name": "sql_zapmatic_db"
+                    },
                     "porta_baileys": 9354,
                     "porta_go": 8100,
                     "go_service": "zapmatic-whatsmeow-pluszap",
+                    "mysql_socket": "/tmp/mysql.sock"
+                }
+            ]
+        },
+        {
+            "name": "Servidor MetaSenderPro",
+            "ip": "92.113.149.185",
+            "user": "MetaSenderPro",
+            "password": "Hacker5030",
+            "porta_ssh": 22,
+            "clients": [
+                {
+                    "name": "MetaSenderPro",
+                    "path": "/www/wwwroot/app_zapmatic_app",
+                    "domain": "",
+                    "db": {
+                        "host": "localhost",
+                        "user": "",
+                        "password": "",
+                        "name": ""
+                    },
+                    "porta_baileys": 9000,
+                    "porta_go": 8101,
+                    "go_service": "zapmatic-whatsmeow-metasenderpro",
                     "mysql_socket": "/tmp/mysql.sock"
                 }
             ]

@@ -1,0 +1,77 @@
+{
+  "feature": "extrair-contatos-grupos",
+  "timestamp": "2026-08-13T20:36:02.956Z",
+  "gitRev": "c04c90f",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 16,
+  "results": {
+    "AC-001": {
+      "status": "pass",
+      "testName": "GroupPaginatorTest::test_pagina_devolve_fatia_correta_e_total @spec:AC-001",
+      "method": "tap"
+    },
+    "AC-002": {
+      "status": "pass",
+      "testName": "GroupPaginatorTest::test_pagina_invalida_devolve_vazio_sem_erro @spec:AC-002",
+      "method": "tap"
+    },
+    "AC-003": {
+      "status": "pass",
+      "testName": "GroupPaginatorTest::test_limite_invalido_usa_padrao_50 @spec:AC-003",
+      "method": "tap"
+    },
+    "AC-004": {
+      "status": "pass",
+      "testName": "TestPaginateGroupsSliceAndTotal @spec:AC-004",
+      "method": "tap"
+    },
+    "AC-013": {
+      "status": "pass",
+      "testName": "TestSelectGroupsNoPageReturnsAll @spec:AC-013",
+      "method": "tap"
+    },
+    "AC-005": {
+      "status": "pass",
+      "testName": "ExportQueueTest::test_job_nasce_pendente_com_payload_e_progresso_zero @spec:AC-005",
+      "method": "tap"
+    },
+    "AC-006": {
+      "status": "pass",
+      "testName": "ExportQueueTest::test_worker_recusa_job_de_outro_time @spec:AC-006",
+      "method": "tap"
+    },
+    "AC-007": {
+      "status": "pass",
+      "testName": "ExportQueueTest::test_progresso_e_razao_entre_concluidos_e_total @spec:AC-007",
+      "method": "tap"
+    },
+    "AC-008": {
+      "status": "pass",
+      "testName": "ParticipantFilterTest::test_exclui_proprio_numero @spec:AC-008",
+      "method": "tap"
+    },
+    "AC-009": {
+      "status": "pass",
+      "testName": "ParticipantFilterTest::test_exclui_admins_quando_ativo @spec:AC-009",
+      "method": "tap"
+    },
+    "AC-010": {
+      "status": "pass",
+      "testName": "ParticipantFilterTest::test_deduplicacao_mantem_primeira_ocorrencia @spec:AC-010",
+      "method": "tap"
+    },
+    "AC-011": {
+      "status": "pass",
+      "testName": "AccountScopeTest::test_escopo_de_conta_injeta_team_id_valido @spec:AC-011",
+      "method": "tap"
+    },
+    "AC-012": {
+      "status": "pass",
+      "testName": "LeadExtractorNameTest::test_nome_presente_persistido_ausente_vira_nulo @spec:AC-012",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

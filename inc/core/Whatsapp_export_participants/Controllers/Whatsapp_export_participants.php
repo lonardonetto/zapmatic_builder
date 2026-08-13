@@ -14,8 +14,8 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
             "desc" => $this->config['desc'],
         ];
 
-        $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, [ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $team_id = (int)get_team("id");
+        $accounts = db_fetch("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam([ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "status" => 1], $team_id), "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -38,6 +38,18 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
             "instance_id" => $account->token,
             "access_token" => $access_token
         ]);
+    }
+
+    /**
+     * Lê uma flag booleana da requisição com valor padrão.
+     */
+    private function flag(string $name, bool $default = false): bool
+    {
+        $value = post($name);
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
     private function fetch_groups_via_go($instance_id)
     {
@@ -107,6 +119,9 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
                 if (!empty($p->admin)) {
                     $participant->admin = true;
                 }
+                if (!empty($p->name)) {
+                    $participant->name = $p->name;
+                }
                 $participants[] = $participant;
             }
             $output->data[] = (object)[
@@ -135,7 +150,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         $team_id = get_team("id");
         $access_token = get_team("ids");
         $ids = post("account");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids], (int)$team_id));
 
         if(!empty($account)){
             // Fallback para contas Go onde username fica vazio e o numero real está no pid
@@ -183,7 +198,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     public function export_group($account_id = false, $group_id = false){
         $team_id = get_team("id");
         $access_token = get_team("ids");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], (int)$team_id));
     
         if(!empty($account)){
             $result = $this->fetch_groups($account, $access_token);
@@ -200,13 +215,28 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
 
                 foreach ($result->data as $key => $value) {
                     if($value->id == $group_id){
+                        // Aplica os filtros (self/admins) antes de extrair
                         $participants = $value->participants;
+                        $selfJid = !empty($account->username) ? $account->username . '@s.whatsapp.net' : (!empty($account->pid) ? $account->pid : null);
+                        $filtered = \Core\Whatsapp_export_participants\Libraries\ParticipantFilter::apply(
+                            $participants,
+                            $selfJid,
+                            $this->flag("exclude_self", true),
+                            $this->flag("exclude_admins", false)
+                        );
+
+                        // Usa as bibliotecas isoladas para normalizar (9º dígito) e validar
+                        $rows = \Core\Whatsapp_export_participants\Libraries\LeadExtractor::extract($filtered, (string)$value->id);
+
                         $data = [];
-                        foreach ($participants as $participant) {
-                            
+                        foreach ($rows as $row) {
+                            $status = ($row['is_valid'] === 2) ? 'invalido' : 'valido';
                             $data[] = [
-                                'phone' => $participant->id,
-                                
+                                'nome'     => $row['name'] ?? '',
+                                'telefone' => $row['phone'],
+                                'ddd'      => $row['ddd'],
+                                'status'   => $status,
+                                'group_id' => $row['group_id'],
                             ];
                         }
 
@@ -218,5 +248,212 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
                 redirect_to( get_module_url() );
             }
         }
+    }
+
+    /**
+     * Enfileira a criação de uma lista de contatos a partir dos participantes
+     * de um grupo. O processamento real acontece em background via cron.
+     */
+    public function create_contact_list($account_id = false, $group_id = false)
+    {
+        $team_id = (int)get_team("id");
+        $access_token = get_team("ids");
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], (int)$team_id));
+
+        if (empty($account)) {
+            ms([
+                "status" => "error",
+                "message" => __("WhatsApp account does not exist")
+            ]);
+        }
+
+        $result = $this->fetch_groups($account, $access_token);
+
+        if (empty($result) || $result->status == "error") {
+            ms([
+                "status" => "error",
+                "message" => __("Failed to fetch groups")
+            ]);
+        }
+
+        $participants = null;
+        $group_name = "Group";
+        if (!empty($result->data)) {
+            foreach ($result->data as $value) {
+                if ($value->id == $group_id) {
+                    $participants = $value->participants;
+                    $group_name = $value->name;
+                    break;
+                }
+            }
+        }
+
+        if ($participants === null) {
+            ms([
+                "status" => "error",
+                "message" => __("Group not found")
+            ]);
+        }
+
+        // Filtros opcionais antes de enfileirar
+        $selfJid = !empty($account->username) ? $account->username . '@s.whatsapp.net' : (!empty($account->pid) ? $account->pid : null);
+        $filtered = \Core\Whatsapp_export_participants\Libraries\ParticipantFilter::apply(
+            $participants,
+            $selfJid,
+            $this->flag("exclude_self", true),
+            $this->flag("exclude_admins", false)
+        );
+
+        if (empty($filtered)) {
+            ms([
+                "status" => "error",
+                "message" => __("No valid participants found in this group")
+            ]);
+        }
+
+        $db = \Config\Database::connect();
+        $job = \Core\Whatsapp_export_participants\Libraries\ExportQueue::createJob(
+            $team_id,
+            (string)$account->ids,
+            (string)$group_id,
+            count($filtered)
+        );
+
+        $db->table('sp_export_participants_queue')->insert([
+            'ids'          => ids(),
+            'team_id'      => $job['team_id'],
+            'account_id'   => $job['account_id'],
+            'group_id'     => $job['group_id'],
+            'group_name'   => $group_name,
+            'status'       => $job['status'],
+            'total'        => $job['total'],
+            'done'         => $job['done'],
+            'attempts'     => $job['attempts'],
+            'max_attempts' => $job['max_attempts'],
+            'error_log'    => null,
+            'created'      => time(),
+            'changed'      => time(),
+        ]);
+
+        ms([
+            "status" => "success",
+            "message" => sprintf(__("Contact list queued with %s participants. It will be processed in background."), $job['total'])
+        ]);
+    }
+
+    /**
+     * Worker do cron: processa jobs pendentes do time em lotes.
+     */
+    public function cron()
+    {
+        $team_id = (int)get_team("id");
+
+        // Sem time (chamada fora de contexto de usuário), processa todos os pendentes.
+        if ($team_id <= 0) {
+            $team_id = null;
+        }
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('sp_export_participants_queue');
+        $builder->where('status', 'pending');
+        $builder->where('attempts < max_attempts');
+        if ($team_id !== null) {
+            $builder->where('team_id', $team_id);
+        }
+        $builder->orderBy('id', 'ASC');
+        $builder->limit(\Core\Whatsapp_export_participants\Libraries\ExportQueue::BATCH_SIZE);
+        $jobs = $builder->get()->getResult();
+
+        foreach ($jobs as $job) {
+            $this->processJob($job);
+        }
+
+        return "ok";
+    }
+
+    /**
+     * Busca o access_token do time diretamente no banco — o cron roda fora
+     * de sessão de usuário, então get_team() não funciona aqui.
+     */
+    private function team_access_token(int $teamId): string
+    {
+        $team = db_get("ids", TB_TEAM, ["id" => $teamId]);
+        return $team ? (string)$team->ids : '';
+    }
+
+    /**
+     * Processa um job da fila.
+     */
+    private function processJob($job)
+    {
+        $db = \Config\Database::connect();
+        $teamId = (int)$job->team_id;
+
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["ids" => $job->account_id], $teamId));
+        if (empty($account)) {
+            $db->table('sp_export_participants_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'account not found',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $result = $this->fetch_groups($account, $this->team_access_token($teamId));
+        if (empty($result) || $result->status == "error") {
+            $db->table('sp_export_participants_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => isset($result->message) ? $result->message : 'failed to fetch groups',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $participants = null;
+        if (!empty($result->data)) {
+            foreach ($result->data as $value) {
+                if ($value->id == $job->group_id) {
+                    $participants = $value->participants;
+                    break;
+                }
+            }
+        }
+
+        if ($participants === null) {
+            $db->table('sp_export_participants_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'group not found',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $rows = \Core\Whatsapp_export_participants\Libraries\LeadExtractor::extract($participants, (string)$job->group_id);
+        if (empty($rows)) {
+            $db->table('sp_export_participants_queue')->where('id', $job->id)->update([
+                'status'    => 'failed',
+                'error_log' => 'no valid participants',
+                'attempts'  => (int)$job->attempts + 1,
+                'changed'   => time(),
+            ]);
+            return;
+        }
+
+        $contact_name = sprintf("%s - %s", $job->group_name ?: "Group", date("d/m/Y"));
+        $saved = \Core\Whatsapp_export_participants\Libraries\LeadExtractor::saveAsContactList($teamId, $contact_name, $rows);
+
+        $total = (int)$job->total > 0 ? (int)$job->total : count($rows);
+        $done  = count($rows);
+
+        $db->table('sp_export_participants_queue')->where('id', $job->id)->update([
+            'status'    => 'completed',
+            'done'      => $done,
+            'total'     => $total,
+            'error_log' => null,
+            'changed'   => time(),
+        ]);
     }
 }

@@ -7,9 +7,16 @@
   'desc' => 'Export participant list',
   'icon' => 'fad fa-file-export',
   'color' => '#004cff',
+  'login_required' => false,
   'parent' => 
   array (
     'id' => 'features',
     'name' => 'Features',
+  ),
+  'cron' => 
+  array (
+    'name' => 'Process export participants queue',
+    'uri' => 'whatsapp_export_participants/cron',
+    'style' => '* * * * *',
   ),
 );

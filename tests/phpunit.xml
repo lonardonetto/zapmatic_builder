@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="bootstrap.php"
+         colors="false"
+         printerClass="Zapmatic\Spec\TapPrinter"
+         printerFile="Zapmatic/Spec/TapPrinter.php"
+         beStrictAboutChangesToGlobalState="false"
+         beStrictAboutOutputDuringTests="false"
+         beStrictAboutTodoAnnotatedTests="false"
+         cacheResult="false">
+    <testsuites>
+        <testsuite name="zapmatic-spec">
+            <directory>phpunit</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <includePath>.</includePath>
+    </php>
+</phpunit>

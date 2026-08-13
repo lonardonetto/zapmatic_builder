@@ -146,6 +146,8 @@ vendor/
 app_zapmatic_whatsmeow_api/zapmatic-whatsmeow
 app_zapmatic_whatsmeow_api/storage/sessions/
 app_zapmatic_whatsmeow_api/logs/
+app_zapmatic_whatsmeow_api/*.bak*
+app_zapmatic_whatsmeow_api/*.bak_*
 *.db
 *.db-shm
 *.db-wal

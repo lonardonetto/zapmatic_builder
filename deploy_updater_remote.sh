@@ -147,6 +147,7 @@ deploy_remote "Elite" "193.180.211.190" "admin" "Leonetto1982" "/www/wwwroot/eli
 # SERVIDOR 92 (PlusZap)
 # ==============================================
 deploy_remote "PlusZap" "92.113.144.161" "admin" "Leonetto1982" "/www/wwwroot/app_zapmatic_app" "pluszap-bot-worker-all"
+deploy_remote "MetaSenderPro" "92.113.149.185" "MetaSenderPro" "Hacker5030" "/www/wwwroot/app_zapmatic_app" "metasenderpro-bot-worker-all"
 
 echo ""
 echo "=============================================="
