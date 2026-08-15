@@ -57,7 +57,11 @@ class WhatsAppGatewayService
         if ($override === null) {
             $db = \Config\Database::connect();
             $acc = $db->table('sp_accounts')
-                ->where('token', (string)$instanceId)
+                ->groupStart()
+                    ->where('token', (string)$instanceId)
+                    ->orWhere('id', (string)$instanceId)
+                    ->orWhere('ids', (string)$instanceId)
+                ->groupEnd()
                 ->where('social_network', 'whatsapp')
                 ->get()
                 ->getRow();
@@ -510,11 +514,68 @@ class WhatsAppGatewayService
     public static function getCloudAPIConfig($instanceId): ?array
     {
         $db = \Config\Database::connect();
+        
+        // 1. Query direta pelo instance_id
         $row = $db->table('sp_whatsapp_cloud_api_config')
             ->where('instance_id', (string)$instanceId)
             ->get()
             ->getRowArray();
-        return $row ?: null;
+        if ($row && !empty($row['phone_number_id']) && !empty($row['access_token'])) {
+            return $row;
+        }
+
+        // 2. Busca pela conta no sp_accounts (caso $instanceId seja ID numérico, token ou ids)
+        $acc = $db->table('sp_accounts')
+            ->groupStart()
+                ->where('token', (string)$instanceId)
+                ->orWhere('id', (string)$instanceId)
+                ->orWhere('ids', (string)$instanceId)
+            ->groupEnd()
+            ->where('social_network', 'whatsapp')
+            ->get()
+            ->getRow();
+
+        if ($acc) {
+            if (!empty($acc->token)) {
+                $row = $db->table('sp_whatsapp_cloud_api_config')
+                    ->where('instance_id', $acc->token)
+                    ->get()
+                    ->getRowArray();
+                if ($row && !empty($row['phone_number_id']) && !empty($row['access_token'])) {
+                    return $row;
+                }
+            }
+
+            if (!empty($acc->team_id)) {
+                $row = $db->table('sp_whatsapp_cloud_api_config')
+                    ->where('team_id', $acc->team_id)
+                    ->get()
+                    ->getRowArray();
+                if ($row && !empty($row['phone_number_id']) && !empty($row['access_token'])) {
+                    return $row;
+                }
+            }
+
+            // 3. Fallback extraindo de sp_accounts.data
+            if (!empty($acc->data)) {
+                $accData = is_array($acc->data) ? $acc->data : json_decode($acc->data, true);
+                if (!empty($accData['phone_number_id']) && (!empty($accData['token']) || !empty($accData['access_token']))) {
+                    return [
+                        'id' => $acc->id,
+                        'team_id' => $acc->team_id,
+                        'instance_id' => $acc->token,
+                        'phone_number_id' => $accData['phone_number_id'],
+                        'waba_id' => $accData['waba_id'] ?? '',
+                        'access_token' => $accData['token'] ?? $accData['access_token'] ?? '',
+                        'business_id' => $accData['business_id'] ?? '',
+                        'verify_token' => $accData['verify_token'] ?? '',
+                        'is_coexistence' => 0,
+                    ];
+                }
+            }
+        }
+
+        return null;
     }
 
     public static function setCloudAPIConfig(array $config): array

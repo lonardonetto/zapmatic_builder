@@ -1247,7 +1247,7 @@ public function save_bot_settings()
             }
 
             // ==================== WOOCOMMERCE SHOP BOT HOOK ====================
-            if ($account && isset($account->team_id)) {
+            if ($account && isset($account->team_id) && class_exists('\Core\Whatsapp_woocommerce\Controllers\Whatsapp_woocommerce')) {
                 try {
                     // Check if message is for WooCommerce Shop Bot
                     $handled = \Core\Whatsapp_woocommerce\Controllers\Whatsapp_woocommerce::handle_incoming_message(
@@ -1257,12 +1257,12 @@ public function save_bot_settings()
                         $account->team_id
                     );
                     if ($handled) {
-                        file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🛍️ Handled by WooCommerce Bot\n", FILE_APPEND);
+                        @file_put_contents($logFile, date('Y-m-d H:i:s') . " | 🛍️ Handled by WooCommerce Bot\n", FILE_APPEND);
                         $handled_count++;
                         continue; // Skip normal bot flow
                     }
                 } catch (\Throwable $e) {
-                    file_put_contents($logFile, date('Y-m-d H:i:s') . " | ❌ WooBot Error: " . $e->getMessage() . "\n", FILE_APPEND);
+                    @file_put_contents($logFile, date('Y-m-d H:i:s') . " | ❌ WooBot Error: " . $e->getMessage() . "\n", FILE_APPEND);
                 }
             }
             // ===================================================================
@@ -3854,34 +3854,33 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
     }
 
     private function send_whatsapp($instance_id, $phone, $type, $content) {
+        // Redireciona contas Whatsmeow (3) e Cloud API (1) para WhatsAppGatewayService
+        static $gatewayChecked = [];
+        if (!isset($gatewayChecked[$instance_id])) {
+            $acc = $this->model->db->table('sp_accounts')
+                ->groupStart()
+                    ->where('token', (string)$instance_id)
+                    ->orWhere('id', (string)$instance_id)
+                    ->orWhere('ids', (string)$instance_id)
+                ->groupEnd()
+                ->where('social_network', 'whatsapp')
+                ->get()->getRow();
+            $gatewayChecked[$instance_id] = $acc ? (int)($acc->login_type ?? 3) : 3;
+        }
+
+        if ($gatewayChecked[$instance_id] === 3 || $gatewayChecked[$instance_id] === 1) {
+            $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+            @file_put_contents(WRITEPATH . 'bot_builder_send.log',
+                date('Y-m-d H:i:s') . ' | GATEWAY_SEND | type=' . $type . ' | instance=' . $instance_id . ' | phone=' . $phone . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
+                FILE_APPEND
+            );
+            return $result;
+        }
+
         $access_token = $this->get_access_token($instance_id);
         if(!$access_token) {
             log_message('error', 'Bot Builder: token de equipe não encontrado para a instância ' . $instance_id);
             return false;
-        }
-
-        file_put_contents(WRITEPATH . 'bot_builder_send.log',
-            FILE_APPEND
-        );
-
-        // Redireciona contas Whatsmeow para gateway Go (independente)
-        static $whatsmeowGatewayChecked = [];
-        if (!isset($whatsmeowGatewayChecked[$instance_id])) {
-            $acc = $this->model->db->table('sp_accounts')->where('token', $instance_id)->get()->getRow();
-            $whatsmeowGatewayChecked[$instance_id] = $acc ? (int)($acc->login_type ?? 0) : 0;
-        }
-        if ($whatsmeowGatewayChecked[$instance_id] === 3) {
-            return \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
-        }
-
-        // Cloud API (login_type = 1) → WhatsAppGatewayService
-        if ($whatsmeowGatewayChecked[$instance_id] === 1) {
-            $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
-            file_put_contents(WRITEPATH . 'bot_builder_send.log',
-                date('Y-m-d H:i:s') . ' | CLOUD_API_SEND | instance=' . $instance_id . ' | phone=' . $phone . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
-                FILE_APPEND
-            );
-            return $result;
         }
 
         $params = [

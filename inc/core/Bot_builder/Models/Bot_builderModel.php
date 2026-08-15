@@ -201,10 +201,12 @@ class Bot_builderModel
     }
 
     public function get_bot($id) {
-        return $this->db->table('sp_bot_builders')
-            ->where('id', $id)
-            ->where('team_id', get_team('id'))
-            ->get()->getRow();
+        $builder = $this->db->table('sp_bot_builders')->where('id', $id);
+        $team_id = function_exists('get_team') ? get_team('id') : null;
+        if ($team_id) {
+            $builder->where('team_id', $team_id);
+        }
+        return $builder->get()->getRow();
     }
 
     public function insert($data) {

@@ -268,11 +268,11 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
 
             // 2) Encaminhar mensagens Cloud API para Bot_builder (keywords + autorespond)
             if (isset($value['metadata']['phone_number_id'])) {
-                $phone_number_id = $value['metadata']['phone_number_id'];
+                $phone_number_id = (string)$value['metadata']['phone_number_id'];
 
                 $db = \Config\Database::connect();
-                $sql = "SELECT token FROM sp_accounts WHERE social_network = 'whatsapp' AND login_type = 1 AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.phone_number_id')) = ?";
-                $query = $db->query($sql, [$phone_number_id]);
+                $sql = "SELECT token FROM sp_accounts WHERE social_network = 'whatsapp' AND login_type = 1 AND (pid = ? OR JSON_UNQUOTE(JSON_EXTRACT(data, '$.phone_number_id')) = ?)";
+                $query = $db->query($sql, [$phone_number_id, $phone_number_id]);
                 $row = $query->getRow();
 
                 if ($row) {
@@ -348,6 +348,8 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                         curl_setopt($bot_ch, CURLOPT_POST, true);
                         curl_setopt($bot_ch, CURLOPT_POSTFIELDS, json_encode($bot_payload));
                         curl_setopt($bot_ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        curl_setopt($bot_ch, CURLOPT_SSL_VERIFYPEER, false);
+                        curl_setopt($bot_ch, CURLOPT_SSL_VERIFYHOST, false);
                         curl_setopt($bot_ch, CURLOPT_TIMEOUT, 120);
                         $bot_response = curl_exec($bot_ch);
                         $bot_http = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);

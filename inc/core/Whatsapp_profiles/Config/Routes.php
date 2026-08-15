@@ -15,8 +15,8 @@ if (
     $routes->setDefaultNamespace(ucfirst($config['folder']) . "/" . ucfirst($config['id']) . "/Controllers");
 }
 // Cloud API Webhook (Meta sends GET for verify, POST for messages)
-$routes->get('cloud_webhook', '\Core\Whatsapp_profiles\Controllers\Cloud_webhook::index');
-$routes->post('cloud_webhook', '\Core\Whatsapp_profiles\Controllers\Cloud_webhook::receive');
+$routes->get('cloud_webhook', '\Core\Whatsapp_webhook\Controllers\Whatsapp_webhook::index');
+$routes->post('cloud_webhook', '\Core\Whatsapp_webhook\Controllers\Whatsapp_webhook::index');
 
 $routes->add('whatsapp_profiles/save_official', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_official');
 $routes->add('whatsapp_profiles/save_embedded', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_embedded');
