@@ -18,11 +18,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
+const extraPath = `/usr/local/go/bin:${process.env.PATH || ''}`;
+
 function run(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, {
     cwd: opts.cwd || root,
     encoding: 'utf-8',
-    env: { ...process.env, NO_COLOR: '1', ...(opts.env || {}) },
+    env: { ...process.env, PATH: extraPath, NO_COLOR: '1', ...(opts.env || {}) },
     maxBuffer: 64 * 1024 * 1024,
     shell: false,
   });

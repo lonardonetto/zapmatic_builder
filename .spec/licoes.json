@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "proximoId": 2,
+  "licoes": [
+    {
+      "id": "L-001",
+      "texto": "O scaffold gera teste JS, mas o padrao do projeto e PHPUnit (tests/phpunit) + go test; remova o scaffold JS e escreva o teste no runner real (tests/run_all.mjs)",
+      "chave": "ARQUIVO_INEXISTENTE::o scaffold gera teste js mas o padrao do projeto e phpunit tests phpunit go test remova o scaffold js e escreva o teste no runner real tests run all mjs",
+      "sinal": "ARQUIVO_INEXISTENTE",
+      "escopo": null,
+      "status": "candidata",
+      "recorrencia": 1,
+      "features": [
+        "disparo-em-massa-grupos"
+      ],
+      "evidencias": [
+        {
+          "fonte": "T-018",
+          "feature": "disparo-em-massa-grupos",
+          "quando": "2026-08-14T01:45:11.975Z",
+          "gitRev": "1cd8f6a"
+        }
+      ],
+      "penalidades": 0,
+      "criadaEm": "2026-08-14T01:45:11.975Z",
+      "ultimaVez": "2026-08-14T01:45:11.975Z"
+    }
+  ]
+}

@@ -19,6 +19,7 @@ const (
 	CampaignList     CampaignType = 3
 	CampaignPoll     CampaignType = 4
 	CampaignCarousel CampaignType = 5
+	CampaignCall     CampaignType = 7
 )
 
 type CampaignStatus int
@@ -36,6 +37,7 @@ type Campaign struct {
 	Accounts         []int          `json:"accounts"`
 	NextAccount      sql.NullInt64  `json:"next_account"`
 	ContactID        int            `json:"contact_id"`
+	TargetType       string         `json:"target_type"`
 	Type             CampaignType   `json:"type"`
 	Template         int            `json:"template"`
 	TimePost         int64          `json:"time_post"`
@@ -68,6 +70,12 @@ type CampaignResult struct {
 	AccountID   int    `json:"account_id"`
 }
 
+// IsGroupCampaign indica se a campanha tem destinos de grupo (envio dentro do
+// grupo) em vez de números individuais. O destino é definido por target_type.
+func (c *Campaign) IsGroupCampaign() bool {
+	return c.TargetType == "groups"
+}
+
 func scanCampaign(s scanner) (*Campaign, error) {
 	var (
 		c                  Campaign
@@ -83,7 +91,7 @@ func scanCampaign(s scanner) (*Campaign, error) {
 	)
 	err := s.Scan(
 		&c.ID, &c.IDs, &c.TeamID, &accountsJSON,
-		&c.NextAccount, &c.ContactID, (*int)(&c.Type),
+		&c.NextAccount, &c.ContactID, &c.TargetType, (*int)(&c.Type),
 		&c.Template, &c.TimePost, &c.MinDelay, &c.MaxDelay,
 		&scheduleTimeJSON, &scheduleWeekdaySQL, &timezoneSQL,
 		&c.Name, &c.Caption, &mediaSQL,
@@ -138,7 +146,7 @@ type scanner interface {
 }
 
 const campaignCols = `id, ids, team_id, accounts, next_account, contact_id,
- type, template, time_post, min_delay, max_delay,
+ COALESCE(target_type, 'contacts'), type, template, time_post, min_delay, max_delay,
  schedule_time, schedule_weekdays, timezone,
  name, caption, media,
  sent, failed, run, status,

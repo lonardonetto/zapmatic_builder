@@ -245,3 +245,93 @@ if (!function_exists('call_describe_schedule_hours')) {
         return implode(', ', array_map(fn($h) => str_pad($h, 2, '0', STR_PAD_LEFT) . ':00', $hours));
     }
 }
+
+if (!function_exists('call_get_audio_file_duration')) {
+    /**
+     * Calcula a duração em segundos de um arquivo de áudio (MP3, WAV, OGG, Opus)
+     * em PHP puro, sem depender de shell_exec/ffprobe.
+     */
+    function call_get_audio_file_duration(string $filePath): int
+    {
+        if (empty($filePath) || !file_exists($filePath)) {
+            return 0;
+        }
+
+        $fileSize = @filesize($filePath);
+        if (!$fileSize || $fileSize <= 0) {
+            return 0;
+        }
+
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
+        // 1. WAV
+        if ($ext === 'wav') {
+            $fp = @fopen($filePath, 'rb');
+            if ($fp) {
+                $header = fread($fp, 44);
+                fclose($fp);
+                if (strlen($header) >= 44 && substr($header, 0, 4) === 'RIFF' && substr($header, 8, 4) === 'WAVE') {
+                    $byteRate = ord($header[28]) | (ord($header[29]) << 8) | (ord($header[30]) << 16) | (ord($header[31]) << 24);
+                    if ($byteRate > 0) {
+                        $dataSize = $fileSize - 44;
+                        return max(1, (int) round($dataSize / $byteRate));
+                    }
+                }
+            }
+        }
+
+        // 2. MP3
+        if ($ext === 'mp3') {
+            $fp = @fopen($filePath, 'rb');
+            if ($fp) {
+                $offset = 0;
+                $header = fread($fp, 10);
+                // Verifica ID3v2 header
+                if (strlen($header) >= 10 && substr($header, 0, 3) === 'ID3') {
+                    $id3Size = ((ord($header[6]) & 0x7F) << 21)
+                             | ((ord($header[7]) & 0x7F) << 14)
+                             | ((ord($header[8]) & 0x7F) << 7)
+                             | (ord($header[9]) & 0x7F);
+                    $offset = 10 + $id3Size;
+                }
+
+                fseek($fp, $offset);
+                $audioData = fread($fp, 8192);
+                fclose($fp);
+
+                // Procura frame sync (0xFF 0xEx)
+                $len = strlen($audioData);
+                for ($i = 0; $i < $len - 4; $i++) {
+                    if (ord($audioData[$i]) === 0xFF && (ord($audioData[$i + 1]) & 0xE0) === 0xE0) {
+                        $b1 = ord($audioData[$i + 1]);
+                        $b2 = ord($audioData[$i + 2]);
+
+                        $versionBits = ($b1 >> 3) & 0x03; // 3 = MPEG 1, 2 = MPEG 2, 0 = MPEG 2.5
+                        $layerBits   = ($b1 >> 1) & 0x03; // 1 = Layer III, 2 = Layer II, 3 = Layer I
+                        $bitrateIdx  = ($b2 >> 4) & 0x0F;
+
+                        // Bitrates para MPEG 1 Layer III (kbps)
+                        $bitratesMpeg1Layer3 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+                        // Bitrates para MPEG 2/2.5 Layer III (kbps)
+                        $bitratesMpeg2Layer3 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+
+                        $bitrate = 0;
+                        if ($versionBits === 3 && $layerBits === 1 && isset($bitratesMpeg1Layer3[$bitrateIdx])) {
+                            $bitrate = $bitratesMpeg1Layer3[$bitrateIdx];
+                        } elseif ($layerBits === 1 && isset($bitratesMpeg2Layer3[$bitrateIdx])) {
+                            $bitrate = $bitratesMpeg2Layer3[$bitrateIdx];
+                        }
+
+                        if ($bitrate > 0) {
+                            $audioBytes = max(1, $fileSize - $offset);
+                            return max(1, (int) round(($audioBytes * 8) / ($bitrate * 1000)));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback genérico baseado em taxa de 128kbps (16.000 bytes/segundo)
+        return max(1, (int) round($fileSize / 16000));
+    }
+}

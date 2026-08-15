@@ -604,16 +604,22 @@ class Whatsapp_call_campaign extends Controller
         $ext = strtolower($file->getClientExtension());
         $duration = 0;
 
+        // Include helper for pure PHP duration fallback
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+
         // Resolve full paths for ffmpeg/ffprobe (www user may not have /usr/bin in PATH)
         $ffmpeg = trim((string) $this->safeShell("which ffmpeg 2>/dev/null") ?: '');
         if (empty($ffmpeg)) $ffmpeg = '/usr/bin/ffmpeg';
         $ffprobeBin = trim((string) $this->safeShell("which ffprobe 2>/dev/null") ?: '');
         if (empty($ffprobeBin)) $ffprobeBin = '/usr/bin/ffprobe';
 
-        // Get duration with FFmpeg
+        // Get duration with FFmpeg if available
         $ffprobe = $this->safeShell($ffprobeBin . " -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
         if ($ffprobe && is_numeric(trim($ffprobe))) {
             $duration = (int) round((float) trim($ffprobe));
+        }
+        if ($duration <= 0 && function_exists('call_get_audio_file_duration')) {
+            $duration = call_get_audio_file_duration($filePath);
         }
 
         // Convert OGG/FLAC/AAC to MP3 for meowcaller compatibility
@@ -637,6 +643,9 @@ class Whatsapp_call_campaign extends Controller
                 $ffprobe = $this->safeShell($ffprobeBin . " -v quiet -show_entries format=duration -of csv=p=0 " . escapeshellarg($filePath) . " 2>/dev/null");
                 if ($ffprobe && is_numeric(trim($ffprobe))) {
                     $duration = (int) round((float) trim($ffprobe));
+                }
+                if ($duration <= 0 && function_exists('call_get_audio_file_duration')) {
+                    $duration = call_get_audio_file_duration($filePath);
                 }
             }
         }

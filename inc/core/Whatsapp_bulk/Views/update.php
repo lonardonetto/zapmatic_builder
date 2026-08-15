@@ -4,6 +4,8 @@
         $current_type = 1;
     }
     $is_call_campaign = $current_type === 7;
+    $current_target_type = get_data($result, "target_type", "string", "contacts");
+    $is_group_target = $current_target_type === 'groups';
     $cloud_parallel_enabled = (int)get_data($result, "cloud_parallel_enabled") === 1;
     $cloud_parallel_level = (int)get_data($result, "cloud_parallel_level");
     $cloud_parallel_presets = [10, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -158,9 +160,24 @@
                     <input type="text" class="form-control form-control-solid" name="name" value="<?php _ec( get_data($result, "name") )?>" required>
                 </div>
                 <input type="hidden" name="carousel_msg" value="<?php _ec( get_data($result, "template", "hidden", get_data($result, "template")) )?>">
+
                 <div class="mb-3">
+                    <label class="form-label"><?php _e("Destino da campanha")?></label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="target_type" id="target_contacts" value="contacts" <?php _ec( !$is_group_target?"checked":"" )?>>
+                            <label class="form-check-label" for="target_contacts"><?php _e("Lista de contatos")?></label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="target_type" id="target_groups" value="groups" <?php _ec( $is_group_target?"checked":"" )?>>
+                            <label class="form-check-label" for="target_groups"><?php _e("Grupos do WhatsApp")?></label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="target-contacts-wrap" style="<?php _ec( $is_group_target?"display:none;":"" )?>">
                     <label class="form-label"><?php _e("Contact group")?></label>
-                    <select class="form-select form-select-solid" name="group" required>
+                    <select class="form-select form-select-solid" name="group" id="contact_group_select">
                         <option value=""><?php _e("Select contact group")?></option>
                         <?php if (!empty($contacts)): ?>
                             <?php foreach ($contacts as $key => $value): ?>
@@ -168,6 +185,29 @@
                             <?php endforeach ?>
                         <?php endif ?>
                     </select>
+                </div>
+
+                <div class="mb-3" id="target-groups-wrap" style="<?php _ec( $is_group_target?"":"display:none;" )?>">
+                    <div class="card border b-r-6">
+                        <div class="card-body">
+                            <div class="d-flex flex-column gap-3">
+                                <div>
+                                    <span class="badge badge-light-success mb-2"><?php _e("Contas Go/Whatsmeow (login_type=3)")?></span>
+                                    <h4 class="mb-1"><?php _e("Disparo dentro dos grupos")?></h4>
+                                    <p class="text-gray-700 mb-0"><?php _e("Selecione os grupos das contas conectadas. A mensagem é publicada dentro de cada grupo, respeitando o mesmo delay e agendamento do disparo normal.")?></p>
+                                </div>
+                                <div class="alert alert-warning mb-0">
+                                    <div class="fw-600 mb-1"><?php _e("Selecione primeiro as contas acima e depois carregue os grupos.")?></div>
+                                    <small class="text-gray-700"><?php _e("Grupos de anúncio e comunidades aparecem na lista, mas podem falhar se a conta não tiver permissão de postar.")?></small>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-light-primary btn-sm" id="load-wa-groups"><?php _e("Carregar grupos das contas selecionadas")?></button>
+                                </div>
+                                <div id="wa-group-list" class="d-flex flex-column gap-2"></div>
+                                <input type="hidden" name="group_targets" id="group_targets" value="<?php _ec(isset($group_targets_json) ? $group_targets_json : '[]') ?>">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <?php 
@@ -996,6 +1036,123 @@ $(function(){
         }).get();
     };
 
+    var groupTargetsUrl = '<?php _e(get_module_url("group_targets")) ?>';
+    var groupTargetsRequest = null;
+    var groupTargetsState = {};
+
+    var readGroupTargetsState = function(){
+        var raw = $("#group_targets").val();
+        if (raw) {
+            try {
+                groupTargetsState = JSON.parse(raw);
+            } catch (e) {
+                groupTargetsState = {};
+            }
+        }
+    };
+
+    var persistGroupTargetsState = function(){
+        var list = [];
+        $.each(groupTargetsState, function(key, val){
+            if (val && val.checked) {
+                list.push({ account_id: val.account_id, group_jid: val.group_jid });
+            }
+        });
+        $("#group_targets").val(JSON.stringify(list));
+    };
+
+    var renderGroupTargets = function(){
+        var $list = $("#wa-group-list");
+        var html = '';
+        var count = 0;
+        $.each(groupTargetsState, function(key, val){
+            count++;
+            var checked = val.checked ? 'checked' : '';
+            var badge = '';
+            if (val.isCommunity) badge += ' <span class="badge badge-light-primary">Comunidade</span>';
+            if (val.announce) badge += ' <span class="badge badge-light-warning">Anúncio</span>';
+            html += '<label class="d-flex align-items-center gap-2 border b-r-6 p-2 m-0" style="cursor:pointer;">'
+                + '<input type="checkbox" class="form-check-input wa-group-check" data-key="' + escapeHtml(key) + '" ' + checked + '>'
+                + '<div class="flex-grow-1">'
+                + '<div class="fw-600">' + escapeHtml(val.name || val.group_jid) + '</div>'
+                + '<small class="text-gray-600">' + escapeHtml(val.account_name || val.account_id) + ' · ' + escapeHtml(val.group_jid) + badge + '</small>'
+                + '</div>'
+                + '</label>';
+        });
+        if (!count) {
+            html = '<div class="text-gray-500"><?php _e("Nenhum grupo carregado ainda.") ?></div>';
+        }
+        $list.html(html);
+        persistGroupTargetsState();
+    };
+
+    var loadGroupTargets = function(){
+        var selectedAccounts = getSelectedAccountIds();
+        var $list = $("#wa-group-list");
+
+        if (groupTargetsRequest && typeof groupTargetsRequest.abort === 'function') {
+            groupTargetsRequest.abort();
+        }
+
+        if (!selectedAccounts.length) {
+            $list.html('<div class="text-danger"><?php _e("Selecione ao menos uma conta Go acima.") ?></div>');
+            return;
+        }
+
+        $list.html('<div class="text-gray-500"><?php _e("Carregando grupos...") ?></div>');
+
+        groupTargetsRequest = $.ajax({
+            url: groupTargetsUrl,
+            type: 'POST',
+            dataType: 'json',
+            data: { accounts: selectedAccounts }
+        }).done(function(response){
+            var groups = response && response.data && $.isArray(response.data.groups) ? response.data.groups : [];
+            groupTargetsState = {};
+            $.each(groups, function(i, g){
+                var key = g.account_id + '|' + g.group_jid;
+                groupTargetsState[key] = {
+                    account_id: g.account_id,
+                    group_jid: g.group_jid,
+                    account_name: g.account_name,
+                    name: g.name,
+                    isCommunity: !!g.isCommunity,
+                    announce: !!g.announce,
+                    checked: true
+                };
+            });
+            renderGroupTargets();
+        }).fail(function(xhr, status){
+            if (status === 'abort') return;
+            $list.html('<div class="text-danger"><?php _e("Falha ao carregar os grupos.") ?></div>');
+        });
+    };
+
+    $(document).on('change', '.wa-group-check', function(){
+        var key = $(this).data('key');
+        if (groupTargetsState[key]) {
+            groupTargetsState[key].checked = $(this).is(':checked');
+        }
+        persistGroupTargetsState();
+    });
+
+    $(document).on('click', '#load-wa-groups', function(){
+        loadGroupTargets();
+    });
+
+    var syncTargetType = function(){
+        var isGroups = $("input[name='target_type']:checked").val() === 'groups';
+        $("#target-contacts-wrap").toggle(!isGroups);
+        $("#target-groups-wrap").toggle(isGroups);
+        $("#contact_group_select").prop('required', !isGroups);
+    };
+
+    $(document).on('change', "input[name='target_type']", function(){
+        syncTargetType();
+    });
+
+    syncTargetType();
+
     var setCloudParallelUnavailable = function(message){
         $cloudUnavailable.text(message || '').toggleClass('d-none', !message);
     };
@@ -1185,6 +1342,7 @@ $(function(){
     updateBulkScheduleSummary();
     syncCallCampaignAccounts();
     setCloudParallelControlsEnabled(false);
+    readGroupTargetsState();
 
     $(document).on("change", "input[name='type']", function(){
         syncCallCampaignAccounts();

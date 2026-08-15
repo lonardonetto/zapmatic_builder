@@ -53,6 +53,22 @@ class WhatsAppGatewayService
         $gateway = self::gatewayForInstance($instanceId);
         $provider = $override ?? ($gateway['provider'] ?? 'whatsmeow');
 
+        // Se nao houver override, o login_type de sp_accounts e a fonte da verdade
+        if ($override === null) {
+            $db = \Config\Database::connect();
+            $acc = $db->table('sp_accounts')
+                ->where('token', (string)$instanceId)
+                ->where('social_network', 'whatsapp')
+                ->get()
+                ->getRow();
+            if ($acc) {
+                $loginType = (int)($acc->login_type ?? 3);
+                if ($loginType === 1) {
+                    $provider = 'cloud_api';
+                }
+            }
+        }
+
         if ($provider === 'whatsmeow') {
             return self::sendViaWhatsmeow($gateway, $instanceId, $chatId, $type, $payload);
         }

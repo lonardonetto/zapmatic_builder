@@ -576,6 +576,54 @@ class Whatsapp_bulkModel extends Model
         
     }
 
+    public function save_schedule_groups(int $schedule_id, int $team_id, array $targets): void
+    {
+        $db = \Config\Database::connect();
+
+        db_delete(TB_WHATSAPP_SCHEDULE_GROUPS, ['schedule_id' => $schedule_id, 'team_id' => $team_id]);
+
+        $batch = [];
+        $position = 0;
+        foreach ($targets as $target) {
+            $batch[] = [
+                'ids'        => ids(),
+                'team_id'    => $team_id,
+                'schedule_id'=> $schedule_id,
+                'account_id' => (string)($target['account_id'] ?? ''),
+                'group_jid'  => (string)($target['group_jid'] ?? ''),
+                'position'   => $position++,
+                'status'     => 'pending',
+                'created'    => time(),
+                'changed'    => time(),
+            ];
+        }
+
+        if (!empty($batch)) {
+            $db->table(TB_WHATSAPP_SCHEDULE_GROUPS)->insertBatch($batch);
+        }
+    }
+
+    public function get_schedule_groups(int $schedule_id, int $team_id): array
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table(TB_WHATSAPP_SCHEDULE_GROUPS);
+        $builder->where('schedule_id', $schedule_id);
+        $builder->where('team_id', $team_id);
+        $builder->orderBy('position', 'ASC');
+        $query = $builder->get();
+        $rows = $query->getResultArray();
+        $query->freeResult();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'account_id' => (string)$row['account_id'],
+                'group_jid'  => (string)$row['group_jid'],
+            ];
+        }
+        return $out;
+    }
+
     public function get_report($ids = ""){
         $team_id = get_team("id");
         $db = \Config\Database::connect();

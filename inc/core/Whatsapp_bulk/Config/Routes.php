@@ -35,3 +35,8 @@ $routes->post(
     $config['id'] . '/detect_gateways',
     '\\' . ucfirst($config['folder']) . '\\' . ucfirst($config['id']) . '\\Controllers\\Whatsapp_bulk::detect_gateways'
 );
+
+$routes->post(
+    $config['id'] . '/group_targets',
+    '\\' . ucfirst($config['folder']) . '\\' . ucfirst($config['id']) . '\\Controllers\\Whatsapp_bulk::group_targets'
+);

@@ -266,10 +266,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "extrair-contatos-grupos",
       "ref": "—",
-      "ocorrencias": 4,
+      "ocorrencias": 7,
       "primeiraVez": "2026-08-13T20:01:07.358Z",
-      "ultimaVez": "2026-08-13T22:14:30.970Z",
-      "gitRev": "7ae510f"
+      "ultimaVez": "2026-08-15T17:51:34.398Z",
+      "gitRev": "1cd8f6a"
     },
     "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-003": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
@@ -428,10 +428,118 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "clonar-grupo",
       "ref": "—",
-      "ocorrencias": 1,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-13T22:14:30.969Z",
-      "ultimaVez": "2026-08-13T22:14:30.970Z",
-      "gitRev": "7ae510f"
+      "ultimaVez": "2026-08-15T17:51:34.397Z",
+      "gitRev": "1cd8f6a"
+    },
+    "REF_MALFORMADA::disparo-em-massa-grupos::T-015": {
+      "codigo": "REF_MALFORMADA",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "T-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-13T22:44:31.116Z",
+      "ultimaVez": "2026-08-13T22:44:31.117Z",
+      "gitRev": "1cd8f6a"
+    },
+    "ARQUIVO_INEXISTENTE::disparo-em-massa-grupos::T-013": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "T-013",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.827Z",
+      "gitRev": "1cd8f6a"
+    },
+    "ARQUIVO_INEXISTENTE::disparo-em-massa-grupos::T-015": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "T-015",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "ARQUIVO_INEXISTENTE::disparo-em-massa-grupos::T-018": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "T-018",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-024": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-024",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-025": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-025",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-026": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-026",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-027": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-027",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-028": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-028",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:15:49.828Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-029": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-029",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:38:15.614Z",
+      "gitRev": "1cd8f6a"
+    },
+    "AC_SEM_TESTE::disparo-em-massa-grupos::AC-030": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "AC-030",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-13T22:44:31.117Z",
+      "ultimaVez": "2026-08-14T01:38:15.614Z",
+      "gitRev": "1cd8f6a"
+    },
+    "VERIFY_OBSOLETO::disparo-em-massa-grupos::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "disparo-em-massa-grupos",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-15T17:51:34.398Z",
+      "ultimaVez": "2026-08-15T17:51:34.398Z",
+      "gitRev": "1cd8f6a"
     }
   }
 }

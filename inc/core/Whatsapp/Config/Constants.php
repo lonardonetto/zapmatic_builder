@@ -10,6 +10,7 @@ defined('TB_WHATSAPP_TEAM_HOLIDAYS') || define('TB_WHATSAPP_TEAM_HOLIDAYS', 'sp_
 defined('TB_WHATSAPP_TEMPLATE') || define('TB_WHATSAPP_TEMPLATE', 'sp_whatsapp_template');
 defined('TB_WHATSAPP_WEBHOOK') || define('TB_WHATSAPP_WEBHOOK', 'sp_whatsapp_webhook');
 defined('TB_WHATSAPP_SCHEDULES') || define('TB_WHATSAPP_SCHEDULES', 'sp_whatsapp_schedules');
+defined('TB_WHATSAPP_SCHEDULE_GROUPS') || define('TB_WHATSAPP_SCHEDULE_GROUPS', 'sp_whatsapp_schedule_groups');
 defined('TB_WHATSAPP_CONTACTS') || define('TB_WHATSAPP_CONTACTS', 'sp_whatsapp_contacts');
 defined('TB_WHATSAPP_PHONE_NUMBERS') || define('TB_WHATSAPP_PHONE_NUMBERS', 'sp_whatsapp_phone_numbers');
 defined('TB_WHATSAPP_SUBSCRIBERS') || define('TB_WHATSAPP_SUBSCRIBERS', 'sp_whatsapp_subscriber');

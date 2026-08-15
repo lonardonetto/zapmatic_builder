@@ -113,6 +113,12 @@ func extractPhoneDigits(s string) string {
 func (p *Processor) processCampaign(c *Campaign) {
 	if err := LockCampaign(c.ID); err != nil { return }
 
+	// Campanha de grupo: envia dentro de grupos (@g.us), não para números.
+	if c.IsGroupCampaign() {
+		p.processGroupCampaign(c)
+		return
+	}
+
 	sched := NewScheduler(c.Timezone)
 	if !sched.IsWithinWindow(c) && len(c.ScheduleTime) > 0 {
 		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", sched.findNextSlot(c, time.Now().Unix())))
@@ -241,6 +247,121 @@ func (p *Processor) processCampaign(c *Campaign) {
 		recordFailure(c, phoneID, phoneNumber, msgResult.Error, 0)
 	}
 	UnlockCampaign(c.ID)
+}
+
+// processGroupCampaign processa uma campanha cujo destino são grupos. Usa o
+// mesmo offset persistente (sent+failed) e o mesmo CalculateDelay, mas envia a
+// mensagem dentro do grupo (@g.us).
+func (p *Processor) processGroupCampaign(c *Campaign) {
+	sched := NewScheduler(c.Timezone)
+	if !sched.IsWithinWindow(c) && len(c.ScheduleTime) > 0 {
+		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", sched.findNextSlot(c, time.Now().Unix())))
+		UnlockCampaign(c.ID); return
+	}
+	if c.SkipHolidays && sched.IsHoliday(c.TeamID) {
+		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", time.Now().Unix()+86400))
+		UnlockCampaign(c.ID); return
+	}
+
+	canSend, _, _ := p.stats.CheckLimit(c.TeamID)
+	if !canSend { SetCampaignStatus(c.ID, StatusPaused); UnlockCampaign(c.ID); return }
+
+	groups, err := ListScheduleGroups(c.ID)
+	if err != nil { UnlockCampaign(c.ID); return }
+
+	offset := c.Sent + c.Failed
+	group := NextGroupByOffset(groups, offset)
+	if group == nil {
+		count := len(groups)
+		if count > 0 && c.Sent > 0 {
+			logging.Log.Info().Int("campaign", c.ID).Int("sent", c.Sent).Msg("Group campaign completed")
+		} else {
+			logging.Log.Warn().Int("campaign", c.ID).Int("group_count", count).Int("processed", offset).Msg("No more groups available")
+		}
+		SetCampaignCompleted(c.ID); UnlockCampaign(c.ID)
+		p.cleanupCampaign(c.ID); return
+	}
+
+	resolved := p.resolveGroupInstance(group.AccountID)
+	if resolved == nil {
+		updateCampaignField(c.ID, "time_post", fmt.Sprintf("%d", time.Now().Unix()+30))
+		UnlockCampaign(c.ID); return
+	}
+	if resolved.Provider != "whatsmeow" {
+		// Primeiro ciclo: envio em grupo só via Go/Whatsmeow.
+		UnlockCampaign(c.ID); return
+	}
+
+	instanceID := resolved.InstanceID
+	chatID := ResolveGroupChat(group.GroupJID)
+	pushName := p.getPushName(instanceID)
+	msg := BuildMessage(c.Caption, nil, pushName, instanceID, pushName, phoneFromJID(chatID))
+
+	var msgResult sender.SendResponse
+	if c.Media != "" {
+		mediaURL := BuildMessage(c.Media, nil, pushName, instanceID, pushName, "")
+		u := sender.SendRequest{InstanceID: instanceID, ChatID: chatID, Type: "image"}
+		u.Payload.URL = mediaURL
+		u.Payload.Caption = msg
+		msgResult = p.snd.SendMedia(context.Background(), u)
+	} else {
+		u := sender.SendRequest{InstanceID: instanceID, ChatID: chatID, Type: "text"}
+		u.Payload.Text = msg
+		msgResult = p.snd.SendText(context.Background(), u)
+	}
+
+	logging.Log.Info().Int("campaign", c.ID).Str("from", instanceID).Str("to", chatID).Msg("Sending to group")
+
+	if msgResult.Status == "success" {
+		p.stats.IncrementSent(c.TeamID)
+		UpdateCampaignResult(c.ID, true, time.Now().Unix()+int64(CalculateDelay(c.MinDelay, c.MaxDelay)), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
+	} else {
+		p.stats.IncrementFailed(c.TeamID)
+		UpdateCampaignResult(c.ID, false, time.Now().Unix()+int64(rand.Intn(10)+5), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
+	}
+	UnlockCampaign(c.ID)
+}
+
+// resolveGroupInstance resolves the specific account that owns a group
+// (account_id), instead of the campaign round-robin. Each group must be sent
+// by the profile that is actually a member of it.
+func (p *Processor) resolveGroupInstance(accountID string) *ResolvedInstance {
+	accountID = GroupSenderAccount(accountID)
+	if accountID == "" {
+		return nil
+	}
+
+	var token string
+	var loginType int
+	if mysqlDB != nil {
+		mysqlDB.QueryRow(
+			"SELECT token, COALESCE(login_type, 2) FROM sp_accounts WHERE ids=? AND status=1 AND social_network='whatsapp'", accountID,
+		).Scan(&token, &loginType)
+	}
+	if token == "" {
+		return nil
+	}
+
+	provider := "whatsmeow"
+	switch loginType {
+	case 1:
+		provider = "cloud_api"
+	case 2:
+		provider = "baileys"
+	case 3:
+		provider = "whatsmeow"
+	}
+
+	if provider == "whatsmeow" {
+		for _, s := range p.sm.ListInstances() {
+			if s.ID == token && s.State == "connected" {
+				return &ResolvedInstance{InstanceID: s.ID, Provider: provider, AccountID: 0, Token: token}
+			}
+		}
+		return nil
+	}
+
+	return &ResolvedInstance{InstanceID: token, Provider: provider, AccountID: 0, Token: token}
 }
 
 // ResolvedInstance holds the result of resolving which instance/gateway to use.

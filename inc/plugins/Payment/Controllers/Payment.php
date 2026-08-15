@@ -4,7 +4,6 @@ namespace Plugins\Payment\Controllers;
 class Payment extends \CodeIgniter\Controller
 {
     public function __construct(){
-        file_put_contents(FCPATH."test.txt","Hello World. Testing!");
         $this->config = parse_config( include realpath( __DIR__."/../Config.php" ) );
     }
     

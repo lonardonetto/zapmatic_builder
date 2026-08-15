@@ -52,6 +52,49 @@ func removeCall(id string) {
 	callStoreMu.Unlock()
 }
 
+// estimateAudioDuration reads or estimates the duration in seconds of an audio file.
+func estimateAudioDuration(filePath string) int {
+	if filePath == "" {
+		return 0
+	}
+	info, err := os.Stat(filePath)
+	if err != nil || info.Size() == 0 {
+		return 0
+	}
+
+	ext := strings.ToLower(filepath.Ext(filePath))
+	f, err := os.Open(filePath)
+	if err != nil {
+		// Fallback by size assuming standard 128kbps = 16000 bytes/sec
+		return int(info.Size() / 16000)
+	}
+	defer f.Close()
+
+	if ext == ".wav" {
+		// Read WAV header to calculate exact duration
+		header := make([]byte, 44)
+		if n, err := f.Read(header); err == nil && n >= 44 {
+			if string(header[0:4]) == "RIFF" && string(header[8:12]) == "WAVE" {
+				byteRate := int64(header[28]) | int64(header[29])<<8 | int64(header[30])<<16 | int64(header[31])<<24
+				if byteRate > 0 {
+					dataSize := info.Size() - 44
+					duration := int(dataSize / byteRate)
+					if duration > 0 {
+						return duration
+					}
+				}
+			}
+		}
+	}
+
+	// For MP3 / Opus / OGG / others, estimate based on 128kbps (16KB/s)
+	duration := int(info.Size() / 16000)
+	if duration <= 0 {
+		duration = 1
+	}
+	return duration
+}
+
 // handleCallStart starts an outbound WhatsApp voice call.
 // POST /call/start  { "instance_id": "...", "phone": "...", "audio_id": "..." }
 func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
@@ -112,6 +155,7 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 
 	// Attach audio if provided — load BEFORE OnReady so it's ready when answered
 	var audioSrc meowcaller.AudioSource
+	resolvedAudioPath := ""
 	if body.AudioPath != "" || body.AudioID != "" {
 		audioPath := body.AudioPath
 		if audioPath == "" {
@@ -122,6 +166,7 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 			audioPath += ".mp3"
 			ext = ".mp3"
 		}
+		resolvedAudioPath = audioPath
 		if _, err := os.Stat(audioPath); err == nil {
 			extLower := strings.ToLower(ext)
 			switch extLower {
@@ -146,6 +191,12 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// Calculate effective audio duration for fallback timer
+	effectiveDuration := body.AudioDuration
+	if effectiveDuration <= 0 && resolvedAudioPath != "" {
+		effectiveDuration = estimateAudioDuration(resolvedAudioPath)
+	}
+
 	// SINGLE OnReady callback — meowcaller only keeps the LAST registered handler
 	call.OnReady(func() {
 		entry.Status = "active"
@@ -155,20 +206,32 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 
 		if audioSrc != nil {
 			logging.Log.Info().Str("call_id", call.ID()).Msg("Playing audio to peer")
-			call.Play(audioSrc)
-
-				// Auto-hangup: encerrar chamada apos duracao do audio + margem de 2s
-				if body.AudioDuration > 0 {
-					hangupDelay := time.Duration(body.AudioDuration+2) * time.Second
-					logging.Log.Info().Str("call_id", call.ID()).Int("duration", body.AudioDuration).Dur("hangup_in", hangupDelay).Msg("Auto-hangup scheduled")
+			player := call.Play(audioSrc)
+			if player != nil {
+				player.OnFinish(func() {
+					logging.Log.Info().Str("call_id", call.ID()).Msg("Audio finished (OnFinish), scheduling auto-hangup in 2s")
 					go func() {
-						time.Sleep(hangupDelay)
+						time.Sleep(2 * time.Second)
 						if entry.Status == "active" || entry.Status == "ringing" {
-							logging.Log.Info().Str("call_id", call.ID()).Msg("Auto-hangup: audio finished, ending call")
+							logging.Log.Info().Str("call_id", call.ID()).Msg("Auto-hangup: 2s after audio ended, hanging up call")
 							call.Hangup()
 						}
 					}()
+				})
+			}
+		}
+
+		// Safety fallback timer: garante encerramento caso OnFinish nao dispare
+		if effectiveDuration > 0 {
+			hangupDelay := time.Duration(effectiveDuration+3) * time.Second
+			logging.Log.Info().Str("call_id", call.ID()).Int("duration", effectiveDuration).Dur("fallback_hangup_in", hangupDelay).Msg("Safety fallback auto-hangup scheduled")
+			go func() {
+				time.Sleep(hangupDelay)
+				if entry.Status == "active" || entry.Status == "ringing" {
+					logging.Log.Info().Str("call_id", call.ID()).Msg("Safety fallback auto-hangup: duration exceeded, ending call")
+					call.Hangup()
 				}
+			}()
 		}
 	})
 

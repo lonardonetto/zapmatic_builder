@@ -1,0 +1,57 @@
+{
+  "feature": "disparo-em-massa-grupos",
+  "timestamp": "2026-08-15T17:51:47.727Z",
+  "gitRev": "1cd8f6a",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 48,
+  "results": {
+    "AC-024": {
+      "status": "pass",
+      "testName": "GroupTargetTest::test_destinos_de_grupo_sao_normalizados_e_deduplicados @spec:AC-024",
+      "method": "tap"
+    },
+    "AC-025": {
+      "status": "pass",
+      "testName": "GroupTargetTest::test_jid_de_grupo_recebe_sufixo_g_us @spec:AC-025",
+      "method": "tap"
+    },
+    "AC-026": {
+      "status": "pass",
+      "testName": "GroupTargetTest::test_chat_de_grupo_nunca_vira_numero_individual @spec:AC-026",
+      "method": "tap"
+    },
+    "AC-032": {
+      "status": "pass",
+      "testName": "TestIsGroupCampaignByTargetType @spec:AC-032",
+      "method": "tap"
+    },
+    "AC-027": {
+      "status": "pass",
+      "testName": "GroupTargetTest::test_envio_em_grupo_recusado_para_conta_nao_go @spec:AC-027",
+      "method": "tap"
+    },
+    "AC-028": {
+      "status": "pass",
+      "testName": "GroupTargetTest::test_destinos_de_grupo_sao_escopados_por_team_id @spec:AC-028",
+      "method": "tap"
+    },
+    "AC-029": {
+      "status": "pass",
+      "testName": "TestGroupTargetDelayUsesCalculateDelay @spec:AC-029",
+      "method": "tap"
+    },
+    "AC-030": {
+      "status": "pass",
+      "testName": "TestNextGroupByOffset @spec:AC-030",
+      "method": "tap"
+    },
+    "AC-031": {
+      "status": "pass",
+      "testName": "TestGroupSenderAccountIsOwner @spec:AC-031",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

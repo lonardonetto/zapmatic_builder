@@ -1,0 +1,32 @@
+{
+  "feature": "auto-hangup-ligacao",
+  "timestamp": "2026-08-15T17:51:28.959Z",
+  "gitRev": "1cd8f6a",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 48,
+  "results": {
+    "AC-033": {
+      "status": "pass",
+      "testName": "TestCallAutoHangupOnFinishHook @spec:AC-033",
+      "method": "tap"
+    },
+    "AC-034": {
+      "status": "pass",
+      "testName": "TestCallAutoHangupOnFinishHook @spec:AC-034",
+      "method": "tap"
+    },
+    "AC-035": {
+      "status": "pass",
+      "testName": "TestEffectiveAudioDurationFallback @spec:AC-035",
+      "method": "tap"
+    },
+    "AC-036": {
+      "status": "pass",
+      "testName": "TestEstimateAudioDurationEmpty @spec:AC-036",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

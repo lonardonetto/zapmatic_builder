@@ -16,6 +16,11 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
         return (int)$type === 7;
     }
 
+    protected function is_group_campaign($target_type)
+    {
+        return $target_type === 'groups';
+    }
+
     protected function normalize_selected_account_ids($accounts)
     {
         if (!is_array($accounts)) {
@@ -173,6 +178,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
 
         db_delete(TB_WHATSAPP_CLOUD_DISPATCHES, ['schedule_id' => $schedule_id]);
         db_delete(TB_WHATSAPP_MESSAGE_STATUS, ['schedule_id' => $schedule_id]);
+        db_delete(TB_WHATSAPP_SCHEDULE_GROUPS, ['schedule_id' => $schedule_id]);
     }
 
     protected function schedule_weekday_options(): array
@@ -468,6 +474,11 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
 
                 $contacts = db_fetch("*", TB_WHATSAPP_CONTACTS, ["team_id" => $team_id, "status" => 1], "id", "DESC");
 
+                $group_targets_json = '[]';
+                if (!empty($item) && isset($item->id) && ($item->target_type ?? 'contacts') === 'groups') {
+                    $group_targets_json = json_encode($this->model->get_schedule_groups((int)$item->id, (int)$team_id));
+                }
+
                 $data['content'] = view('Core\Whatsapp_bulk\Views\update', [
                     "result" => $item,
                     "contacts" => $contacts,
@@ -475,6 +486,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     "status_summary" => $status_summary,
                     "weekday_options" => $this->schedule_weekday_options(),
                     "team_holidays" => $this->get_team_holidays_payload($team_id),
+                    "group_targets_json" => $group_targets_json,
                 ]);
                 break;
 
@@ -835,6 +847,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
             }
 
             $type = (int)post("type");
+            $target_type = post("target_type") === 'groups' ? 'groups' : 'contacts';
             $name = post("name");
             $group = post("group");
             $medias = post("medias");
@@ -861,6 +874,14 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
             $time_post = $this->parse_time_post_input($raw_time_post);
             $item = db_get("*", TB_WHATSAPP_SCHEDULES, ["ids" => $ids, "team_id" => $team_id]);
 
+            $is_group_campaign = $this->is_group_campaign($target_type);
+            $raw_group_targets = post("group_targets");
+            if (is_string($raw_group_targets) && trim($raw_group_targets) !== '') {
+                $decoded = json_decode($raw_group_targets, true);
+                $raw_group_targets = is_array($decoded) ? $decoded : [];
+            }
+            $group_targets = \Core\Whatsapp_bulk\Libraries\GroupTarget::normalizeTargets(is_array($raw_group_targets) ? $raw_group_targets : []);
+
             $schedule_time = $this->normalize_schedule_time($schedule_time);
             $schedule_time = !empty($schedule_time) ? json_encode($schedule_time) : "";
 
@@ -869,7 +890,9 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
 
             validate('null', __('Campaign name'), $name);
             validate("max_length", "Campaign name", $name, 100);
-            validate('null', __('Contact group'), $group);
+            if (!$is_group_campaign) {
+                validate('null', __('Contact group'), $group);
+            }
 
             switch ($type) {
                 case 1:
@@ -946,6 +969,13 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     break;
             }
 
+            if ($is_group_campaign && empty($group_targets)) {
+                ms([
+                    "status" => "error",
+                    "message" => __('Selecione ao menos um grupo do WhatsApp para disparar.')
+                ]);
+            }
+
             validate("min_number", __("Min interval"), $min_interval_per_post, 1);
             validate("min_number", __("Max interval"), $max_interval_per_post, 1);
 
@@ -970,10 +1000,14 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                 ]);
             }
 
-            $group = db_get("*", TB_WHATSAPP_CONTACTS, ["id" => $group, "team_id" => $team_id]);
+            if ($is_group_campaign) {
+                $group = (object)['id' => 0];
+            } else {
+                $group = db_get("*", TB_WHATSAPP_CONTACTS, ["id" => $group, "team_id" => $team_id]);
+                validate('empty', __('Please select a contact group'), $group);
+            }
 
             validate('empty', __('Please select at least a profile'), $accounts);
-            validate('empty', __('Please select a contact group'), $group);
 
             $selected_account_ids = $this->normalize_selected_account_ids($accounts);
             $account_items = $this->model->get_account_items($selected_account_ids);
@@ -994,6 +1028,17 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                         ms([
                             "status" => "error",
                             "message" => __("Please select only Baileys accounts for call campaigns.")
+                        ]);
+                    }
+                }
+            }
+
+            if ($is_group_campaign) {
+                foreach ($account_items as $account_item) {
+                    if (!\Core\Whatsapp_bulk\Libraries\GroupTarget::supportsGroupSend((int)$account_item->login_type)) {
+                        ms([
+                            "status" => "error",
+                            "message" => __("Envio em grupo disponível apenas para contas Go (login_type=3).")
                         ]);
                     }
                 }
@@ -1050,6 +1095,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                 $data = [
                     "team_id" => $team_id,
                     "type" => $type,
+                    "target_type" => $target_type,
                     "template" => $template,
                     "accounts" => $accounts,
                     "contact_id" => $group->id,
@@ -1072,6 +1118,10 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                 ];
 
                 $result = db_update(TB_WHATSAPP_SCHEDULES, $data, ["id" => $item->id]);
+
+                if ($is_group_campaign) {
+                    $this->model->save_schedule_groups((int)$item->id, (int)$team_id, $group_targets);
+                }
             } else {
                 $campaign_running = db_get("count(*) as count", TB_WHATSAPP_SCHEDULES, ["status" => 1, "team_id" => $team_id])->count;
                 if ($campaign_running >= (int)permission("whatsapp_bulk_max_run")) {
@@ -1084,6 +1134,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     "ids" => ids(),
                     "team_id" => $team_id,
                     "type" => $type,
+                    "target_type" => $target_type,
                     "template" => $template,
                     "accounts" => $accounts,
                     "contact_id" => $group->id,
@@ -1108,6 +1159,16 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                 ];
 
                 $result = db_insert(TB_WHATSAPP_SCHEDULES, $data);
+
+                if ($is_group_campaign) {
+                    $schedule_id = (int)$result;
+                    if ($schedule_id <= 0) {
+                        $schedule_id = (int)(db_get("id", TB_WHATSAPP_SCHEDULES, ["ids" => $data["ids"], "team_id" => $team_id])->id ?? 0);
+                    }
+                    if ($schedule_id > 0) {
+                        $this->model->save_schedule_groups($schedule_id, (int)$team_id, $group_targets);
+                    }
+                }
             }
 
             ms([
@@ -1373,6 +1434,72 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
             "available" => $result['available'],
         ]);
         exit;
+    }
+
+    public function group_targets()
+    {
+        $team_id = (int)get_team("id");
+        $account_ids = post("accounts") ?? post("account_ids") ?? [];
+
+        if (empty($account_ids) || !is_array($account_ids)) {
+            ms([
+                "status" => "error",
+                "message" => __("Selecione ao menos uma conta.")
+            ]);
+        }
+
+        $account_ids = $this->normalize_selected_account_ids($account_ids);
+        $account_items = $this->model->get_account_items($account_ids);
+
+        if (empty($account_items)) {
+            ms([
+                "status" => "error",
+                "message" => __("Nenhuma conta encontrada para o time.")
+            ]);
+        }
+
+        $groups = [];
+        foreach ($account_items as $account_item) {
+            if (!\Core\Whatsapp_bulk\Libraries\GroupTarget::supportsGroupSend((int)$account_item->login_type)) {
+                continue;
+            }
+
+            $gateway = \App\Services\WhatsAppGatewayService::gatewayForInstance($account_item->token);
+            $baseUrl = rtrim($gateway['base_url'] ?? \App\Services\WhatsAppGatewayService::getGoBaseUrl(), '/');
+            $url = $baseUrl . '/groups/list?instance_id=' . urlencode($account_item->token);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 5,
+            ]);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            $data = json_decode((string)$response);
+            if (empty($data) || !isset($data->groups)) {
+                continue;
+            }
+
+            foreach ($data->groups as $group) {
+                $groups[] = [
+                    'account_id' => (string)$account_item->ids,
+                    'account_name' => (string)($account_item->name ?? ''),
+                    'group_jid' => (string)($group->jid ?? ''),
+                    'name' => (string)($group->name ?? ''),
+                    'isCommunity' => !empty($group->isCommunity),
+                    'announce' => !empty($group->announce),
+                ];
+            }
+        }
+
+        ms([
+            "status" => "success",
+            "data" => [
+                'groups' => $groups,
+            ],
+        ]);
     }
 
 }

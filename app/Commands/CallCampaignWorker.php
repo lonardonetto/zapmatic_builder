@@ -220,7 +220,19 @@ class CallCampaignWorker extends BaseCommand
         if (empty($campaign->audio_id)) return null;
         $audio = $db->table(self::TB_AUDIOS)->where('id', $campaign->audio_id)->get()->getRow();
         if ($audio && file_exists($audio->file_path)) {
-            return ['path' => $audio->file_path, 'duration' => (int)($audio->duration_seconds ?? 0)];
+            $duration = (int)($audio->duration_seconds ?? 0);
+            if ($duration <= 0) {
+                include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
+                if (function_exists('call_get_audio_file_duration')) {
+                    $duration = call_get_audio_file_duration($audio->file_path);
+                    if ($duration > 0) {
+                        try {
+                            $db->table(self::TB_AUDIOS)->where('id', $audio->id)->update(['duration_seconds' => $duration]);
+                        } catch (\Throwable $e) {}
+                    }
+                }
+            }
+            return ['path' => $audio->file_path, 'duration' => $duration];
         }
         return null;
     }

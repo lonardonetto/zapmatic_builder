@@ -7,14 +7,21 @@ declare(strict_types=1);
 // telefone/filtro/fila são puras (zero acoplamento).
 
 spl_autoload_register(static function (string $class): void {
-    // Core\Whatsapp_export_participants\Libraries\Foo -> inc/core/Whatsapp_export_participants/Libraries/Foo.php
-    $prefix = 'Core\\Whatsapp_export_participants\\';
-    if (strncmp($class, $prefix, strlen($prefix)) === 0) {
-        $rel = substr($class, strlen($prefix));
-        $file = dirname(__DIR__) . '/inc/core/Whatsapp_export_participants/' . str_replace('\\', '/', $rel) . '.php';
-        if (is_file($file)) {
-            require $file;
+    $map = [
+        // Core\Whatsapp_export_participants\Libraries\Foo -> inc/core/Whatsapp_export_participants/Libraries/Foo.php
+        'Core\\Whatsapp_export_participants\\' => '/inc/core/Whatsapp_export_participants/',
+        // Core\Whatsapp_bulk\Libraries\Foo -> inc/core/Whatsapp_bulk/Libraries/Foo.php
+        'Core\\Whatsapp_bulk\\' => '/inc/core/Whatsapp_bulk/',
+    ];
+
+    foreach ($map as $prefix => $dir) {
+        if (strncmp($class, $prefix, strlen($prefix)) === 0) {
+            $rel = substr($class, strlen($prefix));
+            $file = dirname(__DIR__) . $dir . str_replace('\\', '/', $rel) . '.php';
+            if (is_file($file)) {
+                require $file;
+            }
+            return;
         }
-        return;
     }
 });
