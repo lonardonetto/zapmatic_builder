@@ -170,9 +170,9 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
         while (ob_get_level())
             ob_end_clean();
 
-        $hub_mode = $this->request->getGet('hub_mode');
-        $hub_challenge = $this->request->getGet('hub_challenge');
-        $hub_verify_token = $this->request->getGet('hub_verify_token');
+        $hub_mode = $this->request->getGet('hub_mode') ?? $this->request->getGet('hub.mode') ?? $_GET['hub_mode'] ?? $_GET['hub.mode'] ?? null;
+        $hub_challenge = $this->request->getGet('hub_challenge') ?? $this->request->getGet('hub.challenge') ?? $_GET['hub_challenge'] ?? $_GET['hub.challenge'] ?? null;
+        $hub_verify_token = $this->request->getGet('hub_verify_token') ?? $this->request->getGet('hub.verify_token') ?? $_GET['hub_verify_token'] ?? $_GET['hub.verify_token'] ?? null;
 
         // Handling Verification Request
         if ($hub_mode == 'subscribe' && !empty($hub_verify_token)) {
@@ -348,16 +348,20 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                         curl_setopt($bot_ch, CURLOPT_POST, true);
                         curl_setopt($bot_ch, CURLOPT_POSTFIELDS, json_encode($bot_payload));
                         curl_setopt($bot_ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 10);
                         curl_setopt($bot_ch, CURLOPT_SSL_VERIFYPEER, false);
                         curl_setopt($bot_ch, CURLOPT_SSL_VERIFYHOST, false);
-                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 120);
                         $bot_response = curl_exec($bot_ch);
-                        $bot_http = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);
+                        $bot_http_code = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);
                         curl_close($bot_ch);
-                        $log_entry .= "Bot_builder Response status: " . $bot_http . "\n";
+
+                        $log_entry .= "Bot_builder Response status: $bot_http_code\n";
                     }
                 } else {
-                    $log_entry .= "No account found matching phone_number_id: $phone_number_id\n";
+                    // Reencaminhamento para plataformas filhas DESATIVADO.
+                    // Motivo: causava loop infinito (zapmatic <-> astros <-> elite) que
+                    // saturava o PHP-FPM. Cada servidor processa apenas seus próprios números.
+                    $log_entry .= "No account found matching phone_number_id: $phone_number_id locally. Forwarding DISABLED (loop prevention).\n";
                 }
             }
 
