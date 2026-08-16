@@ -364,7 +364,7 @@ func GetPhoneNumbersPendingValidation(limit int) ([]map[string]interface{}, erro
 	}
 	rows, err := mysqlDB.Query(
 		`SELECT id, phone FROM sp_whatsapp_phone_numbers
-		 WHERE is_valid IS NULL OR is_valid = 4
+		 WHERE (is_valid IS NULL OR is_valid = 4 OR is_valid = 0)
 		 LIMIT ?`, limit,
 	)
 	if err != nil {

@@ -1,0 +1,393 @@
+{
+  "runId": "app_zapmatic_app-sync-main-kivozap-msvs5ixb",
+  "feature": "sync-main-kivozap",
+  "agent": "claude",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-16 12:27",
+  "branchTrabalho": "spec/sync-main-kivozap",
+  "baseDir": ".spec/features/sync-main-kivozap",
+  "specDir": ".spec",
+  "repoName": "app_zapmatic_app",
+  "logsDir": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-logs",
+  "ondas": [
+    [
+      "faixa-1",
+      "faixa-2",
+      "faixa-3"
+    ],
+    [
+      "faixa-4",
+      "faixa-5",
+      "faixa-6"
+    ],
+    [
+      "faixa-7",
+      "faixa-8",
+      "faixa-9"
+    ],
+    [
+      "faixa-10",
+      "faixa-11",
+      "faixa-12"
+    ],
+    [
+      "faixa-13",
+      "faixa-14"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/sync-main-kivozap-faixa-1",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-001",
+          "titulo": "Backup completo do kivozap antes da sincronização",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH)"
+          ],
+          "refs": [
+            "US-016",
+            "US-017"
+          ]
+        },
+        {
+          "id": "T-011",
+          "titulo": "Verificar isolamento: processos independentes",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH)"
+          ],
+          "refs": [
+            "US-018",
+            "AC-046"
+          ]
+        },
+        {
+          "id": "T-012",
+          "titulo": "Reiniciar serviços do kivozap",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH)"
+          ],
+          "refs": [
+            "US-017",
+            "AC-041"
+          ]
+        },
+        {
+          "id": "T-018",
+          "titulo": "Teste: Cron jobs independentes",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH)"
+          ],
+          "refs": [
+            "US-019",
+            "AC-052"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-2",
+      "branch": "spec/sync-main-kivozap-faixa-2",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-2",
+      "tarefas": [
+        {
+          "id": "T-002",
+          "titulo": "Remover tabelas legadas do kivozap",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH — MySQL)"
+          ],
+          "refs": [
+            "US-016",
+            "AC-039"
+          ]
+        },
+        {
+          "id": "T-003",
+          "titulo": "Criar tabelas faltantes no kivozap",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH — MySQL)"
+          ],
+          "refs": [
+            "US-016",
+            "AC-038"
+          ]
+        },
+        {
+          "id": "T-004",
+          "titulo": "Alinhar tipos de colunas em sp_bb_sessions",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "(execução remota via SSH — MySQL)"
+          ],
+          "refs": [
+            "US-016",
+            "AC-040"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-3",
+      "branch": "spec/sync-main-kivozap-faixa-3",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-3",
+      "tarefas": [
+        {
+          "id": "T-005",
+          "titulo": "Sincronizar código: Bot_builder.php (correção já aplicada)",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Bot_builder/Controllers/Bot_builder.php"
+          ],
+          "refs": [
+            "US-017",
+            "AC-041"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-4",
+      "branch": "spec/sync-main-kivozap-faixa-4",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-4",
+      "tarefas": [
+        {
+          "id": "T-006",
+          "titulo": "Sincronizar código: Whatsapp_bulk",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_bulk/Controllers/Whatsapp_bulk.php"
+          ],
+          "refs": [
+            "US-017",
+            "AC-042"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-5",
+      "branch": "spec/sync-main-kivozap-faixa-5",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-5",
+      "tarefas": [
+        {
+          "id": "T-007",
+          "titulo": "Sincronizar código: Whatsapp_export_participants",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_export_participants/Controllers/Whatsapp_export_participants.php"
+          ],
+          "refs": [
+            "US-017",
+            "AC-042"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-6",
+      "branch": "spec/sync-main-kivozap-faixa-6",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-6",
+      "tarefas": [
+        {
+          "id": "T-008",
+          "titulo": "Sincronizar código: Todos os controllers restantes",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/*/Controllers/*.php"
+          ],
+          "refs": [
+            "US-017",
+            "AC-043"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-7",
+      "branch": "spec/sync-main-kivozap-faixa-7",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-7",
+      "tarefas": [
+        {
+          "id": "T-009",
+          "titulo": "Verificar isolamento: sem reencaminhamento entre plataformas",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_webhook/Controllers/Whatsapp_webhook.php"
+          ],
+          "refs": [
+            "US-018",
+            "AC-044"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-8",
+      "branch": "spec/sync-main-kivozap-faixa-8",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-8",
+      "tarefas": [
+        {
+          "id": "T-010",
+          "titulo": "Verificar isolamento: credenciais próprias preservadas",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            ".env"
+          ],
+          "refs": [
+            "US-018",
+            "AC-045"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-9",
+      "branch": "spec/sync-main-kivozap-faixa-9",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-9",
+      "tarefas": [
+        {
+          "id": "T-013",
+          "titulo": "Teste: Flow builder funcional",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Bot_builder/"
+          ],
+          "refs": [
+            "US-019",
+            "AC-047"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-10",
+      "branch": "spec/sync-main-kivozap-faixa-10",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-10",
+      "tarefas": [
+        {
+          "id": "T-014",
+          "titulo": "Teste: Webhook funcional",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_webhook/"
+          ],
+          "refs": [
+            "US-019",
+            "AC-048"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-11",
+      "branch": "spec/sync-main-kivozap-faixa-11",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-11",
+      "tarefas": [
+        {
+          "id": "T-015",
+          "titulo": "Teste: Bulk/mass messaging",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_bulk/"
+          ],
+          "refs": [
+            "US-019",
+            "AC-049"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-12",
+      "branch": "spec/sync-main-kivozap-faixa-12",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-12",
+      "tarefas": [
+        {
+          "id": "T-016",
+          "titulo": "Teste: Exportação de participantes",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_export_participants/"
+          ],
+          "refs": [
+            "US-019",
+            "AC-050"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-13",
+      "branch": "spec/sync-main-kivozap-faixa-13",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-13",
+      "tarefas": [
+        {
+          "id": "T-017",
+          "titulo": "Teste: Logs sem erros PHP",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "writable/logs/"
+          ],
+          "refs": [
+            "US-019",
+            "AC-051"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-14",
+      "branch": "spec/sync-main-kivozap-faixa-14",
+      "worktree": "../onp-worktrees/app_zapmatic_app-sync-main-kivozap-faixa-14",
+      "tarefas": [
+        {
+          "id": "T-019",
+          "titulo": "Auditoria final: onp-spec audit",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            ".spec/verification/sync-main-kivozap.json"
+          ],
+          "refs": [
+            "US-016",
+            "US-017",
+            "US-018",
+            "US-019"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}

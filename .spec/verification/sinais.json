@@ -540,6 +540,618 @@
       "primeiraVez": "2026-08-15T17:51:34.398Z",
       "ultimaVez": "2026-08-15T17:51:34.398Z",
       "gitRev": "1cd8f6a"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.336Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-002": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-002",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-003": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-003",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-004": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-004",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-005": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-005",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-006": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-006",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-007": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-007",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::Q-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "Q-001",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::Q-002": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "Q-002",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::Q-003": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "Q-003",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:22:20.375Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-038": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-038",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-039": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-039",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-040": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-040",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-041": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-041",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-042": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-042",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-043": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-043",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-044": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-044",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-045": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-045",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-046": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-046",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-047": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-047",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.274Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-048": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-048",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.275Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-049": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-049",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.275Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-050": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-050",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.275Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-051": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-051",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.275Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TASK::sync-main-kivozap::AC-052": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-052",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:26:15.275Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-038": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-038",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-039": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-039",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-040": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-040",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-041": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-041",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-042": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-042",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-043": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-043",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-044": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-044",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-045": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-045",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-046": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-046",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-047": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-047",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-048": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-048",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-049": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-049",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-050": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-050",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-051": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-051",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "AC_SEM_TESTE::sync-main-kivozap::AC-052": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "sync-main-kivozap",
+      "ref": "AC-052",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-16T12:22:17.337Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ID_DUPLICADO::sync-main-kivozap::ASM-011": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "sync-main-kivozap",
+      "ref": "ASM-011",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:23:46.892Z",
+      "ultimaVez": "2026-08-16T12:23:49.948Z",
+      "gitRev": "42a818f5"
+    },
+    "REF_MALFORMADA::sync-main-kivozap::T-012": {
+      "codigo": "REF_MALFORMADA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-012",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:27:12.575Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-001",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.652Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-002": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-002",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-003": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-003",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-004": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-004",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-008": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-008",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-011": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-011",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-012": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-012",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-018": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-018",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-019": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "sync-main-kivozap",
+      "ref": "T-019",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-16T12:27:09.532Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-002": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-003": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-004": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-005": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-006": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-007": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-008": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-009": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-010": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-011": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-012": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-013": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-014": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-015": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-016": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-017": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-018": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "sync-main-kivozap",
+      "ref": "T-018",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-16T12:38:17.653Z",
+      "ultimaVez": "2026-08-16T12:38:17.653Z",
+      "gitRev": "42a818f5"
     }
   }
 }

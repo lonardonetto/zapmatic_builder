@@ -507,7 +507,7 @@ func (p *Processor) validatePhones() {
 			}
 		}
 		return nil
-	}, 5)
+	}, 50)
 }
 
 
