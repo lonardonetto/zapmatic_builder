@@ -1043,7 +1043,7 @@ public function save_bot_settings()
         }
     }
 
-    private function process_webhook($data, $skip_debounce = false)
+    public function process_webhook($data, $skip_debounce = false)
     {
         $logFile = WRITEPATH . 'bot_builder_webhook.log';
         $wa_instance_id = $data['instance_id']; // This is sp_accounts.token (waserver uses this)
@@ -1445,53 +1445,44 @@ public function save_bot_settings()
                     $auto_bot = $this->find_autorespond_bot($instance_id_for_lookup, $phone);
                     if ($auto_bot) {
                         $delay = max(1, intval($auto_bot->autorespond_delay ?? 60));
-                        // Respeitar o session_timeout configurado (min 1 minuto)
-                        $timeout = max(1, intval($auto_bot->session_timeout ?? 60)) * 60;
 
-                        // Buscar QUALQUER sessão recente (ativa ou completed)
+                        // ★ Stop keyword: "sair"/"parar"/etc. deve encerrar o autoresponder
+                        // e NAO reiniciar o fluxo. Antes, o stop keyword so era checado
+                        // quando havia sessao ATIVA — mas o fluxo do autoresponder termina
+                        // logo (start->text->end), entao "sair" nunca disparava a msg de
+                        // desligamento e o bot continuava reenviando a saudacao.
+                        if ($this->model->check_stop_keyword($text, $auto_bot->id)) {
+                            $this->model->end_sessions_for_phone($phone, $auto_bot->id);
+                            $stop_msg = 'Bot interrompido. Você pode iniciar novamente enviando a palavra-chave de ativação.';
+                            if (!empty($auto_bot->enable_keyword)) {
+                                $stop_msg = 'Bot interrompido. Envie "' . trim(explode(',', $auto_bot->enable_keyword)[0]) . '" para iniciar novamente.';
+                            } elseif (!empty($auto_bot->trigger_keywords)) {
+                                $stop_msg = 'Bot interrompido. Envie "' . trim(explode(',', $auto_bot->trigger_keywords)[0]) . '" para iniciar novamente.';
+                            }
+                            $this->send_whatsapp($instance_id_for_send, $reply_phone, 'text', ['text' => $stop_msg]);
+                            file_put_contents($logFile, date('Y-m-d H:i:s') . " | ⛔ Stop keyword matched for autorespond bot #{$auto_bot->id} – autoresponder encerrado para {$phone}\n", FILE_APPEND);
+                            $handled_count++;
+                            continue;
+                        }
+
+                        // Sessão ATIVA com blocos pendentes → continua o fluxo de onde parou.
+                        // (Fluxos com input/buttons/lista ficam ativos esperando a resposta.)
                         $db = $this->model->db;
-                        $recent_session = $db->table('sp_bb_sessions')
+                        $active_session = $db->table('sp_bb_sessions')
                             ->where('bot_id', $auto_bot->id)
                             ->where('phone', $phone)
                             ->where('is_completed', 0)
                             ->orderBy('id', 'DESC')
                             ->get()->getRow();
 
-                        // Se não encontrou ativa, buscar a mais recente (mesmo completed)
-                        if (!$recent_session) {
-                            $recent_session = $db->table('sp_bb_sessions')
-                                ->where('bot_id', $auto_bot->id)
-                                ->where('phone', $phone)
-                                ->orderBy('id', 'DESC')
-                                ->get()->getRow();
-                        }
-
-                        $use_existing = false;
-                        if ($recent_session && $recent_session->bot_id == $auto_bot->id) {
-                            $age = time() - strtotime($recent_session->updated_at ?? $recent_session->created_at);
-                            if ($age < $timeout) {
-                                $use_existing = true;
-                            }
-                        }
-                        if ($use_existing) {
-                            if (empty($recent_session->current_block_id)) {
-                                // Flow ja terminou, sessao ativa. Apenas prolonga o timeout.
-                                // NAO reenvia o fluxo — o bot fica em silencio ate a sessao expirar.
-                                $db->query("UPDATE sp_bb_sessions SET updated_at = NOW() WHERE id = ?", [$recent_session->id]);
-                            } else {
-                                // Reativar sessão existente que ainda tem blocos pendentes
-                                $db->table('sp_bb_sessions')
-                                    ->where('id', $recent_session->id)
-                                    ->update([
-                                        'is_completed' => 0,
-                                        'updated_at' => date('Y-m-d H:i:s'),
-                                    ]);
-                                $recent_session->is_completed = 0;
-                                $this->run_flow($recent_session, $text, $type, $instance_id_for_send, false);
-                            }
+                        if ($active_session && !empty($active_session->current_block_id)) {
+                            $this->run_flow($active_session, $text, $type, $instance_id_for_send, false);
                             $handled_count++;
                         } elseif ($this->check_autorespond_delay($auto_bot->id, $phone, $delay)) {
-                            // Criar nova sessão apenas se não existe nenhuma recente
+                            // Nova sessão (primeira mensagem, ou reativação após "sair"/fluxo concluído).
+                            // O intervalo entre respostas ao MESMO contato é controlado pelo
+                            // autorespond_delay (e nao pelo session_timeout), para o bot voltar
+                            // a responder logo depois de "sair" sem ficar mudo.
                             $session_id = $this->model->create_session($auto_bot->id, $phone, $instance_id_for_lookup, $init_ctx);
                             $this->model->db->table('sp_bb_sessions')
                                 ->where('id', $session_id)
@@ -3869,8 +3860,12 @@ private function check_autorespond_delay($bot_id, $phone, $delay_seconds)
         }
 
         if ($gatewayChecked[$instance_id] === 3 || $gatewayChecked[$instance_id] === 1) {
-            $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
-            @file_put_contents(WRITEPATH . 'bot_builder_send.log',
+            try {
+                $result = \App\Services\WhatsAppGatewayService::send($instance_id, $phone, $type, $content);
+            } catch (\Throwable $e) {
+                $result = ['status' => 'error', 'message' => $e->getMessage()];
+            }
+            @file_put_contents(WRITEPATH . 'logs/bot_builder_send.log',
                 date('Y-m-d H:i:s') . ' | GATEWAY_SEND | type=' . $type . ' | instance=' . $instance_id . ' | phone=' . $phone . ' | result=' . json_encode($result, JSON_UNESCAPED_UNICODE) . "\n",
                 FILE_APPEND
             );
