@@ -11,5 +11,5 @@ return [
         'id' => 'features',
         'name' => 'Recursos'
     ],
-    'show_plan' => false
+    'show_plan' => true
 ];
