@@ -417,6 +417,22 @@ sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
 | PM2 | ✅ 3 online | Prefixo `chatbut-` |
 | Systemd | ✅ active | Port 8097 listening |
 | Call API | ✅ OK | `GET /call/list` retornou `{"calls":[],"status":"success","total":0}` |
+| Cron export queue | ✅ OK | `GET /whatsapp_export_participants/cron` → `ok` (HTTP 200) |
+
+### 4.8.7 Processos e Crons (verificacao adicional)
+
+**Processos:** todos ativos (systemd `active`, 3 workers PM2 `online`).
+
+**Crons — correcoes aplicadas:**
+
+| Item | Estado antes | Acao | Estado depois |
+|---|---|---|---|
+| Cron export/clone queue | curl para `kivozap.com.br` (domínio errado) no crontab do `ubuntu` | Removido; criado `/www/server/cron/chatbut_export_queue.sh` (curl `chatbut.com.br`) e registrado no crontab do `root` | ✅ `* * * * *` apontando para `chatbut.com.br` |
+| Script export queue | inexistente | Criado `chatbut_export_queue.sh` (padrao identico ao `zapmatic_export_queue.sh` do main) | ✅ `/www/server/cron/chatbut_export_queue.sh` (chmod 700 root) |
+| Crons BT Panel (SSL, backup, limpeza files) | ja existiam | mantidos | ✅ OK |
+| Crons `pm2 restart pedidu/arthur` | pertencem a outros sistemas do servidor | NAO alterados | mantidos |
+
+> **Nota:** no main, o script `zapmatic_export_queue.sh` existe mas NAO esta registrado em nenhum crontab (a fila de export/clone tambem esta parada no main). No Chatbut, alem de criar o script, o cron foi DEVIDAMENTE registrado (a cada minuto) — garantindo que a fila de export/clone funcione.
 
 ---
 
