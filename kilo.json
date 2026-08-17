@@ -1,6 +1,15 @@
 {
   "permissions": [
-    { "action": "allow", "pattern": "**/*", "permission": "edit" },
-    { "action": "allow", "pattern": "**/*", "permission": "bash" }
-  ]
+    {
+      "action": "allow",
+      "pattern": "**/*",
+      "permission": "edit"
+    },
+    {
+      "action": "allow",
+      "pattern": "**/*",
+      "permission": "bash"
+    }
+  ],
+  "snapshot": false
 }

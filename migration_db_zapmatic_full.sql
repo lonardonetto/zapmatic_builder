@@ -1,5 +1,22 @@
-/*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.6.22-MariaDB, for debian-linux-gnu (aarch64)
+-- ============================================================
+-- ZAPMATIC — Migration Completa do Banco de Dados
+-- ============================================================
+-- Database:  db_zapmatic_sql
+-- Host:      localhost
+-- Gerado em: 2026-08-17 07:26:05 (BRT)
+-- Tabelas:   76
+-- Engine:    MariaDB 10.6.23 (compat MySQL 5.7)
+-- ============================================================
+-- USO: Protecao e disaster recovery.
+--      Para recriar o banco:
+--        mysql -u root -p db_zapmatic_sql < migration_db_zapmatic_full.sql
+--      Para recriar do zero:
+--        mysql -u root -p -e "CREATE DATABASE db_zapmatic_sql CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+--        mysql -u root -p db_zapmatic_sql < migration_db_zapmatic_full.sql
+-- ============================================================
+
+/*M!999999\- enable the sandbox mode */
+-- MariaDB dump 10.19  Distrib 10.6.23-MariaDB, for debian-linux-gnu (aarch64)
 --
 -- Host: localhost    Database: db_zapmatic_sql
 -- ------------------------------------------------------
@@ -45,76 +62,7 @@ CREATE TABLE `sp_accounts` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sp_ai_prompt_categories`
---
-
-DROP TABLE IF EXISTS `sp_ai_prompt_categories`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_ai_prompt_categories` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `ids` varchar(32) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `desc` varchar(500) DEFAULT NULL,
-  `icon` varchar(150) DEFAULT NULL,
-  `color` varchar(30) DEFAULT NULL,
-  `status` int(1) DEFAULT NULL,
-  `changed` int(11) DEFAULT NULL,
-  `created` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sp_ai_prompt_templates`
---
-
-DROP TABLE IF EXISTS `sp_ai_prompt_templates`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_ai_prompt_templates` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `ids` varchar(32) DEFAULT NULL,
-  `pid` int(11) DEFAULT NULL,
-  `content` text,
-  `status` int(11) DEFAULT NULL,
-  `changed` int(11) DEFAULT NULL,
-  `created` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1106 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sp_ai_settings`
---
-
-DROP TABLE IF EXISTS `sp_ai_settings`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_ai_settings` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `team_id` int(11) DEFAULT NULL,
-  `openrouter_key` text,
-  `openai_key` text,
-  `anthropic_key` text,
-  `gemini_key` text,
-  `mistral_key` text,
-  `groq_key` text,
-  `deepseek_key` text,
-  `perplexity_key` text,
-  `together_key` text,
-  `default_provider` varchar(50) DEFAULT NULL,
-  `default_model` varchar(150) DEFAULT NULL,
-  `status` int(1) DEFAULT NULL,
-  `created` int(11) DEFAULT NULL,
-  `changed` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `team_id` (`team_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=276 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -176,7 +124,35 @@ CREATE TABLE `sp_bb_integrations` (
   UNIQUE KEY `idx_bot_instance` (`bot_id`,`instance_id`),
   KEY `idx_bot` (`bot_id`),
   KEY `idx_instance` (`instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=230 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_bb_message_buffer`
+--
+
+DROP TABLE IF EXISTS `sp_bb_message_buffer`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_bb_message_buffer` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `instance_id` varchar(100) NOT NULL,
+  `account_id` int(11) NOT NULL,
+  `bot_id` int(11) DEFAULT NULL,
+  `phone` varchar(150) NOT NULL,
+  `reply_phone` varchar(150) DEFAULT NULL,
+  `messages` json NOT NULL,
+  `first_message` json NOT NULL,
+  `first_at` datetime NOT NULL,
+  `last_at` datetime NOT NULL,
+  `push_name` varchar(255) DEFAULT NULL,
+  `debounce_seconds` int(11) DEFAULT '3',
+  `debounce_max_seconds` int(11) DEFAULT '30',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_phone_instance` (`phone`,`instance_id`),
+  KEY `idx_last_at` (`last_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=95 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -194,14 +170,23 @@ CREATE TABLE `sp_bb_sessions` (
   `current_block_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `context` longtext COLLATE utf8mb4_unicode_ci,
   `is_completed` tinyint(1) DEFAULT '0',
+  `bot_status` enum('active','human_handoff') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `autorespond_last_at` datetime DEFAULT NULL,
+  `timeout_at` int(11) DEFAULT NULL,
+  `timeout_retries_done` int(11) DEFAULT '0',
+  `timeout_max_retries` int(11) DEFAULT '3',
+  `timeout_retry_msg` text COLLATE utf8mb4_unicode_ci,
+  `timeout_exit_msg` text COLLATE utf8mb4_unicode_ci,
+  `timeout_instance_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reply_phone` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_phone` (`phone`),
   KEY `idx_bot` (`bot_id`),
-  KEY `idx_instance_phone` (`instance_id`,`phone`)
-) ENGINE=InnoDB AUTO_INCREMENT=2654 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_instance_phone` (`instance_id`,`phone`),
+  KEY `idx_session_timeout` (`is_completed`,`bot_status`,`updated_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=101327 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -264,7 +249,7 @@ CREATE TABLE `sp_bb_versions` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_bot` (`bot_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4087 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5209 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -314,15 +299,133 @@ CREATE TABLE `sp_bot_builders` (
   `autorespond` tinyint(1) DEFAULT '0',
   `autorespond_delay` int(11) DEFAULT '60',
   `session_timeout` int(11) DEFAULT '60',
+  `debounce_seconds` int(11) DEFAULT '0',
   `start_block_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` tinyint(1) DEFAULT '0',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `debounce_max_seconds` int(11) DEFAULT '5',
   PRIMARY KEY (`id`),
   KEY `idx_team` (`team_id`),
   KEY `idx_status` (`status`),
   KEY `idx_team_status` (`team_id`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=109 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=133 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_call_audios`
+--
+
+DROP TABLE IF EXISTS `sp_call_audios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_call_audios` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `team_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `file_path` varchar(500) NOT NULL,
+  `duration_seconds` int(11) DEFAULT '0',
+  `format` varchar(10) DEFAULT 'mp3',
+  `file_size_bytes` bigint(20) DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_team` (`team_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_call_campaigns`
+--
+
+DROP TABLE IF EXISTS `sp_call_campaigns`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_call_campaigns` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `team_id` int(11) NOT NULL,
+  `instance_id` varchar(50) NOT NULL,
+  `audio_id` int(11) DEFAULT NULL,
+  `name` varchar(200) NOT NULL,
+  `status` enum('draft','scheduled','running','paused','completed','failed') DEFAULT 'draft',
+  `max_concurrent` int(11) DEFAULT '1',
+  `delay_between_calls` int(11) DEFAULT '30',
+  `timeout_ring` int(11) DEFAULT '30',
+  `record_response` tinyint(1) DEFAULT '0',
+  `schedule_start` datetime DEFAULT NULL,
+  `schedule_end` datetime DEFAULT NULL,
+  `total_leads` int(11) DEFAULT '0',
+  `calls_made` int(11) DEFAULT '0',
+  `calls_answered` int(11) DEFAULT '0',
+  `calls_no_answer` int(11) DEFAULT '0',
+  `calls_busy` int(11) DEFAULT '0',
+  `calls_failed` int(11) DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `schedule_time` varchar(255) DEFAULT NULL,
+  `schedule_weekdays` varchar(255) DEFAULT NULL,
+  `skip_team_holidays` tinyint(1) DEFAULT '0',
+  `timezone` varchar(100) DEFAULT NULL,
+  `call_mode` varchar(20) DEFAULT 'fila',
+  `instance_ids` text,
+  `delay_min` int(11) DEFAULT '10',
+  `delay_max` int(11) DEFAULT '60',
+  PRIMARY KEY (`id`),
+  KEY `idx_team_status` (`team_id`,`status`)
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_call_leads`
+--
+
+DROP TABLE IF EXISTS `sp_call_leads`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_call_leads` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `campaign_id` int(11) NOT NULL,
+  `phone` varchar(30) NOT NULL,
+  `name` varchar(100) DEFAULT '',
+  `status` enum('pending','ringing','answered','no_answer','busy','failed','cancelled') DEFAULT 'pending',
+  `call_id` varchar(100) DEFAULT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `answered_at` datetime DEFAULT NULL,
+  `ended_at` datetime DEFAULT NULL,
+  `duration_seconds` int(11) DEFAULT '0',
+  `response_audio` varchar(500) DEFAULT NULL,
+  `error_message` varchar(500) DEFAULT NULL,
+  `retry_count` int(11) DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_campaign_status` (`campaign_id`,`status`),
+  KEY `idx_phone` (`phone`)
+) ENGINE=InnoDB AUTO_INCREMENT=1143 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_campaign_queue`
+--
+
+DROP TABLE IF EXISTS `sp_campaign_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_campaign_queue` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `campaign_id` int(10) unsigned NOT NULL,
+  `instance_id` int(10) unsigned NOT NULL COMMENT 'Associates dispatch with a specific WhatsApp channel/token',
+  `recipient_phone` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` json NOT NULL COMMENT 'Contains message template, resolved variables, and spintax variations',
+  `status` enum('pending','processing','sent','failed','rate_limited') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `send_at` int(10) unsigned NOT NULL COMMENT 'UNIX timestamp incorporating randomized anti-spam delays',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `max_attempts` tinyint(3) unsigned NOT NULL DEFAULT '3',
+  `error_log` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_campaign_polling` (`status`,`instance_id`,`send_at`),
+  KEY `idx_campaign_reference` (`campaign_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -342,6 +445,36 @@ CREATE TABLE `sp_captions` (
   `created` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_clone_group_queue`
+--
+
+DROP TABLE IF EXISTS `sp_clone_group_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_clone_group_queue` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `ids` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `team_id` int(10) unsigned NOT NULL,
+  `account_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `group_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `group_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `target_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('pending','processing','completed','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `total` int(10) unsigned NOT NULL DEFAULT '0',
+  `done` int(10) unsigned NOT NULL DEFAULT '0',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `max_attempts` tinyint(3) unsigned NOT NULL DEFAULT '3',
+  `error_log` text COLLATE utf8mb4_unicode_ci,
+  `new_group_jid` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created` int(10) unsigned NOT NULL,
+  `changed` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_clone_queue_polling` (`status`,`team_id`),
+  KEY `idx_clone_queue_team` (`team_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -365,6 +498,33 @@ CREATE TABLE `sp_coinpayments_history` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sp_connection_links`
+--
+
+DROP TABLE IF EXISTS `sp_connection_links`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_connection_links` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `team_id` int(11) NOT NULL,
+  `instance_id` varchar(50) NOT NULL,
+  `token` char(36) NOT NULL,
+  `client_name` varchar(100) DEFAULT '',
+  `status` enum('pending','used','expired') DEFAULT 'pending',
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `used_at` datetime DEFAULT NULL,
+  `connected_phone` varchar(30) DEFAULT '',
+  `connected_name` varchar(100) DEFAULT '',
+  `connected_avatar` varchar(500) DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_token` (`token`),
+  KEY `idx_team_status` (`team_id`,`status`),
+  KEY `idx_expires` (`expires_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=66 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sp_coupons`
 --
 
@@ -384,6 +544,34 @@ CREATE TABLE `sp_coupons` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_export_participants_queue`
+--
+
+DROP TABLE IF EXISTS `sp_export_participants_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_export_participants_queue` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `ids` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `team_id` int(10) unsigned NOT NULL,
+  `account_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `group_id` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `group_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('pending','processing','completed','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `total` int(10) unsigned NOT NULL DEFAULT '0',
+  `done` int(10) unsigned NOT NULL DEFAULT '0',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `max_attempts` tinyint(3) unsigned NOT NULL DEFAULT '3',
+  `error_log` text COLLATE utf8mb4_unicode_ci,
+  `created` int(10) unsigned NOT NULL,
+  `changed` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_export_queue_polling` (`status`,`team_id`),
+  KEY `idx_export_queue_team` (`team_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -431,7 +619,7 @@ CREATE TABLE `sp_files` (
   `note` mediumtext,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=1037 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=1038 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -459,7 +647,7 @@ CREATE TABLE `sp_gmscraper_jobs` (
   `proxy` varchar(255) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -482,7 +670,7 @@ CREATE TABLE `sp_gmscraper_leads` (
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `job_idx` (`job_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=596 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -766,6 +954,32 @@ CREATE TABLE `sp_license_local` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sp_message_queue`
+--
+
+DROP TABLE IF EXISTS `sp_message_queue`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_message_queue` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `session_id` bigint(20) unsigned NOT NULL,
+  `bot_id` int(10) unsigned NOT NULL,
+  `action_type` enum('send_message','api_call','delay_resume') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` json NOT NULL COMMENT 'Contains message body, API config, or next block ID',
+  `status` enum('pending','processing','completed','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `send_at` int(10) unsigned NOT NULL COMMENT 'UNIX timestamp for execution',
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `max_attempts` tinyint(3) unsigned NOT NULL DEFAULT '3',
+  `error_log` text COLLATE utf8mb4_unicode_ci COMMENT 'Stores the last exception/API error',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_queue_polling` (`status`,`send_at`),
+  KEY `idx_queue_session` (`session_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sp_midtrans_history`
 --
 
@@ -934,6 +1148,44 @@ CREATE TABLE `sp_smtp` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sp_system_migrations`
+--
+
+DROP TABLE IF EXISTS `sp_system_migrations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_system_migrations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `filename` varchar(255) NOT NULL,
+  `version` varchar(20) DEFAULT NULL,
+  `applied_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_filename` (`filename`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sp_system_updates`
+--
+
+DROP TABLE IF EXISTS `sp_system_updates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_system_updates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `from_version` varchar(20) DEFAULT NULL,
+  `to_version` varchar(20) DEFAULT NULL,
+  `channel` varchar(20) DEFAULT 'stable',
+  `status` enum('pending','processing','applied','failed','rolled_back') DEFAULT 'pending',
+  `backup_file` varchar(255) DEFAULT NULL,
+  `git_commit` varchar(40) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `applied_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sp_team`
 --
 
@@ -1021,29 +1273,6 @@ CREATE TABLE `sp_users` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `sp_whatsapp_ai`
---
-
-DROP TABLE IF EXISTS `sp_whatsapp_ai`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_whatsapp_ai` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `team_id` int(11) NOT NULL,
-  `instance_id` text NOT NULL,
-  `status` int(11) NOT NULL,
-  `apikey` text,
-  `temperature` text,
-  `model` text,
-  `key_disable` text,
-  `key_enable` text,
-  `max_tokens` int(11) NOT NULL,
-  `api_status` int(11) DEFAULT '0',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `sp_whatsapp_ar_responses`
 --
 
@@ -1058,36 +1287,6 @@ CREATE TABLE `sp_whatsapp_ar_responses` (
   PRIMARY KEY (`id`),
   KEY `idx_whatsapp_instance_id` (`whatsapp`,`instance_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sp_whatsapp_autoresponder`
---
-
-DROP TABLE IF EXISTS `sp_whatsapp_autoresponder`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_whatsapp_autoresponder` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `ids` text,
-  `team_id` int(11) DEFAULT NULL,
-  `instance_id` text,
-  `type` int(1) DEFAULT NULL,
-  `template` int(11) DEFAULT NULL,
-  `caption` text,
-  `media` longtext,
-  `except` longtext,
-  `path` text,
-  `delay` int(11) DEFAULT NULL,
-  `result` text,
-  `sent` int(11) DEFAULT NULL,
-  `failed` int(11) DEFAULT NULL,
-  `send_to` int(1) DEFAULT NULL,
-  `status` int(11) DEFAULT NULL,
-  `changed` int(11) DEFAULT NULL,
-  `created` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1120,49 +1319,6 @@ CREATE TABLE `sp_whatsapp_callresponder` (
   `caption2` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `sp_whatsapp_chatbot`
---
-
-DROP TABLE IF EXISTS `sp_whatsapp_chatbot`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `sp_whatsapp_chatbot` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `ids` text,
-  `name` text,
-  `keywords` text,
-  `instance_id` text,
-  `team_id` int(11) DEFAULT NULL,
-  `type_search` int(11) DEFAULT '1',
-  `template` int(11) DEFAULT NULL,
-  `type` int(11) DEFAULT NULL,
-  `caption` text,
-  `media` text,
-  `except` text,
-  `run` int(1) DEFAULT '1',
-  `sent` int(11) DEFAULT NULL,
-  `failed` int(11) DEFAULT NULL,
-  `send_to` int(1) DEFAULT NULL,
-  `status` int(1) DEFAULT NULL,
-  `changed` int(11) DEFAULT NULL,
-  `created` int(11) DEFAULT NULL,
-  `presenceTime` int(11) NOT NULL DEFAULT '0',
-  `presenceType` int(11) NOT NULL DEFAULT '0',
-  `nextBot` text,
-  `description` text,
-  `use_ai` int(11) DEFAULT NULL,
-  `is_default` int(11) DEFAULT NULL,
-  `save_data` int(11) NOT NULL DEFAULT '0',
-  `inputname` text,
-  `api_config` longtext,
-  `api_url` text,
-  `get_api_data` int(11) NOT NULL DEFAULT '1',
-  `send_as_voicenotes` int(11) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=248 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1222,7 +1378,7 @@ CREATE TABLE `sp_whatsapp_cloud_dispatches` (
   KEY `idx_account_created` (`account_id`,`created`),
   KEY `idx_schedule_next_attempt` (`schedule_id`,`next_attempt_at`),
   KEY `idx_contact_phone_id` (`contact_phone_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1241,7 +1397,7 @@ CREATE TABLE `sp_whatsapp_contacts` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=118 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=141 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1454,7 +1610,7 @@ CREATE TABLE `sp_whatsapp_gateways` (
   `changed` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `instance_id` (`instance_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=323 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1474,7 +1630,7 @@ CREATE TABLE `sp_whatsapp_history` (
   `status` int(11) NOT NULL,
   `time_post` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4910 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5703 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1523,7 +1679,7 @@ CREATE TABLE `sp_whatsapp_message_status` (
   KEY `idx_schedule` (`schedule_id`,`team_id`),
   KEY `idx_wa_message_id` (`wa_message_id`),
   KEY `idx_status` (`status`,`last_status_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=555 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=787 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1569,7 +1725,7 @@ CREATE TABLE `sp_whatsapp_phone_numbers` (
   `params` text,
   `is_valid` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=123517 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=128878 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1598,6 +1754,31 @@ CREATE TABLE `sp_whatsapp_quick_replies` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sp_whatsapp_schedule_groups`
+--
+
+DROP TABLE IF EXISTS `sp_whatsapp_schedule_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sp_whatsapp_schedule_groups` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `ids` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `team_id` int(10) unsigned NOT NULL,
+  `schedule_id` int(10) unsigned NOT NULL,
+  `account_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `group_jid` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `position` int(10) unsigned NOT NULL DEFAULT '0',
+  `status` enum('pending','sent','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `error_log` text COLLATE utf8mb4_unicode_ci,
+  `created` int(10) unsigned NOT NULL,
+  `changed` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_schedule_groups_offset` (`schedule_id`,`position`),
+  KEY `idx_schedule_groups_team` (`team_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sp_whatsapp_schedules`
 --
 
@@ -1611,6 +1792,7 @@ CREATE TABLE `sp_whatsapp_schedules` (
   `accounts` text,
   `next_account` int(11) DEFAULT NULL,
   `contact_id` int(11) DEFAULT NULL,
+  `target_type` varchar(16) NOT NULL DEFAULT 'contacts',
   `type` int(11) DEFAULT '1',
   `template` int(11) DEFAULT NULL,
   `time_post` int(11) DEFAULT NULL,
@@ -1635,7 +1817,7 @@ CREATE TABLE `sp_whatsapp_schedules` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=144 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=167 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1654,7 +1836,7 @@ CREATE TABLE `sp_whatsapp_sessions` (
   `status` int(11) DEFAULT NULL,
   `creds` longtext,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=1420 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=1605 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1708,7 +1890,7 @@ CREATE TABLE `sp_whatsapp_subscriber` (
   `lastMessage` text,
   `lastMessageTime` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7703 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8865 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1748,7 +1930,7 @@ CREATE TABLE `sp_whatsapp_template` (
   `changed` int(11) DEFAULT NULL,
   `created` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=1890 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=1941 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1766,8 +1948,12 @@ CREATE TABLE `sp_whatsapp_webhook` (
   `webhook_url` text,
   `status` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping routines for database 'db_zapmatic_sql'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1778,4 +1964,4 @@ CREATE TABLE `sp_whatsapp_webhook` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-07-24 16:55:57
+-- Dump completed on 2026-08-17  7:26:05

@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "pluszap-bot-worker-all",
+      name: "zapmatic-bot-worker-all",
       script: "spark",
       args: "bot:all",
       interpreter: "php",
@@ -15,7 +15,7 @@ module.exports = {
       out_file: "writable/logs/pm2-all-out.log",
     },
     {
-      name: "call-campaign-worker",
+      name: "zapmatic-call-worker",
       script: "spark",
       args: "call:campaigns",
       interpreter: "php",
@@ -27,6 +27,17 @@ module.exports = {
       max_memory_restart: "128M",
       error_file: "writable/logs/pm2-call-error.log",
       out_file: "writable/logs/pm2-call-out.log",
+    },
+    {
+      name: "zapmatic-gmscraper",
+      script: "index.js",
+      interpreter: "node",
+      cwd: "/www/wwwroot/app_zapmatic_app/app_zapmatic_scraper",
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "256M",
     },
   ]
 };

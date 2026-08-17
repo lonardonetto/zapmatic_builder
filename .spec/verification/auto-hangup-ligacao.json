@@ -1,7 +1,7 @@
 {
   "feature": "auto-hangup-ligacao",
-  "timestamp": "2026-08-15T17:51:28.959Z",
-  "gitRev": "1cd8f6a",
+  "timestamp": "2026-08-16T15:55:09.565Z",
+  "gitRev": "b04b280c",
   "command": "node tests/run_all.mjs",
   "reporter": "tap",
   "exitCode": 0,
