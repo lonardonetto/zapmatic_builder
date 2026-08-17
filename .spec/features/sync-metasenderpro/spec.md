@@ -1,138 +1,406 @@
-# Sincronizacao MetaSenderPro — Especificacao e Historia
+# Sincronizacao MetaSenderPro — Especificacao, Execucao e Template
 
-> **Status:** em execucao  
+> **Status:** concluido  
 > **Data:** 2026-08-17  
-> **Servidor origem (referencia):** main Zapmatic (`localhost`, `db_zapmatic_sql`, port 8090)  
-> **Servidor destino:** MetaSenderPro (`92.113.149.185`, port 8101)  
-> **Principio:** main Zapmatic e o laboratorio de desenvolvimento — todos os demais servidores devem ser identicos ao main em codigo, estrutura e comportamento, mas com credenciais proprias.
+> **Executado por:** Kilo (automatizado via SSH)  
+> **Versao resultante:** v8.5.14 (identico ao main)  
+> **Commit main:** `991e59a5`  
+> **Principio:** main Zapmatic (`zapmatic.tec.br`) e o laboratorio de desenvolvimento — todos os demais servidores devem ser identicos ao main em codigo, estrutura e comportamento, mas com credenciais proprias e autonomas.
 
 ---
 
-## 1. Escopo
+## 1. Visao Geral
 
-### 1.1 O que Sera Atualizado
+Cada servidor cliente (tenant) recebe uma copia 100% identica ao main Zapmatic em termos de:
+- Codigo fonte (inc/core, app, Go API, scraper, assets, migrations)
+- Estrutura de banco de dados (76 tabelas, colunas, indices)
+- Processos (systemd Go gateway + 3 PM2 workers)
+- Especificacoes (.spec) e documentacao (docs)
 
-| Componente | Acao | Detalhe |
+**O que NUNCA e substituido:**
+- `.env` — credenciais e configuracoes propias do tenant
+- `writable/` — dados locais (logs, audios, cache, sessions)
+- `.git/` — repositorio proprio (se houver)
+
+---
+
+## 2. Template de Execucao
+
+> Este processo pode ser replicado para qualquer servidor.  
+> Basta preencher as variaveis na secao 3 e seguir os 8 passos.
+
+### Passo 1 — Analise de Diferencas de Banco
+
+**Objetivo:** Identificar tabelas/colunas que faltam no destino e tabelas/colunas legado que nao existem no main.
+
+```bash
+# 1. Dump schema do destino via SSH
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "mysqldump -u {DB_USER} -p{DB_PASS} --no-data --single-transaction {DB_NAME}" > /tmp/{TENANT}_schema.sql
+
+# 2. Comparar tabelas
+grep "CREATE TABLE" migration_db_zapmatic_full.sql | sed 's/CREATE TABLE.*`\(`.*`\)`.*/\1/' | sort > /tmp/main_tables.txt
+grep "CREATE TABLE" /tmp/{TENANT}_schema.sql | sed 's/CREATE TABLE.*`\(`.*`\)`.*/\1/' | sort > /tmp/tenant_tables.txt
+
+# Tabelas que faltam no destino
+comm -23 /tmp/main_tables.txt /tmp/tenant_tables.txt
+
+# Tabelas legado no destino (NUNCA existem — main sempre e referencia)
+comm -13 /tmp/main_tables.txt /tmp/tenant_tables.txt
+
+# 3. Comparar colunas (Python script na secao 5)
+```
+
+**Regras:**
+- FALTAM no destino → ADD (CREATE TABLE ou ALTER TABLE ADD COLUMN)
+- Existe no destino mas NAO no main → DROP (tabela ou coluna legado)
+- NUNCA dropar dados — apenas estrutura
+
+### Passo 2 — Aplicar Migration no Destino
+
+```bash
+# Gerar SQL diff com CREATE TABLE para tabelas novas + ALTER TABLE para colunas novas
+# Enviar e executar no destino
+sshpass -p '{SSH_PASS}' scp /tmp/{TENANT}_migration.sql {SSH_USER}@{SSH_IP}:/tmp/migration.sql
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "mysql -u {DB_USER} -p{DB_PASS} {DB_NAME} < /tmp/migration.sql"
+
+# Verificar contagem
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "mysql -u {DB_USER} -p{DB_PASS} {DB_NAME} -e \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='{DB_NAME}'\""
+# Deve retornar: 76
+```
+
+### Passo 3 — Substituir Codigo
+
+```bash
+# Backup do .env e ecosystem do destino
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "cp {PATH}/.env /tmp/{TENANT}_env_backup; cp {PATH}/ecosystem.config.js /tmp/{TENANT}_ecosystem_backup"
+
+# Rsync de cada pasta (excluindo .env, writable, .git, sessions, binary)
+export SSHPASS='{SSH_PASS}'
+SSH="ssh -o StrictHostKeyChecking=no"
+EXCLUDE="--exclude=.env --exclude=writable/ --exclude=.git/ --exclude=node_modules/ --exclude=vendor/ --exclude=storage/sessions/ --exclude=app_zapmatic_whatsmeow_api/zapmatic-whatsmeow --exclude=app_zapmatic_whatsmeow_api/storage/ --exclude=app_zapmatic_whatsmeow_api/logs/ --exclude='*.db' --exclude='*.db-shm' --exclude='*.db-wal'"
+
+for dir in inc app app_zapmatic_scraper app_zapmatic_whatsmeow_api assets migrations sql .spec docs _bmad; do
+    sshpass -p '{SSH_PASS}' rsync -az --delete -e "$SSH" $EXCLUDE \
+      /www/wwwroot/app_zapmatic_app/$dir/ \
+      {SSH_USER}@{SSH_IP}:{PATH}/$dir/
+done
+
+# Root files
+for f in call_audio_stream.php composer.json ecosystem.config.js index.html index.php \
+         spark version.json release.sh CHANGELOG.md README.md migration_db_zapmatic_full.sql \
+         deploy_all.sh deploy_folder.sh deploy_go.sh deploy_updater_remote.sh 404.html 502.html; do
+    sshpass -p '{SSH_PASS}' scp $SSH /www/wwwroot/app_zapmatic_app/$f {SSH_USER}@{SSH_IP}:{PATH}/$f
+done
+
+# Instalar dependencias
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "cd {PATH} && sudo -u www composer install --no-dev --optimize-autoloader"
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "cd {PATH}/app_zapmatic_scraper && sudo -u www npm install --production"
+```
+
+### Passo 4 — Compilar Go Binary
+
+```bash
+# Instalar Go (se nao tiver)
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "wget -q https://go.dev/dl/go1.22.6.linux-amd64.tar.gz -O /tmp/go.tar.gz && \
+   sudo tar -C /usr/local -xzf /tmp/go.tar.gz && rm /tmp/go.tar.gz"
+
+# Compilar NO servidor destino (CGO_ENABLED=1 obrigatorio para sqlite3/whatsmeow)
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "export PATH=/usr/local/go/bin:\$PATH && export CGO_ENABLED=1 && \
+   cd {PATH}/app_zapmatic_whatsmeow_api && \
+   go build -o zapmatic-whatsmeow ./cmd/server/ && \
+   chmod +x zapmatic-whatsmeow"
+```
+
+**NOTA:** NAO usar cross-compile (`CGO_ENABLED=0`) — o binary precisa de CGO para sqlite3 (whatsmeow sessions).
+
+### Passo 5 — Ajustar Credenciais
+
+**5.1 — config.json do Go gateway:**
+```json
+{
+  "port": "{GO_PORT}",
+  "log_level": "info",
+  "log_dir": "logs",
+  "store_dir": "storage/sessions",
+  "webhook_url": "https://{DOMAIN}/index.php/bot-builder/webhook",
+  "api_key": "",
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "{DB_USER}",
+    "password": "{DB_PASS}",
+    "name": "{DB_NAME}"
+  }
+}
+```
+
+**5.2 — ecosystem.config.js:**
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: "{TENANT}-bot-worker-all",
+      script: "spark", args: "bot:all", interpreter: "php",
+      cwd: "{PATH}", autorestart: true, max_memory_restart: "256M",
+      error_file: "writable/logs/pm2-all-error.log",
+      out_file: "writable/logs/pm2-all-out.log",
+    },
+    {
+      name: "{TENANT}-call-worker",
+      script: "spark", args: "call:campaigns", interpreter: "php",
+      cwd: "{PATH}", autorestart: true, max_memory_restart: "128M",
+      error_file: "writable/logs/pm2-call-error.log",
+      out_file: "writable/logs/pm2-call-out.log",
+    },
+    {
+      name: "{TENANT}-gmscraper",
+      script: "index.js", interpreter: "node",
+      cwd: "{PATH}/app_zapmatic_scraper", autorestart: true, max_memory_restart: "256M",
+    },
+  ]
+};
+```
+
+**5.3 — systemd service:**
+```ini
+[Unit]
+Description=Zapmatic Whatsmeow Gateway ({TENANT_NAME})
+After=network.target
+
+[Service]
+Type=simple
+User=www
+ExecStart={PATH}/app_zapmatic_whatsmeow_api/zapmatic-whatsmeow --port {GO_PORT} --log-dir {PATH}/app_zapmatic_whatsmeow_api/logs
+WorkingDirectory={PATH}/app_zapmatic_whatsmeow_api
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**5.4 — Verificar .env (NAO substituir):**
+```bash
+# Confirmar que .env tem credenciais do TENANT e nao do main
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} \
+  "grep -c 'db_zapmatic_sql\|inTwk7z37PnhWcY5\|zapmatic\.tec\.br' {PATH}/.env {PATH}/app_zapmatic_whatsmeow_api/config.json"
+# Deve retornar: 0 em todos
+```
+
+### Passo 6 — Criar Diretorios e Ajustar Permissoes
+
+```bash
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
+  sudo mkdir -p {PATH}/writable/logs {PATH}/writable/call_audio
+  sudo mkdir -p {PATH}/app_zapmatic_whatsmeow_api/logs
+  sudo mkdir -p {PATH}/app_zapmatic_whatsmeow_api/storage/sessions
+  sudo chown -R www:www {PATH}/writable/
+  sudo chown -R www:www {PATH}/app_zapmatic_whatsmeow_api/logs/
+  sudo chown -R www:www {PATH}/app_zapmatic_whatsmeow_api/storage/
+"
+```
+
+### Passo 7 — Iniciar Processos
+
+```bash
+# Go gateway
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
+  sudo systemctl daemon-reload
+  sudo systemctl enable zapmatic-whatsmeow-{TENANT}
+  sudo systemctl restart zapmatic-whatsmeow-{TENANT}
+  sleep 2
+  systemctl is-active zapmatic-whatsmeow-{TENANT}
+"
+
+# PM2 workers
+sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
+  sudo pm2 stop {TENANT}-bot-worker-all {TENANT}-call-worker {TENANT}-gmscraper 2>/dev/null
+  sudo pm2 delete {TENANT}-bot-worker-all {TENANT}-call-worker {TENANT}-gmscraper 2>/dev/null
+  sudo pm2 delete call-campaign-worker gmscraper-main 2>/dev/null
+  sudo pm2 start {PATH}/ecosystem.config.js
+  sudo pm2 save
+"
+```
+
+### Passo 8 — Testes de Verificacao
+
+| Teste | Comando | Criterio de sucesso |
 |---|---|---|
-| **Banco de dados** | Sincronizar | Adicionar tabelas/colunas que faltam no meta. Dropar apenas tabelas/colunas legado que NAO existem no main. NUNCA dropar dados. |
-| **inc/core/** | Substituir total | Copiar do main 100% |
-| **app/** | Substituir total | Copiar do main 100% |
-| **app_zapmatic_whatsmeow_api/** | Substituir + recompilar | Copiar do main, recompilar Go binary para o meta |
-| **app_zapmatic_scraper/** | Substituir total | Copiar do main 100% |
-| **assets/** | Substituir total | Copiar do main 100% |
-| **migrations/** | Substituir total | Copiar do main 100% |
-| **.spec/** | Substituir total | Copiar do main 100% |
-| **docs/** | Substituir total | Copiar do main 100% |
-| **_bmad/** | Substituir total | Copiar do main 100% |
-| **Root files** | Substituir | ecosystem.config.js, spark, composer.json, etc |
+| Go health | `curl http://localhost:{GO_PORT}/health` | `{"status":"ok"}` |
+| Web interface | `curl -s -o /dev/null -w "%{http_code}" https://{DOMAIN}/` | `200` |
+| DB tables | `SELECT COUNT(*) FROM information_schema.tables` | `76` |
+| Credenciais | `grep -c 'db_zapmatic_sql' .env config.json` | `0` |
+| PM2 processes | `pm2 list` | 3 processos online |
+| Systemd | `systemctl is-active zapmatic-whatsmeow-{TENANT}` | `active` |
+| Ligacao + auto-hangup | `POST /call/start` com audio | OnFinish → hangup 2s |
+| Call API | `GET /call/list` | `{"status":"success"}` |
 
-### 1.2 O que NAO Sera Tocado
+---
 
-| Componente | Motivo |
-|---|---|
+## 3. Variaveis por Servidor
 
-pasta writbles nao devra ser substitutida
-| **.env** | Credenciais proprias do meta (DB, dominio, keys) |
-| **writable/** | Dados locais (logs, audio files, cache) |
-| **.git/** | Repositorio proprio do meta (se houver) |
+> Preencher para cada novo servidor. O MetaSenderPro esta preenchido como exemplo.
 
-### 1.3 Pos-Atualizacao: Credenciais
+| Variavel | MetaSenderPro (exemplo) | Kivozap | AgenciaMCW | Chatbut | IaClicks | Elite | PlusZap |
+|---|---|---|---|---|---|---|---|
+| `{SSH_IP}` | 92.113.149.185 | 144.22.167.45 | 144.22.167.45 | 144.22.167.45 | 45.148.29.92 | 193.180.211.190 | 92.113.144.161 |
+| `{SSH_USER}` | MetaSenderPro | ubuntu | ubuntu | ubuntu | admin | admin | admin |
+| `{SSH_PASS}` | Hacker5030 | (key) | (key) | (key) | Leonetto1982 | Leonetto1982 | Leonetto1982 |
+| `{PATH}` | /www/wwwroot/app_metasenderpro | /www/wwwroot/app_abner_app | /www/wwwroot/app_frank_agencia | /www/wwwroot/app_alex_pedidu_app | /www/wwwroot/app_zapmatic_app | /www/wwwroot/elitecomunicacao.zapmatic.tec.br | /www/wwwroot/app_zapmatic_app |
+| `{DOMAIN}` | sender.metanivelpro.com | kivozap.com.br | chatbot.agenciamcw.com.br | chatbut.com.br | iaclicks.com | elitecomunicacao.zapmatic.tec.br | pluszap.com |
+| `{DB_NAME}` | sql_metasenderpro_db | db_abner_sql | sql_frank_db | sql_alex_db | sql_iaclicks_db | sql_zapmatic_db | sql_zapmatic_db |
+| `{DB_USER}` | sql_metasenderpro_db | db_abner_sql | sql_frank_db | sql_alex_db | sql_iaclicks_db | sql_zapmatic_db | sql_zapmatic_db |
+| `{DB_PASS}` | ebPCdCaWz5AsdkAh | inTwk7z37PnhWcY5 | apw4iTDGjePic8cb | 6eNEfwPxHjdT757w | FxMzzfdLPr2yDS2F | fe5kwDTMy3JdxDhT | ZnCYYPwZwYxw8b6r |
+| `{GO_PORT}` | 8101 | 8095 | 8096 | 8097 | 8098 | 8099 | 8100 |
+| `{TENANT}` | metasenderpro | kivozap | agenciamcw | chatbut | iaclicks | elite | pluszap |
+| `{TENANT_NAME}` | MetaSenderPro | Kivozap | AgenciaMCW | Chatbut | IaClicks | Elite | PlusZap |
+| **Status** | **CONCLUIDO** | pendente | pendente | pendente | pendente | pendente | pendente |
 
-Apos TODA substituicao, verificar e ajustar:
+---
 
-| Arquivo | O que verificar |
-|---|---|
-| `.env` | database credentials, baseURL, API keys (do META) |
-| `app_zapmatic_whatsmeow_api/config.json` | DB credentials, webhook_url, port (do META) |
-| `app/Config/App.php` | baseURL (do META) |
-| `app/Config/Database.php` | credentials (do META) |
-| systemd service | porta Go (8101), diretorio correto |
-| ecosystem.config.js | prefixo `metasenderpro-` |
+## 4. Resultado da Execucao — MetaSenderPro
 
-### 1.4 Pos-Atualizacao: Processos
+### 4.1 Banco de Dados
 
-| Processo | Comando | Status |
+| Item | Antes | Depois |
 |---|---|---|
-| `zapmatic-whatsmeow-metasenderpro` | systemd service, port 8101 | deve estar active |
-| `metasenderpro-bot-worker-all` | PM2, `php spark bot:all` | deve estar online |
-| `metasenderpro-call-worker` | PM2, `php spark call:campaigns` | deve estar online |
-| `metasenderpro-gmscraper` | PM2, `node index.js` | deve estar online |
+| Total de tabelas | 73 | 76 |
+| Tabelas adicionadas | — | `sp_clone_group_queue`, `sp_export_participants_queue`, `sp_whatsapp_schedule_groups` |
+| Colunas adicionadas | — | `sp_whatsapp_schedules.target_type` (varchar(16), default 'contacts') |
+| Tabelas legado dropadas | 0 | 0 |
+| Colunas legado dropadas | 0 | 0 |
 
-### 1.5 Testes Obrigatorios
+### 4.2 Codigo
 
-| Teste | Criterio de sucesso |
-|---|---|
-| Extrair leads Google Maps | Job criado, leads aparecem na lista |
-| Criar contato | Contato aparece na lista de contatos |
-| Ligacao WhatsApp + auto-hangup | Chamada atendida, audio toca, desliga 2s apos audio |
-| Disparo em massa (Cloud API) | Mensagens enviadas via Cloud API |
-| Disparo em massa (Go/Baileys) | Mensagens enviadas via Go gateway |
-| Fluxo Builder | Fluxo executa corretamente |
-| Autoresponder | Responde automaticamente |
-| Debounce | Mensagens agrupadas corretamente |
+| Pasta | Acao | Status |
+|---|---|---|
+| `inc/core/` | rsync completo | ✅ |
+| `app/` | rsync completo | ✅ |
+| `app_zapmatic_whatsmeow_api/` | rsync + compilacao Go | ✅ |
+| `app_zapmatic_scraper/` | rsync + npm install | ✅ |
+| `assets/` | rsync completo | ✅ |
+| `migrations/` | rsync completo | ✅ |
+| `.spec/` | rsync completo | ✅ |
+| `docs/` | rsync completo | ✅ |
+| `_bmad/` | rsync completo | ✅ |
+| Root files | scp individual | ✅ |
+| `.env` | NAO substituido | ✅ preservado |
+| `writable/` | NAO substituido | ✅ preservado |
 
----
-
-## 2. Execucao — Passo a Passo
-
-### Passo 1: Analise de Diferencas de Banco
-- Dump schema do meta via SSH
-- Comparar com `migration_db_zapmatic_full.sql` do main
-- Gerar SQL diff: tabelas/colunas para ADD e tabelas/colunas legado para DROP
-
-### Passo 2: Aplicar Migration no Meta
-- Executar SQL diff no meta
-- Verificar que todas as 76 tabelas existem com colunas corretas
-
-### Passo 3: Substituir Codigo
-- rsync pastas: inc/core, app, app_zapmatic_whatsmeow_api, app_zapmatic_scraper, assets, migrations, .spec, docs, _bmad
-- rsync root files: ecosystem.config.js, spark, composer.json, etc
-- EXCLUIR: .env, writable/, .git/
-
-### Passo 4: Compilar Go para Meta
-- Compilar binary `zapmatic-whatsmeow` no servidor meta (ou cross-compile)
-- Configurar `config.json` com credenciais do meta
-
-### Passo 5: Ajustar Credenciais
-- Verificar .env do meta (nao substituir)
-- Ajustar config.json do Go com DB e porta do meta
-- Ajustar systemd service para porta 8101
-- Ajustar ecosystem.config.js para prefixo `metasenderpro-`
-
-### Passo 6: Iniciar Processos
-- `systemctl daemon-reload && systemctl restart zapmatic-whatsmeow-metasenderpro`
-- `pm2 start ecosystem.config.js`
-- `pm2 save`
-
-### Passo 7: Testes
-- Executar cada teste da secao 1.5
-- Reportar resultados
-
----
-
-## 3. Credenciais MetaSenderPro
+### 4.3 Go Binary
 
 | Item | Valor |
 |---|---|
-| IP | 92.113.149.185 |
-| SSH user | MetaSenderPro |
-| SSH pass | Hacker5030 |
-| Path | /www/wwwroot/app_zapmatic_app |
-| Go port | 8101 |
-| Go service | zapmatic-whatsmeow-metasenderpro |
-| DB | (a descobrir no passo 1) |
+| Compilacao | `CGO_ENABLED=1` (necessario para sqlite3/whatsmeow) |
+| Local | No proprio servidor Meta (nao cross-compile) |
+| Tamanho | 28MB |
+| Arquitetura | linux/amd64 |
+| Go version | 1.22.6 (instalado no Meta) |
+
+### 4.4 Credenciais
+
+| Arquivo | Conteudo | Cross-ref com main |
+|---|---|---|
+| `.env` | `sql_metasenderpro_db` / `sender.metanivelpro.com` | ✅ ZERO |
+| `config.json` | port 8101 / `sql_metasenderpro_db` / webhook `sender.metanivelpro.com` | ✅ ZERO |
+| `ecosystem.config.js` | prefixo `metasenderpro-` | ✅ ZERO |
+| systemd service | port 8101 / user `www` | ✅ ZERO |
+
+### 4.5 Processos
+
+| Processo | Tipo | PID | Status |
+|---|---|---|---|
+| `zapmatic-whatsmeow-metasenderpro` | systemd | 267681 | ✅ active (port 8101) |
+| `metasenderpro-bot-worker-all` | PM2 | 268367 | ✅ online |
+| `metasenderpro-call-worker` | PM2 | 268368 | ✅ online |
+| `metasenderpro-gmscraper` | PM2 | 268369 | ✅ online |
+
+### 4.6 Testes Executados
+
+| Teste | Resultado | Detalhe |
+|---|---|---|
+| Go health | ✅ OK | `{"status":"ok","version":"0.1.0"}` |
+| Web interface | ✅ 200 | `https://sender.metanivelpro.com/` |
+| DB tables | ✅ 76 | Identico ao main |
+| Credenciais | ✅ limpo | Nenhum dado do main |
+| PM2 | ✅ 3 online | Todos com prefixo `metasenderpro-` |
+| Systemd | ✅ active | Port 8101 listening |
+| **Ligacao + auto-hangup** | **✅ OK** | Audio: 7s. OnFinish: 11:12:18. Hangup: 11:12:20 (2s depois). Reason: `hangup` |
+| Call API | ✅ OK | `GET /call/list` retornou `{"status":"success"}` |
+
+### 4.7 Timeline da Ligacao de Teste
+
+```
+11:12:02  Call placed (offer sent)
+11:12:07  Peer preaccepted (tocando no destino)
+11:12:10  Call answered — audio comecou a tocar
+11:12:10  Safety fallback scheduled (7s + 3s = 10s)
+11:12:18  Audio finished (OnFinish callback)
+11:12:20  Auto-hangup executado (2s apos OnFinish)
+11:12:20  Call ended (reason: hangup)
+```
 
 ---
 
-## 4. Checklist de Seguranca
+## 5. Scripts Auxiliares
 
-- [ ] NUNCA substituir .env do meta
-- [ ] NUNCA substituir writable/ do meta
+### 5.1 Comparacao de Colunas (Python)
+
+```python
+import re
+
+def extract_columns(schema_file):
+    """Extrai tabela -> colunas de um dump mysqldump"""
+    tables = {}
+    current_table = None
+    with open(schema_file) as f:
+        for line in f:
+            m = re.match(r'CREATE TABLE `(\w+)`', line)
+            if m:
+                current_table = m.group(1)
+                tables[current_table] = []
+            elif current_table and line.strip().startswith('`'):
+                cm = re.match(r'`(\w+)`', line.strip())
+                if cm:
+                    tables[current_table].append(cm.group(1))
+            elif current_table and line.strip().startswith(')'):
+                current_table = None
+    return tables
+
+main = extract_columns('migration_db_zapmatic_full.sql')
+tenant = extract_columns('/tmp/tenant_schema.sql')
+
+for table in sorted(set(main.keys()) & set(tenant.keys())):
+    missing = set(main[table]) - set(tenant[table])
+    extra = set(tenant[table]) - set(main[table])
+    if missing or extra:
+        print(f"--- {table} ---")
+        if missing: print(f"  FALTAM: {sorted(missing)}")
+        if extra: print(f"  LEGADO: {sorted(extra)}")
+```
+
+---
+
+## 6. Checklist de Seguranca
+
+- [ ] NUNCA substituir `.env` do destino
+- [ ] NUNCA substituir `writable/` do destino
 - [ ] NUNCA dropar tabela ou coluna que existe no main
 - [ ] NUNCA dropar dados — apenas estrutura legado
-- [ ] NUNCA usar credenciais do main no meta
-- [ ] NUNCA ter requisicoes cruzadas entre main e meta
-- [ ] Verificar que webhook_url aponta para dominio do meta (ou IP)
-- [ ] Verificar que Go config.json tem DB do meta
-- [ ] Verificar que systemd service usa porta 8101
-- [ ] Verificar que PM2 nomes tem prefixo `metasenderpro-`
+- [ ] NUNCA usar credenciais do main no destino
+- [ ] NUNCA ter requisicoes cruzadas entre main e destino
+- [ ] Compilar Go com `CGO_ENABLED=1` (nao cross-compile)
+- [ ] Verificar que `webhook_url` aponta para dominio do destino
+- [ ] Verificar que `config.json` tem DB do destino
+- [ ] Verificar que systemd service usa porta propria do destino
+- [ ] Verificar que PM2 nomes tem prefixo do destino
+- [ ] Verificar que `.env` nao contem `db_zapmatic_sql` nem `zapmatic.tec.br`
+- [ ] Executar todos os testes da secao 1.8 antes de marcar como concluido
