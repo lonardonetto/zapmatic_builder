@@ -4,6 +4,20 @@ use CodeIgniter\Model;
 
 class CaptionModel extends Model
 {
+    public function block_plans(){
+        return [
+            "tab" => 30,
+            "position" => 200,
+            "label" => __("Advanced features"),
+            "items" => [
+                [
+                    "id" => "caption",
+                    "name" => __("Templates de Texto (Caption)"),
+                ],
+            ]
+        ];
+    }
+
     public function get_list( $return_data = true )
     {
         $team_id = get_team("id");

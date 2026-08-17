@@ -102,6 +102,48 @@ func NormalizeMessage(instanceID string, msg *events.Message) NormalizedPayload 
 					},
 				},
 			}
+		} else if img := msg.Message.GetImageMessage(); img != nil {
+			messagePayload = map[string]interface{}{
+				"imageMessage": map[string]interface{}{
+					"url":      img.GetURL(),
+					"caption":  img.GetCaption(),
+					"mimetype": img.GetMimetype(),
+				},
+			}
+		} else if vid := msg.Message.GetVideoMessage(); vid != nil {
+			messagePayload = map[string]interface{}{
+				"videoMessage": map[string]interface{}{
+					"url":      vid.GetURL(),
+					"caption":  vid.GetCaption(),
+					"mimetype": vid.GetMimetype(),
+				},
+			}
+		} else if aud := msg.Message.GetAudioMessage(); aud != nil {
+			messagePayload = map[string]interface{}{
+				"audioMessage": map[string]interface{}{
+					"url":      aud.GetURL(),
+					"mimetype": aud.GetMimetype(),
+				},
+			}
+		} else if doc := msg.Message.GetDocumentMessage(); doc != nil {
+			title := doc.GetTitle()
+			if title == "" {
+				title = doc.GetFileName()
+			}
+			messagePayload = map[string]interface{}{
+				"documentMessage": map[string]interface{}{
+					"url":      doc.GetURL(),
+					"title":    title,
+					"mimetype": doc.GetMimetype(),
+				},
+			}
+		} else if stk := msg.Message.GetStickerMessage(); stk != nil {
+			messagePayload = map[string]interface{}{
+				"stickerMessage": map[string]interface{}{
+					"url":      stk.GetURL(),
+					"mimetype": stk.GetMimetype(),
+				},
+			}
 		} else {
 			messagePayload = map[string]interface{}{
 				"conversation": "",

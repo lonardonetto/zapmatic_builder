@@ -7,6 +7,12 @@ class Gm_scraper extends \CodeIgniter\Controller
     {
         $this->config = parse_config( include realpath(__DIR__."/../Config.php") );
         $this->model = new \Core\Gm_scraper\Models\Gm_scraperModel();
+
+        if (!function_exists('permission') || (!permission('gm_scraper') && !is_admin())) {
+            if (function_exists('redirect')) {
+                return redirect()->to('/whatsapp');
+            }
+        }
     }
 
     public function index( $page = false ) {

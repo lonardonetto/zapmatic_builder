@@ -43,19 +43,32 @@
             </div>
         </label>
 
+        <?php if (find_modules("bot_builder")): ?>
         <label for="bot_builder" class="form-label"> 
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" name="permissions[bot_builder]" id="bot_builder" value="1" <?php _e( plan_permission('checkbox', "bot_builder") == 1?"checked":"" )?>>
                 <label class="form-check-label" for="bot_builder"><?php _e("Construtor de Bots")?></label>
             </div>
         </label>
+        <?php endif ?>
 
+        <?php if (find_modules("whatsapp_call_campaign")): ?>
+        <label for="whatsapp_call_campaign" class="form-label"> 
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="permissions[whatsapp_call_campaign]" id="whatsapp_call_campaign" value="1" <?php _e( plan_permission('checkbox', "whatsapp_call_campaign") == 1?"checked":"" )?>>
+                <label class="form-check-label" for="whatsapp_call_campaign"><?php _e("Campanhas de Chamada WhatsApp")?></label>
+            </div>
+        </label>
+        <?php endif ?>
+
+        <?php if (find_modules("whatsapp_export_participants")): ?>
         <label for="whatsapp_export_participants" class="form-label"> 
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" name="permissions[whatsapp_export_participants]" id="whatsapp_export_participants" value="1" <?php _e( plan_permission('checkbox', "whatsapp_export_participants") == 1?"checked":"" )?>>
-                <label class="form-check-label" for="whatsapp_export_participants"><?php _e("Export participants")?></label>
+                <label class="form-check-label" for="whatsapp_export_participants"><?php _e("Exportar Participantes e Clone de Grupos")?></label>
             </div>
         </label>
+        <?php endif ?>
 
         <label for="whatsapp_contact" class="form-label"> 
             <div class="form-check form-check-inline">
@@ -68,6 +81,14 @@
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" name="permissions[whatsapp_leads]" id="whatsapp_leads" value="1" <?php _e( plan_permission('checkbox', "whatsapp_leads") == 1?"checked":"" )?>>
                 <label class="form-check-label" for="whatsapp_leads"><?php _e("WhatsApp Leads")?></label>
+            </div>
+        </label>
+        <?php endif ?>
+        <?php if (find_modules("gm_scraper")): ?>
+        <label for="gm_scraper" class="form-label"> 
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="permissions[gm_scraper]" id="gm_scraper" value="1" <?php _e( plan_permission('checkbox', "gm_scraper") == 1?"checked":"" )?>>
+                <label class="form-check-label" for="gm_scraper"><?php _e("Extrator de Leads Google Maps")?></label>
             </div>
         </label>
         <?php endif ?>
@@ -141,10 +162,33 @@
             </div>
         </label>
 
+        <?php if (find_modules("whatsapp_official_template")): ?>
+        <label for="whatsapp_official_template" class="form-label"> 
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="permissions[whatsapp_official_template]" id="whatsapp_official_template" value="1" <?php _e( plan_permission('checkbox', "whatsapp_official_template") == 1?"checked":"" )?>>
+                <label class="form-check-label" for="whatsapp_official_template"><?php _e("Templates Oficiais WhatsApp")?></label>
+            </div>
+        </label>
+        <?php endif ?>
+
         <label for="whatsapp_send_media" class="form-label"> 
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" name="permissions[whatsapp_send_media]" id="whatsapp_send_media" value="1" <?php _e( plan_permission('checkbox', "whatsapp_send_media") == 1?"checked":"" )?>>
                 <label class="form-check-label" for="whatsapp_send_media"><?php _e("Send media message")?></label>
+            </div>
+        </label>
+
+        <label for="group_manager" class="form-label"> 
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="permissions[group_manager]" id="group_manager" value="1" <?php _e( plan_permission('checkbox', "group_manager") == 1?"checked":"" )?>>
+                <label class="form-check-label" for="group_manager"><?php _e("Gerenciamento de Grupos")?></label>
+            </div>
+        </label>
+
+        <label for="caption" class="form-label"> 
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="permissions[caption]" id="caption" value="1" <?php _e( plan_permission('checkbox', "caption") == 1?"checked":"" )?>>
+                <label class="form-check-label" for="caption"><?php _e("Templates de Texto (Caption)")?></label>
             </div>
         </label>
     </div>
@@ -198,3 +242,93 @@
         <span class="fs-12 text-primary"><?php _e("Include the total number of messages sent by Bulk messaging, Autoresponser, Chatbot")?></span>
     </div>
 </div>
+
+<?php if (find_modules("bot_builder")): ?>
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Construtor de Bots — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de fluxos/bots criados")?></label>
+        <input type="number" class="form-control" name="permissions[bot_builder_max_flows]" value="<?php _ec( (int)plan_permission('text', "bot_builder_max_flows") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de nodes por fluxo")?></label>
+        <input type="number" class="form-control" name="permissions[bot_builder_max_nodes]" value="<?php _ec( (int)plan_permission('text', "bot_builder_max_nodes") )?>">
+    </div>
+</div>
+<?php endif ?>
+
+<?php if (find_modules("whatsapp_call_campaign")): ?>
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Campanhas de Chamada WhatsApp — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de ligacoes por mes")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_call_campaign_max_calls]" value="<?php _ec( (int)plan_permission('text', "whatsapp_call_campaign_max_calls") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de ligacoes simultaneas")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_call_campaign_max_concurrent]" value="<?php _ec( (int)plan_permission('text', "whatsapp_call_campaign_max_concurrent") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Duracao maxima do audio (segundos)")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_call_campaign_max_audio_duration]" value="<?php _ec( (int)plan_permission('text', "whatsapp_call_campaign_max_audio_duration") )?>">
+    </div>
+</div>
+<?php endif ?>
+
+<?php if (find_modules("gm_scraper")): ?>
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Extrator de Leads Google Maps — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de buscas por mes")?></label>
+        <input type="number" class="form-control" name="permissions[gm_scraper_max_jobs]" value="<?php _ec( (int)plan_permission('text', "gm_scraper_max_jobs") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de leads extraidos por mes")?></label>
+        <input type="number" class="form-control" name="permissions[gm_scraper_max_leads]" value="<?php _ec( (int)plan_permission('text', "gm_scraper_max_leads") )?>">
+    </div>
+</div>
+<?php endif ?>
+
+<?php if (find_modules("whatsapp_export_participants")): ?>
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Exportar Participantes e Clone de Grupos — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de exportacoes por mes")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_export_max_exports]" value="<?php _ec( (int)plan_permission('text', "whatsapp_export_max_exports") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de clonagens por mes")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_export_max_clones]" value="<?php _ec( (int)plan_permission('text', "whatsapp_export_max_clones") )?>">
+    </div>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de participantes por exportacao")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_export_max_participants]" value="<?php _ec( (int)plan_permission('text', "whatsapp_export_max_participants") )?>">
+    </div>
+</div>
+<?php endif ?>
+
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Gerenciamento de Grupos — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de grupos gerenciados")?></label>
+        <input type="number" class="form-control" name="permissions[group_manager_max_groups]" value="<?php _ec( (int)plan_permission('text', "group_manager_max_groups") )?>">
+    </div>
+</div>
+
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Templates de Texto (Caption) — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de templates criados")?></label>
+        <input type="number" class="form-control" name="permissions[caption_max_templates]" value="<?php _ec( (int)plan_permission('text', "caption_max_templates") )?>">
+    </div>
+</div>
+
+<?php if (find_modules("whatsapp_official_template")): ?>
+<div class="mb-5">
+    <label class="form-label text-primary text-uppercase"><?php _e("Templates Oficiais WhatsApp — Limites")?></label>
+    <div class="mb-3">
+        <label class="form-label"><?php _e("Maximo de templates oficiais")?></label>
+        <input type="number" class="form-control" name="permissions[whatsapp_official_template_max]" value="<?php _ec( (int)plan_permission('text', "whatsapp_official_template_max") )?>">
+    </div>
+</div>
+<?php endif ?>

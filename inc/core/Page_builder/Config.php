@@ -7,6 +7,7 @@ return [
     'desc' => 'Crie e edite landing pages visualmente com blocos arrastáveis',
     'icon' => 'fas fa-file-alt',
     'color' => '#6C5CE7',
+    'show_plan' => false,
     'menu' => [
         'tab' => 60,
         'type' => 'top',

@@ -7,6 +7,12 @@ class Caption extends \CodeIgniter\Controller
         $this->config = parse_config( include realpath( __DIR__."/../Config.php" ) );
         $this->class_name = get_class_name($this);
         $this->model = new \Core\Caption\Models\CaptionModel();
+
+        if (!function_exists('permission') || (!permission('caption') && !is_admin())) {
+            if (function_exists('redirect')) {
+                return redirect()->to('/whatsapp');
+            }
+        }
     }
     
     public function index( $page = false ) {

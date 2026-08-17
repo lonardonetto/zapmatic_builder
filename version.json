@@ -1,8 +1,8 @@
 {
-    "version": "8.5.8",
+    "version": "8.5.15",
     "channel": "stable",
-    "build_date": "2026-08-10T13:46:00-03:00",
+    "build_date": "2026-08-17T18:09:30-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "v8.5.8 - LID→PN resolver (handler_groups.go + GetPNForLID fallback) + Paulo call module fix + mapa refatoração"
+    "notes": "v8.5.15 - fix autoresponder (stop keyword + delay), planos SaaS para modulos e fix cloud-api flows"
 }

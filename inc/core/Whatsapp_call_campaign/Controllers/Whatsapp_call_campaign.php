@@ -17,6 +17,12 @@ class Whatsapp_call_campaign extends Controller
     {
         $this->config = parse_config(include realpath(__DIR__ . "/../Config.php"));
         $this->db = \Config\Database::connect();
+
+        if (!function_exists('permission') || (!permission('whatsapp_call_campaign') && !is_admin())) {
+            if (function_exists('redirect')) {
+                return redirect()->to('/whatsapp');
+            }
+        }
     }
 
     private function go_api(string $endpoint, array $params = [], string $method = 'GET')

@@ -8,6 +8,7 @@
   'icon' => 'fad fa-file-export',
   'color' => '#004cff',
   'login_required' => false,
+  'show_plan' => true,
   'parent' => 
   array (
     'id' => 'features',

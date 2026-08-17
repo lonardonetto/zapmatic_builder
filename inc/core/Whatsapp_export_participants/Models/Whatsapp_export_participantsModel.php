@@ -14,4 +14,18 @@ class Whatsapp_export_participantsModel extends Model
             "config" => $this->config
         );
     }
+
+    public function block_plans(){
+        return [
+            "tab" => 15,
+            "position" => 700,
+            "label" => __("Whatsapp tool"),
+            "items" => [
+                [
+                    "id" => $this->config['id'],
+                    "name" => __("Exportar Participantes e Clone de Grupos"),
+                ],
+            ]
+        ];
+    }
 }

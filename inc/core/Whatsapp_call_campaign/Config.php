@@ -12,5 +12,5 @@
     'id' => 'features',
     'name' => 'Features',
   ),
-  'show_plan' => false,
+  'show_plan' => true,
 );

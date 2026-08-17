@@ -8,6 +8,7 @@ return [
     'desc' => 'Whatsapp official template',
     'icon' => 'fab fa-facebook-square',
     'color' => '#1877f2',
+    'show_plan' => true,
     'parent' => [
         'id' => 'whatsapp',
         'name' => 'Whatsapp'

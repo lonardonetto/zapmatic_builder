@@ -7,11 +7,19 @@ class Whatsapp_official_template extends \CodeIgniter\Controller
         $this->config = parse_config( include realpath( __DIR__."/../Config.php" ) );
     }
 
+    private function has_permission(){
+        if (!function_exists('permission')) return true;
+        if (function_exists('is_admin') && is_admin()) return true;
+        return permission('whatsapp_official_template');
+    }
+
     public function widget_menu( $params = [] ){
+        if (!$this->has_permission()) return '';
         return view('Core\Whatsapp_official_template\Views\widget\menu', ["result" => $params["result"]]);
     }
 
     public function widget_content( $params = [] ){
+        if (!$this->has_permission()) return '';
         $team_id = get_team("id");
         $account = $params["account"] ?? null;
         $account_ids = is_object($account) ? ($account->ids ?? null) : (is_array($account) ? ($account["ids"] ?? null) : null);

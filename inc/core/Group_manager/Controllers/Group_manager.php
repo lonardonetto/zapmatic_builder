@@ -5,6 +5,12 @@ class Group_manager extends \CodeIgniter\Controller
 {
     public function __construct(){
         $this->config = parse_config( include realpath( __DIR__."/../Config.php" ) );
+
+        if (!function_exists('permission') || (!permission('group_manager') && !is_admin())) {
+            if (function_exists('redirect')) {
+                return redirect()->to('/whatsapp');
+            }
+        }
     }
     
     public function index( $page = false ) {

@@ -208,7 +208,11 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
             $log_entry .= "POST Body: " . $input . "\n";
 
             $data = json_decode($input, true);
-            if (function_exists('fastcgi_finish_request')) { echo 'OK'; fastcgi_finish_request(); }
+            // NAO usar fastcgi_finish_request() antes do Bot_builder —
+            // causa "ini_set(): Session ini settings cannot be changed after headers sent"
+            // que impede o envio de respostas do autoresponder.
+            // Em vez disso, sinalizamos que ja respondemos ao Meta.
+            $headers_sent_to_meta = false;
             foreach($data['entry'] as $entryItem) {
                 foreach($entryItem['changes'] as $changeItem) {
                     $value = $changeItem['value'] ?? [];
@@ -278,6 +282,12 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                 if ($row) {
                     $token = $row->token;
 
+                    // Buscar conta completa para uso em flow events
+                    $account = $db->query(
+                        "SELECT * FROM sp_accounts WHERE social_network = 'whatsapp' AND login_type = 1 AND token = ?",
+                        [$token]
+                    )->getRow();
+
                     // Forward to Bot_builder webhook (keywords + autorespond)
                     if (!empty($value['messages'])) {
                         $bot_payload = [
@@ -324,11 +334,58 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                                             'singleSelectReply' => ['selectedRowId' => $reply['id'] ?? ''],
                                         ]
                                     ];
+                                } elseif ($i_type === 'nfm_reply') {
+                                    // Cloud API Flow response — converter para formato Bot Builder
+                                    $nfm = $interactive['nfm_reply'] ?? [];
+                                    $response_json = $nfm['response_json'] ?? '{}';
+                                    $nfm_body = $nfm['body'] ?? 'Sent';
+                                    $nfm_name = $nfm['name'] ?? 'flow';
+                                    $message_body = [
+                                        'interactiveResponseMessage' => [
+                                            'body' => ['text' => $nfm_body],
+                                            'nativeFlowResponseMessage' => [
+                                                'paramsJson' => $response_json,
+                                                'name' => $nfm_name,
+                                            ]
+                                        ]
+                                    ];
+                                    // Logar evento de flow inbound
+                                    if (!empty($account)) {
+                                        $this->log_flow_response_event($msg, $account, $from, $nfm);
+                                    }
                                 } else {
                                     // Outro tipo interativo — passar como texto
                                     $text_body = $interactive['body']['text'] ?? json_encode($interactive);
                                     $message_body = ['conversation' => $text_body];
                                 }
+                            } elseif ($type === 'image') {
+                                $message_body = ['imageMessage' => [
+                                    'url' => $msg['image']['id'] ?? '',
+                                    'caption' => $msg['image']['caption'] ?? '',
+                                    'mimetype' => $msg['image']['mime_type'] ?? 'image/jpeg',
+                                ]];
+                            } elseif ($type === 'video') {
+                                $message_body = ['videoMessage' => [
+                                    'url' => $msg['video']['id'] ?? '',
+                                    'caption' => $msg['video']['caption'] ?? '',
+                                    'mimetype' => $msg['video']['mime_type'] ?? 'video/mp4',
+                                ]];
+                            } elseif ($type === 'audio') {
+                                $message_body = ['audioMessage' => [
+                                    'url' => $msg['audio']['id'] ?? '',
+                                    'mimetype' => $msg['audio']['mime_type'] ?? 'audio/ogg',
+                                ]];
+                            } elseif ($type === 'document') {
+                                $message_body = ['documentMessage' => [
+                                    'url' => $msg['document']['id'] ?? '',
+                                    'title' => $msg['document']['filename'] ?? '',
+                                    'mimetype' => $msg['document']['mime_type'] ?? '',
+                                ]];
+                            } elseif ($type === 'sticker') {
+                                $message_body = ['stickerMessage' => [
+                                    'url' => $msg['sticker']['id'] ?? '',
+                                    'mimetype' => $msg['sticker']['mime_type'] ?? 'image/webp',
+                                ]];
                             }
                             $bot_payload['data']['messages'][] = [
                                 'key' => [
@@ -343,19 +400,14 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                                 '_wa_id' => $from,
                             ];
                         }
-                        $bot_ch = curl_init(base_url('bot-builder/webhook'));
-                        curl_setopt($bot_ch, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($bot_ch, CURLOPT_POST, true);
-                        curl_setopt($bot_ch, CURLOPT_POSTFIELDS, json_encode($bot_payload));
-                        curl_setopt($bot_ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                        curl_setopt($bot_ch, CURLOPT_TIMEOUT, 10);
-                        curl_setopt($bot_ch, CURLOPT_SSL_VERIFYPEER, false);
-                        curl_setopt($bot_ch, CURLOPT_SSL_VERIFYHOST, false);
-                        $bot_response = curl_exec($bot_ch);
-                        $bot_http_code = curl_getinfo($bot_ch, CURLINFO_HTTP_CODE);
-                        curl_close($bot_ch);
-
-                        $log_entry .= "Bot_builder Response status: $bot_http_code\n";
+                        // Chamada direta ao Bot_builder — sem cURL, sem deadlock PHP-FPM
+                        try {
+                            $bot_builder = new \Core\Bot_builder\Controllers\Bot_builder();
+                            $bot_builder->process_webhook($bot_payload);
+                            $log_entry .= "Bot_builder: process_webhook called directly (OK)\n";
+                        } catch (\Throwable $e) {
+                            $log_entry .= "Bot_builder: process_webhook ERROR: " . $e->getMessage() . "\n";
+                        }
                     }
                 } else {
                     // Reencaminhamento para plataformas filhas DESATIVADO.
@@ -369,7 +421,10 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
             }
             file_put_contents($log_file, $log_entry, FILE_APPEND | LOCK_EX);
 
-            if(!function_exists('fastcgi_finish_request')) echo 'OK';
+            // Responder ao Meta DEPOIS de processar tudo (incluindo Bot_builder)
+            // Nao usar fastcgi_finish_request() antes — causa erro ini_set do CI4
+            if (function_exists('fastcgi_finish_request')) { echo 'OK'; fastcgi_finish_request(); }
+            else echo 'OK';
             exit;
         }
 
@@ -377,5 +432,64 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
         file_put_contents($log_file, $log_entry, FILE_APPEND);
         echo "Whatsapp Webhook Endpoint Active.";
         exit;
+    }
+
+    private function log_flow_response_event($msg, $account, $from, $nfm)
+    {
+        if (!defined('TB_WHATSAPP_FLOW_EVENTS') || !defined('TB_WHATSAPP_FLOWS')) {
+            return;
+        }
+
+        try {
+            $db = \Config\Database::connect();
+            $team_id = (int) ($account->team_id ?? 0);
+            $account_id = (int) ($account->id ?? 0);
+            $flow_token = $nfm['response_json'] ?? '{}';
+            $decoded = json_decode($flow_token, true);
+            $token_from_response = $decoded['flow_token'] ?? '';
+
+            $flow = null;
+            if ($token_from_response !== '') {
+                $flow = $db->table(TB_WHATSAPP_FLOWS)
+                    ->where('team_id', $team_id)
+                    ->where('account_id', $account_id)
+                    ->where('channel', 'cloud_api')
+                    ->orderBy('id', 'DESC')
+                    ->get()->getRow();
+            }
+
+            if (empty($flow)) {
+                $flow = $db->table(TB_WHATSAPP_FLOWS)
+                    ->where('team_id', $team_id)
+                    ->where('account_id', $account_id)
+                    ->where('channel', 'cloud_api')
+                    ->where('status_local !=', 'archived')
+                    ->orderBy('id', 'DESC')
+                    ->get()->getRow();
+            }
+
+            $db->table(TB_WHATSAPP_FLOW_EVENTS)->insert([
+                'team_id' => $team_id,
+                'flow_id' => !empty($flow) ? (int) $flow->id : null,
+                'account_id' => $account_id,
+                'account_ids' => (string) ($account->ids ?? ''),
+                'instance_id' => (string) ($account->token ?? ''),
+                'event_type' => 'flow_response',
+                'direction' => 'inbound',
+                'contact_id' => preg_replace('/[^0-9]/', '', (string) $from),
+                'chat_id' => preg_replace('/[^0-9]/', '', (string) $from),
+                'flow_token' => $token_from_response,
+                'message_id' => $msg['id'] ?? '',
+                'status' => 'received',
+                'payload' => json_encode($nfm, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'response' => $nfm['response_json'] ?? '{}',
+                'created' => time(),
+            ]);
+        } catch (\Throwable $e) {
+            @file_put_contents(WRITEPATH . 'logs/flow_response_error.log',
+                date('Y-m-d H:i:s') . ' ' . $e->getMessage() . "\n",
+                FILE_APPEND
+            );
+        }
     }
 }

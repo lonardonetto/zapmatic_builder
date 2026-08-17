@@ -6,6 +6,17 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     public function __construct(){
         $this->config = parse_config( include realpath( __DIR__."/../Config.php" ) );
         $this->model = new \Core\Whatsapp_export_participants\Models\Whatsapp_export_participantsModel();
+
+        // Permission check — skip for cron endpoint (called by system)
+        $uri = service('uri');
+        $method = $uri->getSegment(2) ?? '';
+        if ($method !== 'cron') {
+            if (!function_exists('permission') || (!permission('whatsapp_export_participants') && !is_admin())) {
+                if (function_exists('redirect')) {
+                    return redirect()->to('/whatsapp');
+                }
+            }
+        }
     }
     
     public function index( $page = false ) {
