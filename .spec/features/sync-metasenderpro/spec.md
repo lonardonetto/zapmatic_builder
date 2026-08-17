@@ -262,7 +262,7 @@ sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
 | `{GO_PORT}` | 8101 | 8095 | 8096 | 8097 | 8098 | 8099 | 8100 |
 | `{TENANT}` | metasenderpro | kivozap | agenciamcw | chatbut | iaclicks | elite | pluszap |
 | `{TENANT_NAME}` | MetaSenderPro | Kivozap | AgenciaMCW | Chatbut | IaClicks | Elite | PlusZap |
-| **Status** | **CONCLUIDO** | pendente | pendente | pendente | pendente | pendente | pendente |
+| **Status** | **CONCLUIDO** | pendente | pendente | **CONCLUIDO** | pendente | pendente | pendente |
 
 ---
 
@@ -347,6 +347,76 @@ sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
 11:12:20  Auto-hangup executado (2s apos OnFinish)
 11:12:20  Call ended (reason: hangup)
 ```
+
+---
+
+## 4.8 Resultado da Execucao — Chatbut
+
+> Executado em 2026-08-17. Replicado a partir do main v8.5.15 (mesmo template da secao 2).
+
+### 4.8.1 Banco de Dados
+
+| Item | Antes | Depois |
+|---|---|---|
+| Total de tabelas | 75 | 76 |
+| Tabelas adicionadas | — | `sp_clone_group_queue`, `sp_export_participants_queue`, `sp_whatsapp_schedule_groups` |
+| Colunas adicionadas | — | `sp_bb_message_buffer.push_name`, `sp_gmscraper_jobs.{ids,target_phonebook,delay_seconds,created,changed,ddi,proxy}`, `sp_gmscraper_leads.{reviews,address,website,created}`, `sp_whatsapp_schedules.target_type` |
+| Tabelas legado dropadas | `sp_whatsapp_autoresponder` (31 regs), `sp_whatsapp_chatbot` (306 regs) | 0 |
+| Colunas legado dropadas | `sp_gmscraper_jobs.{created_at,updated_at,user_id}`, `sp_gmscraper_leads.scraped_at` | 0 |
+| Backup dados legado | — | `/tmp/chatbut_legacy_backup.sql` (servidor e local) |
+
+> Observacao: o MySQL do Chatbut usa socket `/tmp/mysql.sock` (painel BT/宝塔). Usar `mysql -h 127.0.0.1 -P 3306` em todas as operacoes.
+
+### 4.8.2 Codigo
+
+| Pasta | Acao | Status |
+|---|---|---|
+| `inc/core/`, `app/`, `assets/`, `migrations/`, `sql/`, `.spec/`, `docs/`, `_bmad/` | rsync completo (`--rsync-path="sudo rsync"`) | ✅ |
+| `app_zapmatic_whatsmeow_api/` | rsync + compilacao Go | ✅ |
+| `app_zapmatic_scraper/` | rsync + npm install (chown node_modules) | ✅ |
+| Root files | scp + sudo mv | ✅ |
+| `.env` | NAO substituido | ✅ preservado |
+| `writable/` | NAO substituido | ✅ preservado |
+
+### 4.8.3 Go Binary
+
+| Item | Valor |
+|---|---|
+| Compilacao | `CGO_ENABLED=1` (necessario sqlite3/whatsmeow) |
+| Local | No proprio servidor Chatbut (nao cross-compile) |
+| Tamanho | 29MB |
+| Arquitetura | linux/amd64 (ELF 64-bit) |
+| Go version | 1.24.5 (ja instalado no Chatbut) |
+
+### 4.8.4 Credenciais
+
+| Arquivo | Conteudo | Cross-ref com main |
+|---|---|---|
+| `.env` | `sql_alex_db` / `chatbut.com.br` | ✅ ZERO |
+| `config.json` | port 8097 / `sql_alex_db` / webhook `chatbut.com.br` | ✅ ZERO |
+| `ecosystem.config.js` | prefixo `chatbut-` (3 workers: bot, call, gmscraper) | ✅ ZERO |
+| systemd service | port 8097 / user `www` | ✅ ZERO |
+
+### 4.8.5 Processos
+
+| Processo | Tipo | Status |
+|---|---|---|
+| `zapmatic-whatsmeow-chatbut` | systemd | ✅ active (port 8097) |
+| `chatbut-bot-worker-all` | PM2 | ✅ online |
+| `chatbut-call-worker` | PM2 | ✅ online |
+| `chatbut-gmscraper` | PM2 | ✅ online |
+
+### 4.8.6 Testes Executados
+
+| Teste | Resultado | Detalhe |
+|---|---|---|
+| Go health | ✅ OK | `{"connected":1,"provider":"whatsmeow","status":"ok","total_instances":1,"version":"0.1.0"}` |
+| Web interface | ✅ 200 | `https://chatbut.com.br/` |
+| DB tables | ✅ 76 | Identico ao main |
+| Credenciais | ✅ limpo | Nenhum dado do main |
+| PM2 | ✅ 3 online | Prefixo `chatbut-` |
+| Systemd | ✅ active | Port 8097 listening |
+| Call API | ✅ OK | `GET /call/list` retornou `{"calls":[],"status":"success","total":0}` |
 
 ---
 
