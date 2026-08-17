@@ -19,6 +19,21 @@ class Bot_builderModel
         );
     }
 
+    public function block_plans(){
+        $config = include realpath( __DIR__."/../Config.php" );
+        return [
+            "tab" => 15,
+            "position" => 100,
+            "label" => __("Whatsapp tool"),
+            "items" => [
+                [
+                    "id" => $config['id'],
+                    "name" => __("Construtor de Bots"),
+                ],
+            ]
+        ];
+    }
+
     // ===================== AUTO MIGRATE =====================
 
     public function auto_migrate()
