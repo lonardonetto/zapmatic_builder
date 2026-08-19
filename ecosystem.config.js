@@ -39,5 +39,19 @@ module.exports = {
       watch: false,
       max_memory_restart: "256M",
     },
+    {
+      name: "zapmatic-cloud-campaign-worker",
+      script: "spark",
+      args: "cloud:campaigns",
+      interpreter: "php",
+      cwd: "/www/wwwroot/app_zapmatic_app",
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "128M",
+      error_file: "writable/logs/pm2-cloud-campaign-error.log",
+      out_file: "writable/logs/pm2-cloud-campaign-out.log",
+    },
   ]
 };

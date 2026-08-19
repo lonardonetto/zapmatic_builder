@@ -266,28 +266,28 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "extrair-contatos-grupos",
       "ref": "—",
-      "ocorrencias": 7,
+      "ocorrencias": 14,
       "primeiraVez": "2026-08-13T20:01:07.358Z",
-      "ultimaVez": "2026-08-15T17:51:34.398Z",
-      "gitRev": "1cd8f6a"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-003": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "extrair-contatos-grupos",
       "ref": "T-003",
-      "ocorrencias": 1,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-13T20:16:22.552Z",
-      "ultimaVez": "2026-08-13T20:16:22.553Z",
-      "gitRev": "c04c90f"
+      "ultimaVez": "2026-08-18T17:57:20.996Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-006": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "extrair-contatos-grupos",
       "ref": "T-006",
-      "ocorrencias": 1,
+      "ocorrencias": 36,
       "primeiraVez": "2026-08-13T20:16:22.553Z",
-      "ultimaVez": "2026-08-13T20:16:22.553Z",
-      "gitRev": "c04c90f"
+      "ultimaVez": "2026-08-18T17:57:20.996Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::extrair-contatos-grupos::AC-013": {
       "codigo": "AC_SEM_TESTE",
@@ -428,10 +428,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "clonar-grupo",
       "ref": "—",
-      "ocorrencias": 4,
+      "ocorrencias": 11,
       "primeiraVez": "2026-08-13T22:14:30.969Z",
-      "ultimaVez": "2026-08-15T17:51:34.397Z",
-      "gitRev": "1cd8f6a"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "REF_MALFORMADA::disparo-em-massa-grupos::T-015": {
       "codigo": "REF_MALFORMADA",
@@ -536,10 +536,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "disparo-em-massa-grupos",
       "ref": "—",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-15T17:51:34.398Z",
-      "ultimaVez": "2026-08-15T17:51:34.398Z",
-      "gitRev": "1cd8f6a"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ID_DUPLICADO::sync-main-kivozap::ASM-001": {
       "codigo": "ID_DUPLICADO",
@@ -770,136 +770,136 @@
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-038",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-039": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-039",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-040": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-040",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-041": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-041",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-042": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-042",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-043": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-043",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-044": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-044",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-045": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-045",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-046": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-046",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-047": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-047",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-048": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-048",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-049": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-049",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-050": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-050",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-051": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-051",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "AC_SEM_TESTE::sync-main-kivozap::AC-052": {
       "codigo": "AC_SEM_TESTE",
       "feature": "sync-main-kivozap",
       "ref": "AC-052",
-      "ocorrencias": 9,
+      "ocorrencias": 16,
       "primeiraVez": "2026-08-16T12:22:17.337Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ID_DUPLICADO::sync-main-kivozap::ASM-011": {
       "codigo": "ID_DUPLICADO",
@@ -923,235 +923,640 @@
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-001",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.652Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-002": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-002",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-003": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-003",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-004": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-004",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-008": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-008",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-011": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-011",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-012": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-012",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-018": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-018",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "ARQUIVO_INEXISTENTE::sync-main-kivozap::T-019": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "sync-main-kivozap",
       "ref": "T-019",
-      "ocorrencias": 3,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-16T12:27:09.532Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-002": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-002",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-003": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-003",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-004": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-004",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-005": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-005",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-006": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-006",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-007": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-007",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-008": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-008",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-009": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-009",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-010": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-010",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-011": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-011",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-012": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-012",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-013": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-013",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-014": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-014",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-015": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-015",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-016": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-016",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-017": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-017",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::sync-main-kivozap::T-018": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "sync-main-kivozap",
       "ref": "T-018",
-      "ocorrencias": 1,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-16T12:38:17.653Z",
-      "ultimaVez": "2026-08-16T12:38:17.653Z",
-      "gitRev": "42a818f5"
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::US-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "US-001",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-001",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-002": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-002",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-003": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-003",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-004": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-004",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::US-002": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "US-002",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-005": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-005",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-006": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-006",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::AC-007": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "AC-007",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ID_DUPLICADO::extrair-contatos-grupos::US-003": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "extrair-contatos-grupos",
+      "ref": "US-003",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "VERIFY_OBSOLETO::auto-hangup-ligacao::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "auto-hangup-ligacao",
+      "ref": "—",
+      "ocorrencias": 7,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T18:31:59.809Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SECAO_AUSENTE::cloud-api-webhook-independente::.spec/features/cloud-api-webhook-independente/spec.md": {
+      "codigo": "SECAO_AUSENTE",
+      "feature": "cloud-api-webhook-independente",
+      "ref": ".spec/features/cloud-api-webhook-independente/spec.md",
+      "ocorrencias": 12,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-001": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-001",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-002": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-002",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-003": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-003",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-004": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-004",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-005": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-005",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-006": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-006",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_PROVA::cloud-api-webhook-independente::AC-007": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-007",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.995Z",
+      "gitRev": "56ebd8e7"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-001": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "extrair-contatos-grupos",
+      "ref": "T-001",
+      "ocorrencias": 15,
+      "primeiraVez": "2026-08-18T17:11:14.231Z",
+      "ultimaVez": "2026-08-18T17:57:20.996Z",
+      "gitRev": "56ebd8e7"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-004": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "extrair-contatos-grupos",
+      "ref": "T-004",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:57:20.996Z",
+      "gitRev": "56ebd8e7"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::extrair-contatos-grupos::T-005": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "extrair-contatos-grupos",
+      "ref": "T-005",
+      "ocorrencias": 15,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:57:20.996Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SPEC_SEM_US::fix-cloud-api-flows::.spec/features/fix-cloud-api-flows/spec.md": {
+      "codigo": "SPEC_SEM_US",
+      "feature": "fix-cloud-api-flows",
+      "ref": ".spec/features/fix-cloud-api-flows/spec.md",
+      "ocorrencias": 7,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SECAO_AUSENTE::fix-cloud-api-flows::.spec/features/fix-cloud-api-flows/spec.md": {
+      "codigo": "SECAO_AUSENTE",
+      "feature": "fix-cloud-api-flows",
+      "ref": ".spec/features/fix-cloud-api-flows/spec.md",
+      "ocorrencias": 14,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "ARQUIVO_INEXISTENTE::fix-onboarding-meta::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "T-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TASK::fix-onboarding-meta::AC-057": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-057",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::fix-onboarding-meta::AC-053": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-053",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::fix-onboarding-meta::AC-054": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-054",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::fix-onboarding-meta::AC-055": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-055",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::fix-onboarding-meta::AC-056": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-056",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::fix-onboarding-meta::AC-057": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fix-onboarding-meta",
+      "ref": "AC-057",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T17:11:14.232Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SPEC_SEM_US::infraestrutura-processos::.spec/features/infraestrutura-processos/spec.md": {
+      "codigo": "SPEC_SEM_US",
+      "feature": "infraestrutura-processos",
+      "ref": ".spec/features/infraestrutura-processos/spec.md",
+      "ocorrencias": 7,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SECAO_AUSENTE::infraestrutura-processos::.spec/features/infraestrutura-processos/spec.md": {
+      "codigo": "SECAO_AUSENTE",
+      "feature": "infraestrutura-processos",
+      "ref": ".spec/features/infraestrutura-processos/spec.md",
+      "ocorrencias": 14,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SPEC_SEM_US::planos-saas-modulos::.spec/features/planos-saas-modulos/spec.md": {
+      "codigo": "SPEC_SEM_US",
+      "feature": "planos-saas-modulos",
+      "ref": ".spec/features/planos-saas-modulos/spec.md",
+      "ocorrencias": 7,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SECAO_AUSENTE::planos-saas-modulos::.spec/features/planos-saas-modulos/spec.md": {
+      "codigo": "SECAO_AUSENTE",
+      "feature": "planos-saas-modulos",
+      "ref": ".spec/features/planos-saas-modulos/spec.md",
+      "ocorrencias": 14,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SPEC_SEM_US::sync-metasenderpro::.spec/features/sync-metasenderpro/spec.md": {
+      "codigo": "SPEC_SEM_US",
+      "feature": "sync-metasenderpro",
+      "ref": ".spec/features/sync-metasenderpro/spec.md",
+      "ocorrencias": 7,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "SECAO_AUSENTE::sync-metasenderpro::.spec/features/sync-metasenderpro/spec.md": {
+      "codigo": "SECAO_AUSENTE",
+      "feature": "sync-metasenderpro",
+      "ref": ".spec/features/sync-metasenderpro/spec.md",
+      "ocorrencias": 14,
+      "primeiraVez": "2026-08-18T17:11:14.232Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TASK::cloud-api-webhook-independente::AC-065": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-065",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TASK::cloud-api-webhook-independente::AC-066": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-066",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TASK::cloud-api-webhook-independente::AC-067": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-067",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::cloud-api-webhook-independente::AC-062": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-062",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::cloud-api-webhook-independente::AC-065": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-065",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::cloud-api-webhook-independente::AC-066": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-066",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "AC_SEM_TESTE::cloud-api-webhook-independente::AC-067": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "cloud-api-webhook-independente",
+      "ref": "AC-067",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:29:45.771Z",
+      "gitRev": "56ebd8e7"
+    },
+    "VERIFY_OBSOLETO::fix-onboarding-meta::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "fix-onboarding-meta",
+      "ref": "—",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-18T18:29:45.771Z",
+      "ultimaVez": "2026-08-18T18:31:59.810Z",
+      "gitRev": "56ebd8e7"
     }
   }
 }

@@ -546,17 +546,9 @@ class WhatsAppGatewayService
                 }
             }
 
-            if (!empty($acc->team_id)) {
-                $row = $db->table('sp_whatsapp_cloud_api_config')
-                    ->where('team_id', $acc->team_id)
-                    ->get()
-                    ->getRowArray();
-                if ($row && !empty($row['phone_number_id']) && !empty($row['access_token'])) {
-                    return $row;
-                }
-            }
-
-            // 3. Fallback extraindo de sp_accounts.data
+            // 3. Fallback extraindo de sp_accounts.data (dados da PRÓPRIA conta).
+            //    Deve vir ANTES do fallback por team_id, pois o team_id pode ter
+            //    múltiplos números e retornaria a config de OUTRO número.
             if (!empty($acc->data)) {
                 $accData = is_array($acc->data) ? $acc->data : json_decode($acc->data, true);
                 if (!empty($accData['phone_number_id']) && (!empty($accData['token']) || !empty($accData['access_token']))) {
@@ -571,6 +563,20 @@ class WhatsAppGatewayService
                         'verify_token' => $accData['verify_token'] ?? '',
                         'is_coexistence' => 0,
                     ];
+                }
+            }
+
+            // 4. Último recurso: fallback por team_id (apenas se não achou os
+            //    dados da própria conta). Ordena por id para comportamento
+            //    determinístico em equipes com múltiplos números.
+            if (!empty($acc->team_id)) {
+                $row = $db->table('sp_whatsapp_cloud_api_config')
+                    ->where('team_id', $acc->team_id)
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getRowArray();
+                if ($row && !empty($row['phone_number_id']) && !empty($row['access_token'])) {
+                    return $row;
                 }
             }
         }
@@ -809,20 +815,66 @@ class WhatsAppGatewayService
                         $tplButtons = $tplData['templateButtons'] ?? $tplData['buttons'] ?? $tplData['interactiveButtons'] ?? [];
                         $btnBody = $tplData['text'] ?? $tplData['caption'] ?? $tpl['text'] ?? 'Escolha:';
 
-                        $buttons = [];
+                        // Separa botões de URL/telefone (cta_url) dos de resposta (reply).
+                        // urlButton: {"displayText":"...","url":"https://..."}
+                        // callButton: {"phoneNumber":"...","displayText":"..."}
+                        // quickReplyButton: {"displayText":"...","id":"..."}
+                        $ctaButtons = [];
+                        $replyButtons = [];
                         foreach (array_slice($tplButtons, 0, 3) as $btn) {
-                            // Formato quickReplyButton: {"index":0,"quickReplyButton":{"displayText":"...","id":"..."}}
-                            $realBtn = $btn['quickReplyButton'] ?? $btn;
-                            $buttons[] = [
-                                'type' => 'reply',
-                                'reply' => [
-                                    'id' => $realBtn['id'] ?? $btn['id'] ?? uniqid(),
-                                    'title' => substr($realBtn['displayText'] ?? $realBtn['text'] ?? 'Opção', 0, 20),
-                                ],
-                            ];
+                            if (!empty($btn['urlButton'])) {
+                                $u = $btn['urlButton'];
+                                $ctaButtons[] = [
+                                    'display_text' => substr($u['displayText'] ?? 'Acessar', 0, 20),
+                                    'url' => $u['url'] ?? '',
+                                ];
+                            } elseif (!empty($btn['callButton'])) {
+                                $c = $btn['callButton'];
+                                $ctaButtons[] = [
+                                    'display_text' => substr($c['displayText'] ?? 'Ligar', 0, 20),
+                                    'url' => 'tel:' . preg_replace('/[^0-9+]/', '', $c['phoneNumber'] ?? ''),
+                                ];
+                            } else {
+                                $realBtn = $btn['quickReplyButton'] ?? $btn;
+                                $replyButtons[] = [
+                                    'type' => 'reply',
+                                    'reply' => [
+                                        'id' => $realBtn['id'] ?? $btn['id'] ?? uniqid(),
+                                        'title' => substr($realBtn['displayText'] ?? $realBtn['text'] ?? 'Opção', 0, 20),
+                                    ],
+                                ];
+                            }
                         }
 
-                        if (!empty($buttons)) {
+                        // Um único botão de URL/telefone -> interactive cta_url (redireciona)
+                        if (!empty($ctaButtons) && empty($replyButtons)) {
+                            $cta = $ctaButtons[0];
+                            $msg = [
+                                'messaging_product' => 'whatsapp',
+                                'to' => $phone,
+                                'type' => 'interactive',
+                                'interactive' => [
+                                    'type' => 'cta_url',
+                                    'body' => ['text' => substr($btnBody, 0, 1024)],
+                                    'action' => [
+                                        'name' => 'cta_url',
+                                        'parameters' => [
+                                            'display_text' => $cta['display_text'],
+                                            'url' => $cta['url'],
+                                        ],
+                                    ],
+                                ],
+                            ];
+                            if (!empty($tplData['title'])) {
+                                $msg['interactive']['header'] = ['type' => 'text', 'text' => $tplData['title']];
+                            }
+                            if (!empty($tplData['footer'])) {
+                                $msg['interactive']['footer'] = ['text' => $tplData['footer']];
+                            }
+                            return $msg;
+                        }
+
+                        if (!empty($replyButtons)) {
                             $msg = [
                                 'messaging_product' => 'whatsapp',
                                 'to' => $phone,
@@ -830,7 +882,7 @@ class WhatsAppGatewayService
                                 'interactive' => [
                                     'type' => 'button',
                                     'body' => ['text' => $btnBody],
-                                    'action' => ['buttons' => $buttons],
+                                    'action' => ['buttons' => $replyButtons],
                                 ],
                             ];
                             if (!empty($tplData['title'])) {
@@ -864,17 +916,62 @@ class WhatsAppGatewayService
                     }
                 }
 
+                // Separa botões de URL/telefone (cta_url) dos de resposta (reply)
+                $ctaButtons = [];
+                $replyButtons = [];
                 foreach (array_slice($rawButtons, 0, 3) as $btn) {
-                    $buttons[] = [
-                        'type' => 'reply',
-                        'reply' => [
-                            'id' => $btn['id'] ?? uniqid(),
-                            'title' => substr($btn['text'] ?? 'Opção', 0, 20),
-                        ],
-                    ];
+                    if (!empty($btn['urlButton'])) {
+                        $u = $btn['urlButton'];
+                        $ctaButtons[] = [
+                            'display_text' => substr($u['displayText'] ?? 'Acessar', 0, 20),
+                            'url' => $u['url'] ?? '',
+                        ];
+                    } elseif (!empty($btn['callButton'])) {
+                        $c = $btn['callButton'];
+                        $ctaButtons[] = [
+                            'display_text' => substr($c['displayText'] ?? 'Ligar', 0, 20),
+                            'url' => 'tel:' . preg_replace('/[^0-9+]/', '', $c['phoneNumber'] ?? ''),
+                        ];
+                    } else {
+                        $replyButtons[] = [
+                            'type' => 'reply',
+                            'reply' => [
+                                'id' => $btn['id'] ?? uniqid(),
+                                'title' => substr($btn['text'] ?? 'Opção', 0, 20),
+                            ],
+                        ];
+                    }
                 }
 
-                if (empty($buttons)) {
+                // Um único botão de URL/telefone -> interactive cta_url (redireciona)
+                if (!empty($ctaButtons) && empty($replyButtons)) {
+                    $cta = $ctaButtons[0];
+                    $msg = [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $phone,
+                        'type' => 'interactive',
+                        'interactive' => [
+                            'type' => 'cta_url',
+                            'body' => ['text' => substr($btnBody, 0, 1024)],
+                            'action' => [
+                                'name' => 'cta_url',
+                                'parameters' => [
+                                    'display_text' => $cta['display_text'],
+                                    'url' => $cta['url'],
+                                ],
+                            ],
+                        ],
+                    ];
+                    if (!empty($payload['title'])) {
+                        $msg['interactive']['header'] = ['type' => 'text', 'text' => $payload['title']];
+                    }
+                    if (!empty($payload['footer'])) {
+                        $msg['interactive']['footer'] = ['text' => $payload['footer']];
+                    }
+                    return $msg;
+                }
+
+                if (empty($replyButtons)) {
                     // Sem botões válidos → enviar como texto simples
                     return [
                         'messaging_product' => 'whatsapp',
@@ -891,7 +988,7 @@ class WhatsAppGatewayService
                     'interactive' => [
                         'type' => 'button',
                         'body' => ['text' => $btnBody],
-                        'action' => ['buttons' => $buttons],
+                        'action' => ['buttons' => $replyButtons],
                     ],
                 ];
                 if (!empty($payload['title'])) {

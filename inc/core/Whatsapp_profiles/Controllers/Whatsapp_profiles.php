@@ -2748,6 +2748,12 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             ]);
             $this->cloud_log("Session inserted.");
 
+            // Configurar callback do WABA para o DOMINIO LOCAL (independencia de sistema)
+            // SOMENTE DEPOIS de salvar a conta. A Meta valida a callback com um GET
+            // contendo hub.verify_token — se o token ainda não estiver em
+            // sp_accounts.data, retorna 403 e o override_callback_uri não é aplicado.
+            $this->subscribeWebhookWithOverride($waba_id, $token, $verify_token, 'v22.0');
+
             return $this->jsonResponse([
                 'status' => 'success',
                 'message' => 'Perfil Cloud API configurado com sucesso!',
@@ -2808,6 +2814,11 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 "data" => $data_json
             ], ["instance_id" => $account->token]);
 
+            // Reconfigurar callback por WABA para o domínio LOCAL (o verify_token
+            // pode ter mudado). Feito DEPOIS do update para que a Meta consiga
+            // validar o token já salvo em sp_accounts.data.
+            $this->subscribeWebhookWithOverride($waba_id, $token, $verify_token, 'v22.0');
+
             return $this->jsonResponse([
                 'status' => 'success',
                 'message' => 'Perfil Cloud API atualizado com sucesso!',
@@ -2822,6 +2833,35 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
     /**
      * Salva um único perfil Embedded Signup no banco de dados
      */
+    /**
+     * Inscreve o app nos webhooks da WABA configurando a callback por WABA
+     * (override_callback_uri) para o domínio LOCAL do sistema.
+     *
+     * Isso garante que cada sistema receba os webhooks dos seus próprios
+     * números, sem depender do domínio do main (app único ELITEZAP).
+     *
+     * @return string|false resposta bruta do cURL
+     */
+    protected function subscribeWebhookWithOverride($waba_id, $access_token, $verify_token, $graph_version = 'v22.0')
+    {
+        $local_callback = \Core\Whatsapp_profiles\Libraries\MetaWebhookCallback::buildLocalCallbackUrl(base_url());
+        $override_url = \Core\Whatsapp_profiles\Libraries\MetaWebhookCallback::buildOverrideUrl($graph_version, $waba_id);
+        $params = \Core\Whatsapp_profiles\Libraries\MetaWebhookCallback::buildOverrideParams($local_callback, $verify_token);
+
+        $ch = curl_init($override_url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $access_token]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $resp = curl_exec($ch);
+        curl_close($ch);
+
+        $this->embedded_log("Callback override WABA={$waba_id} -> {$local_callback}: " . substr((string) $resp, 0, 200));
+        return $resp;
+    }
+
     protected function saveOneEmbeddedProfile($team_id, $access_token, $waba_id, $phone_number_id, $display_phone = '')
     {
         $graph_version = get_option('meta_graph_version', '') ?: 'v22.0';
@@ -2883,21 +2923,11 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
         curl_exec($ch);
         curl_close($ch);
 
-        // Inscrever webhooks
-        $subscribe_url = "https://graph.facebook.com/v22.0/{$waba_id}/subscribed_apps";
-        $ch = curl_init($subscribe_url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, '');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $access_token, 'Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        curl_exec($ch);
-        curl_close($ch);
+        // Gerar verify_token (mesmo valor salvo em data.verify_token)
+        $verify_token = uniqid('zapmatic_');
 
         // Preparar dados
         $instance_id = strtoupper(uniqid('EMB'));
-        $verify_token = uniqid('zapmatic_');
         $profile_name = !empty($verified_name) ? $verified_name : (!empty($display_phone) ? "WhatsApp {$display_phone}" : "WhatsApp Cloud API");
 
         $data_json = json_encode([
@@ -2959,6 +2989,13 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             ]);
             $this->embedded_log("saveOneEmbeddedProfile: Inserido phone {$display_phone} com sucesso!");
         }
+
+        // Inscrever webhooks com callback por WABA (domínio local) SOMENTE DEPOIS
+        // de salvar a conta no banco. A Meta valida a callback fazendo um GET no
+        // endpoint com o hub.verify_token — se o token ainda não estiver em
+        // sp_accounts.data, a validação retorna 403 e o override_callback_uri
+        // não é aplicado (erro #2200).
+        $this->subscribeWebhookWithOverride($waba_id, $access_token, $verify_token, $graph_version);
     }
 
     /**
@@ -3005,13 +3042,18 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             }
 
             // Step 1: Trocar o code por um access token de negócio
-            $app_id = get_option('meta_app_id', '') ?: get_option('facebook_login_app_id', '');
-            $app_secret = get_option('meta_app_secret', '') ?: get_option('facebook_login_app_secret', '');
+            $app_id = \Core\Whatsapp_profiles\Libraries\MetaAppIdResolver::resolve(
+                get_option('meta_app_id', ''),
+                get_option('facebook_login_app_id', '')
+            );
+            $app_secret = \Core\Whatsapp_profiles\Libraries\MetaAppIdResolver::resolveSecret(
+                get_option('meta_app_secret', ''),
+                get_option('facebook_login_app_secret', '')
+            );
             $graph_version = get_option('meta_graph_version', '') ?: 'v22.0';
 
             // Fallback do App ID (mesmo usado no SDK JS do frontend)
-            if (empty($app_id)) {
-                $app_id = '763786439394524';
+            if ($app_id === \Core\Whatsapp_profiles\Libraries\MetaAppIdResolver::FALLBACK_APP_ID) {
                 $this->embedded_log("Embedded Signup: Usando App ID fallback: {$app_id}");
             }
 
@@ -3355,24 +3397,11 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 }
             }
 
-            // Step 5: Inscrever o app nos webhooks da WABA
-            $subscribe_url = "https://graph.facebook.com/v22.0/{$waba_id}/subscribed_apps";
-            $ch = curl_init($subscribe_url);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, '');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Authorization: Bearer ' . $access_token,
-                'Content-Type: application/json'
-            ]);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-            curl_exec($ch);
-            curl_close($ch);
+            // O verify_token é gerado AQUI para ser o mesmo salvo em data.verify_token.
+            $verify_token = uniqid('zapmatic_');
 
             // Step 6: Salvar tudo no banco de dados
             $instance_id = strtoupper(uniqid('EMB'));
-            $verify_token = uniqid('zapmatic_');
             $profile_name = !empty($verified_name) ? $verified_name : (!empty($display_phone) ? "WhatsApp {$display_phone}" : "WhatsApp Cloud API");
 
             $data_json = json_encode([
@@ -3477,6 +3506,13 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
             }
 
             $this->embedded_log("Embedded Signup Step 6 OK: Perfil salvo com sucesso! Phone: {$display_phone}");
+
+            // Step 7: Inscrever o app nos webhooks da WABA com callback por WABA
+            // (domínio local) SOMENTE DEPOIS de salvar a conta no banco.
+            // A Meta valida a callback com um GET contendo hub.verify_token — se o
+            // token ainda não estiver em sp_accounts.data, retorna 403 e o
+            // override_callback_uri não é aplicado (erro #2200).
+            $this->subscribeWebhookWithOverride($waba_id, $access_token, $verify_token, $graph_version);
 
             return $this->jsonResponse([
                 'status' => 'success',

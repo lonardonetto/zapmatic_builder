@@ -12,6 +12,8 @@ spl_autoload_register(static function (string $class): void {
         'Core\\Whatsapp_export_participants\\' => '/inc/core/Whatsapp_export_participants/',
         // Core\Whatsapp_bulk\Libraries\Foo -> inc/core/Whatsapp_bulk/Libraries/Foo.php
         'Core\\Whatsapp_bulk\\' => '/inc/core/Whatsapp_bulk/',
+        // Core\Whatsapp_profiles\Libraries\Foo -> inc/core/Whatsapp_profiles/Libraries/Foo.php
+        'Core\\Whatsapp_profiles\\' => '/inc/core/Whatsapp_profiles/',
     ];
 
     foreach ($map as $prefix => $dir) {

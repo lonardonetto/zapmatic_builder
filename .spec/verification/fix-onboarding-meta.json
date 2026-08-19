@@ -1,0 +1,47 @@
+{
+  "feature": "fix-onboarding-meta",
+  "timestamp": "2026-08-18T17:57:11.197Z",
+  "gitRev": "56ebd8e7",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 55,
+  "results": {
+    "AC-053": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_valor_nao_numerico_em_meta_app_id_e_ignorado @spec:AC-053",
+      "method": "tap"
+    },
+    "AC-054": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_meta_app_id_numerico_valido_tem_prioridade @spec:AC-054",
+      "method": "tap"
+    },
+    "AC-055": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_ambos_vazios_ou_invalidos_caem_no_fallback_fixo @spec:AC-055",
+      "method": "tap"
+    },
+    "AC-056": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_resolvedor_unico_retorna_mesmo_valor_para_todos_os_casos @spec:AC-056",
+      "method": "tap"
+    },
+    "AC-058": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_secret_invalido_e_ignorado_em_favor_do_fallback_valido @spec:AC-058",
+      "method": "tap"
+    },
+    "AC-059": {
+      "status": "pass",
+      "testName": "MetaAppIdResolverTest::test_validadores_isvalid_e_isvalidsecret @spec:AC-059",
+      "method": "tap"
+    },
+    "AC-057": {
+      "status": "pass",
+      "testName": "MetaLoginGateTest::test_fb_login_so_libera_com_sdk_pronto @spec:AC-057",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

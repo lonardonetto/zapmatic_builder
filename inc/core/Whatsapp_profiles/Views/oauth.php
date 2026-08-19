@@ -2261,10 +2261,10 @@ $(document).ajaxError(function(event, jqxhr, settings, thrownError) {
 var _fbReady = false;
 var _embeddedSignupToast = null;
 <?php 
-    $fb_app_id = get_option('meta_app_id', '') ?: get_option('facebook_login_app_id', '');
-    if (empty($fb_app_id)) {
-        $fb_app_id = '763786439394524'; // ELITEZAP App ID fallback
-    }
+    $fb_app_id = \Core\Whatsapp_profiles\Libraries\MetaAppIdResolver::resolve(
+        get_option('meta_app_id', ''),
+        get_option('facebook_login_app_id', '')
+    );
     $meta_graph_version = get_option('meta_graph_version', '') ?: 'v22.0';
     $meta_config_id = get_option('meta_embedded_signup_config_id', '') ?: '1115307890606209';
 ?>
@@ -2475,6 +2475,15 @@ function waitForEmbeddedSignupFinish(code, saveUrl) {
 
 function doEmbeddedLogin() {
     console.log('🚀 doEmbeddedLogin() chamado - iniciando FB.login...');
+
+    // Gate: nunca chama FB.login antes do SDK estar pronto e inicializado.
+    // Evita o erro "FB.login() called before FB.init()" quando o App ID é
+    // inválido ou o sdk.js ainda não terminou de carregar.
+    if (!_fbReady || typeof FB === 'undefined' || typeof FB.login !== 'function') {
+        console.warn('⛔ FB.login bloqueado: SDK não inicializado (_fbReady=' + _fbReady + ').');
+        return;
+    }
+
     clearEmbeddedSignupData();
     if (_embeddedSignupToast) {
         _embeddedSignupToast.update('Abrindo autenticação da Meta', 'Conclua as etapas no popup para terminar a conexão oficial.');

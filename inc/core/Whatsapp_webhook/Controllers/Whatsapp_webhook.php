@@ -413,6 +413,7 @@ class Whatsapp_webhook extends \CodeIgniter\Controller
                     // Reencaminhamento para plataformas filhas DESATIVADO.
                     // Motivo: causava loop infinito (zapmatic <-> astros <-> elite) que
                     // saturava o PHP-FPM. Cada servidor processa apenas seus próprios números.
+                    $action = \Core\Whatsapp_profiles\Libraries\MetaWebhookPolicy::decideAction(false);
                     $log_entry .= "No account found matching phone_number_id: $phone_number_id locally. Forwarding DISABLED (loop prevention).\n";
                 }
             }

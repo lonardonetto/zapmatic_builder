@@ -1,0 +1,52 @@
+{
+  "feature": "cloud-api-webhook-independente",
+  "timestamp": "2026-08-18T18:31:41.954Z",
+  "gitRev": "56ebd8e7",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 64,
+  "results": {
+    "AC-060": {
+      "status": "pass",
+      "testName": "MetaWebhookCallbackTest::test_embedded_signup_monta_callback_local_sem_trailing_slash @spec:AC-060",
+      "method": "tap"
+    },
+    "AC-061": {
+      "status": "pass",
+      "testName": "MetaWebhookCallbackTest::test_save_official_usa_mesmo_endpoint_e_verify_token @spec:AC-061",
+      "method": "tap"
+    },
+    "AC-062": {
+      "status": "pass",
+      "testName": "MetaWebhookPolicyTest::test_verify_token_do_subscribe_bate_com_data_do_perfil @spec:AC-062",
+      "method": "tap"
+    },
+    "AC-063": {
+      "status": "pass",
+      "testName": "MetaWebhookCallbackTest::test_script_monta_url_de_override_com_graph_version @spec:AC-063",
+      "method": "tap"
+    },
+    "AC-064": {
+      "status": "pass",
+      "testName": "MetaWebhookCallbackTest::test_is_correct_retorna_true_quando_callback_ja_local @spec:AC-064",
+      "method": "tap"
+    },
+    "AC-065": {
+      "status": "pass",
+      "testName": "MetaWebhookPolicyTest::test_numero_local_e_processado @spec:AC-065",
+      "method": "tap"
+    },
+    "AC-066": {
+      "status": "pass",
+      "testName": "MetaWebhookPolicyTest::test_numero_nao_local_apenas_logado_sem_reenvio @spec:AC-066",
+      "method": "tap"
+    },
+    "AC-067": {
+      "status": "pass",
+      "testName": "MetaWebhookPolicyTest::test_verify_token_valida_contra_contas_locais @spec:AC-067",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}
