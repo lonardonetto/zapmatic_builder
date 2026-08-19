@@ -240,3 +240,11 @@ if(!function_exists('role')){
         return false;
     }
 }
+
+
+
+if(!function_exists("is_admin")){
+    function is_admin(){
+        return get_user("is_admin") == 1;
+    }
+}

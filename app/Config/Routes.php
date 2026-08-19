@@ -39,6 +39,9 @@ $routes->get('connect/(:any)/status', '\App\Controllers\Connect::poll_status/$1'
 $routes->post('connect/(:any)/paircode', '\App\Controllers\Connect::paircode/$1');
 $routes->get('connect/(:any)', '\App\Controllers\Connect::show/$1');
 
+// Kilo MCP OAuth Callback Proxy
+$routes->get('mcp/oauth/callback', '\App\Controllers\McpOauth::callback');
+
 // NUCLEAR OPTION: Force route for Whatsapp Profiles
 $routes->add('whatsapp_profiles/save_official', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_official');
 $routes->add('whatsapp_profiles/save_embedded', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_embedded');

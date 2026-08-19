@@ -1,0 +1,22 @@
+{
+  "feature": "atualizacao-git-substituicao-total",
+  "template": true,
+  "tests": {
+    "T1":  { "desc": "Web interface",             "criterio": "HTTP 200",                       "status": "pendente" },
+    "T2":  { "desc": "Go health",                 "criterio": "status ok",                      "status": "pendente" },
+    "T3":  { "desc": "Tabelas",                   "criterio": "76",                             "status": "pendente" },
+    "T4":  { "desc": "Colunas",                   "criterio": "918",                            "status": "pendente" },
+    "T5":  { "desc": "Identidade inc/core",       "criterio": "git status limpo",               "status": "pendente" },
+    "T6":  { "desc": "Credenciais",               "criterio": "0 refs main",                    "status": "pendente" },
+    "T7":  { "desc": "PM2",                       "criterio": "4 processos {TENANT}-*",         "status": "pendente" },
+    "T8":  { "desc": "Systemd",                   "criterio": "active",                         "status": "pendente" },
+    "T9":  { "desc": "Bot Builder",               "criterio": "carrega HTTP 200",               "status": "pendente" },
+    "T10": { "desc": "Autoresponder",             "criterio": "resposta automatica",            "status": "pendente" },
+    "T11": { "desc": "Bulk Cloud API",            "criterio": "delivered",                      "status": "pendente" },
+    "T12": { "desc": "Call API",                  "criterio": "status success",                 "status": "pendente" },
+    "T13": { "desc": "Botoes de URL",             "criterio": "cta_url (redireciona)",          "status": "pendente" },
+    "T14": { "desc": "Webhook Cloud API",         "criterio": "200 OK",                         "status": "pendente" },
+    "T15": { "desc": "Sem erro PHP",              "criterio": "sem fatal/parse",                "status": "pendente" }
+  },
+  "principles": {}
+}
