@@ -1041,7 +1041,7 @@ if callID == "" {
 
 Assim, a chamada recusada e encerrada imediatamente via `finishCall(callID, "server:"+errCode)`, o `OnEnd` dispara, o `callStore` registra `ended`/`failed` e o worker e liberado.
 
-> **Nota importante:** o arquivo `engine.go` esta em `vendor/` (ignorado pelo git — `.gitignore` linha `vendor/`). A correcao **nao e versionada** no repositorio main. Ela vive apenas no binario compilado + no arquivo `vendor/.../engine.go` do filesystem de cada servidor. Por isso a propagacao e **por copia de binario/source**, nao por `git pull`. Ver secao 4.17.5 (divida tecnica).
+> **Nota importante:** o arquivo `engine.go` esta em `vendor/` (ignorado pelo git — `.gitignore` linha `vendor/`). A correcao **nao e versionada** no repositorio main. Ela vive apenas no binario compilado + no arquivo `vendor/.../engine.go` do filesystem de cada servidor. Por isso a propagacao e **por copia de binario/source**, nao por `git pull`. Ver secao 4.17.5 (solucao definitiva via fork + replace).
 
 ### 4.17.3 Replicacao no MetaSenderPro
 
@@ -1063,17 +1063,26 @@ Assim, a chamada recusada e encerrada imediatamente via `finishCall(callID, "ser
 
 > **Antes do fix**, o `GET /call/list` do MetaSenderPro retornava `total: 8` com todas em `status: "ringing"` (chamadas presas desde 21:40). **Apos o restart com o binario corrigido**, `total: 0` — o fallback encerrou/limpou as chamadas recusadas e o worker voltou a avancar.
 
-### 4.17.5 Divida Tecnica — Versionar o patch do meowcaller
+### 4.17.5 Solucao Definitiva — Fork do meowcaller + replace no go.mod
 
-> **Status:** PENDENTE
+> **Status:** CONCLUIDO (2026-08-20)
 
-O fallback vive no `vendor/` (nao versionado). Para que a correcao sobreviva a um `go mod vendor` / `go mod tidy` futuro (que regenera o `vendor/` do modulo cache `v0.0.0-20260726180203-6d9b7b2c1807`, **sem** o patch), e necessario persistir o patch de forma controlada. Opcoes (a decidir pelo humano):
+A divida tecnica anterior (patch vivendo apenas no `vendor/` nao-versionado) foi resolvida de forma duradoura:
 
-1. **Fork do meowcaller** com o fallback e `replace` no `go.mod` — a forma mais limpa e duravel.
-2. **Patch file versionado** (ex.: `patches/meowcaller-callid-fallback.patch`) aplicado no build/deploy — mantem o upstream intacto.
-3. **Vendor versionado** — tirar `vendor/` do `.gitignore` (nao recomendado: bloat grande no repo).
+1. **Fork** do `purpshell/meowcaller` para `lonardonetto/meowcaller` (via API GitHub).
+2. **Patch** aplicado no fork sobre o commit pinado `6d9b7b2c1807` (commit `0280b2b` no fork), com tag `v0.0.0-20260726180203-6d9b7b2c1807-callid`.
+3. **`replace`** no `go.mod` do main:
+   ```
+   replace github.com/purpshell/meowcaller => github.com/lonardonetto/meowcaller v0.0.0-20260726180203-6d9b7b2c1807-callid
+   ```
+4. `go mod tidy` + `go mod vendor` + `go build` — o `vendor/` regenerado agora inclui o fallback automaticamente (verificado via `grep "for id := range e.calls"`).
 
-Enquanto nao decidido, **todo novo build Go** (main ou tenant) precisa reaplicar o fallback manualmente antes de compilar.
+**Resultado:** o fix agora e **versionado** (go.mod + go.sum trackeados no repo). Qualquer novo `go mod vendor`/`go mod tidy` puxa o fork com o patch — nao ha mais risco de perder a correcao em builds futuros.
+
+**Refs:**
+- Fork: `https://github.com/lonardonetto/meowcaller`
+- Tag: `v0.0.0-20260726180203-6d9b7b2c1807-callid`
+- Commit patch: `0280b2b8aec8f8b04d37574b8eb804060e1f14e5`
 
 ---
 

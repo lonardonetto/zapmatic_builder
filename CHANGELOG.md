@@ -1,3 +1,14 @@
+## v8.5.19 — 20/08/2026
+
+**Fix: chamadas recusadas não ficam mais presas em `ringing`**
+
+- Causa raiz: quando o WhatsApp recusa uma ligação (erro 463/403), o `<ack class="call" error="...">` não trazia o `call-id` na tag filha `<error>`. O `finishCall("")` era no-op, a chamada ficava em `ringing` para sempre e travava o worker de disparo.
+- Ajuste: fallback em cascata no `onCallAck` do meowcaller (`error.call-id` → `ack.call-id` → `ack.id` → qualquer chamada ativa da instância).
+- Solução definitiva: fork `lonardonetto/meowcaller` com o patch + `replace` no `go.mod`. O fix agora é versionado e sobrevive a `go mod vendor`/`go mod tidy`.
+- Aplicado no main (gateway recompilado, `/call/list` limpo) e no MetaSenderPro.
+
+---
+
 ## v8.5.0 — 02/08/2026
 
 **Campanhas de chamada WhatsApp completas**
