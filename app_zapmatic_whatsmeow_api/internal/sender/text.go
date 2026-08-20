@@ -19,7 +19,19 @@ func (s *Sender) SendText(ctx context.Context, req SendRequest) SendResponse {
 	}
 	client := inst.Client()
 	if client == nil || !client.IsConnected() {
-		return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"}
+		// Tenta reconectar o socket automaticamente antes de declarar erro.
+		// Se a sessão já estiver autenticada no store, o Connect() restabelece a conexão.
+		if client != nil {
+			if err := client.Connect(); err == nil && client.IsConnected() {
+				client = inst.Client()
+			} else if client.WaitForConnection(3 * time.Second) {
+				client = inst.Client()
+			} else {
+				return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"}
+			}
+		} else {
+			return SendResponse{Status: "error", Provider: "whatsmeow", Error: "not connected"}
+		}
 	}
 	jid, err := types.ParseJID(req.ChatID)
 	if err != nil {
