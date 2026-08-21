@@ -1164,14 +1164,27 @@ Para cada tenant (seguindo o template da secao 2 + checklist da secao 6):
 | Filtros que ainda incluem `login_type=2` | varios (export participants, criptografia_copy, etc.) | trocar `[1,2,3]` → `[1,3]` |
 | View `oauth.php` (Central de Conexao) | ainda tem drawer/aba Baileys | remover aba Baileys, deixar Whatsmeow + Cloud API |
 
-**Pendencia (registrar como trabalho futuro):**
+### 4.19.2.2 Limpeza executada no main (2026-08-20) — CONCLUIDO
 
-1. Remover a aba/opcao "Baileys" da Central de Conexao (`oauth.php` e controller `Whatsapp_profiles.php`) — deixar apenas Whatsmeow (Go) e Cloud API.
-2. Trocar todos os filtros de instancia `login_type => [1, 2, 3]` por `[1, 3]` (ou `[3]` no caso do modulo de ligacao, ja feito).
-3. Revisar os 21 arquivos com texto "baileys" (labels, helpers, views, status_diagnostic) e limpar o que for obsoleto.
-4. Decidir o destino das 5 contas `login_type=2` no banco (aposentar/migrar).
+Foi feita uma **limpeza conservadora** (commit `16db7a92`), removendo as referencias **visiveis e seguras** ao Baileys, sem tocar em estruturas que exigem teste de UI:
 
-> **Nota:** isso NAO bloqueia a re-sincronizacao da secao 4.19.1 — os tenants recebem o codigo atual (que ainda contem os trechos Baileys legado), mas a limpeza acima e o proximo passo para deixar o codigo 100% coerente com o estado "somente Go + Cloud API".
+**O que foi limpo (15 arquivos):**
+
+1. **Filtros de instancia** `login_type => [1, 2, 3]` → `[1, 3]` em 7 arquivos (Criptografia_copy, Whatsapp_export_participants, Whatsapp_profile, Whatsapp_send_message, Whatsapp_bulk/Views/update.php, Whatsapp_link_generator x2). As 5 contas `login_type=2` legado **deixam de aparecer** nas listas.
+2. **Labels ternarias** com fallback `'Baileys'` → `'Local'` (Whatsapp_api, Whatsapp_send_message, Whatsapp_profiles/content, Whatsapp_profiles/oauth).
+3. **Notas de rodape** "Conexao local via Baileys" → "Conexao local".
+4. **Comentarios obsoletos** em Constants.php, Bot_builder.php, CloudCampaignWorker.php, status_diagnostic.php, Whatsapp_send_message.php.
+
+**O que NAO foi tocado (exige mais teste/risco — pendente):**
+
+- A aba/drawer "Baileys" da Central de Conexao (`oauth.php` + controller `Whatsapp_profiles.php`) — estrutura UI + fluxo de sessao pendente.
+- Identificadores internos de filtro JS (`profile_type_filter`/`accountType === 'baileys'`) e `data-default-view` — sao valores de logica, nao labels; altera-los quebraria o filtro/abertura do drawer.
+- Nomes de funcao/variavel (`getBaileysPort`, `has_baileys`, `baileys_accounts_total`, `whatsapp_bulk_baileys_failure_message`, etc.) e mensagens de Language (`.po`/`.php`).
+- As 5 contas `login_type=2` no banco.
+
+> **Validacao:** `php -l` sem erros em todos os arquivos alterados; smoke test web 200 (site) + 302→login (Central de Conexao sem sessao) + gateway Go `/health` ok.
+
+> **Nota:** isso NAO bloqueia a re-sincronizacao da secao 4.19.1 — os tenants recebem o codigo atual (ja com essa limpeza). A limpeza restante (aba Baileys da Central, nomes de funcao, Language, contas legado) e o proximo passo, idealmente apos um teste manual da Central de Conexao.
 
 ### 4.19.3 Tenants a re-sincronizar
 
