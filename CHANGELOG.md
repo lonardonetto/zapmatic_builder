@@ -1,3 +1,14 @@
+## v8.5.24 — 21/08/2026
+
+**Fix & Feat: Duplicação continuada de campanhas Bulk e substituição de variáveis de planilha ({var}, %var%, [var])**
+
+- Controller PHP (`Whatsapp_bulk::duplicate`): duplicação agora preserva os contadores `sent` e `failed` da campanha original, permitindo que o motor Go inicie no offset correto (`sent+failed`) e continue exatamente de onde a campanha parou.
+- Duplicação de grupos (`target_type = 'groups'`): `duplicate()` passa a copiar os registros de grupos da tabela `sp_whatsapp_schedule_groups` para a nova campanha duplicada.
+- Motor Go (`spintax.go`): ajustada regex de Spintax para exigir a presença do caractere pipe (`|`) dentro dos blocos `{...}`, evitando a destruição acidental de marcadores como `{nome}` e `{var1}`.
+- Parser de parâmetros (`ReplaceParams`): suporte universal às sintaxes `{variavel}`, `%variavel%` e `[variavel]`, com busca case-insensitive e resolução automática de aliases (`v1` <-> `var1` <-> `1`).
+
+---
+
 ## v8.5.23 — 21/08/2026
 
 **Feat: Relatório de ligação por etapa, timeline auditável, ring timeout no gateway e reconciliação assíncrona**

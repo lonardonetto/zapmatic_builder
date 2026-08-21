@@ -1,0 +1,37 @@
+{
+  "feature": "bulk-duplicar-e-variaveis",
+  "timestamp": "2026-08-21T21:13:54.634Z",
+  "gitRev": "62fce0f0",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 90,
+  "results": {
+    "AC-083": {
+      "status": "pass",
+      "testName": "BulkDuplicateTest::test_duplicar_campanha_preserva_sent_e_failed_para_continuar @spec:AC-083",
+      "method": "tap"
+    },
+    "AC-084": {
+      "status": "pass",
+      "testName": "BulkDuplicateTest::test_duplicar_campanha_grupo_copia_registros_de_grupo @spec:AC-084",
+      "method": "tap"
+    },
+    "AC-085": {
+      "status": "pass",
+      "testName": "TestExpandSpintaxOnlyWithPipe @spec:AC-085",
+      "method": "tap"
+    },
+    "AC-086": {
+      "status": "pass",
+      "testName": "TestReplaceParamsFormats @spec:AC-086",
+      "method": "tap"
+    },
+    "AC-087": {
+      "status": "pass",
+      "testName": "TestReplaceParamsMissingClean @spec:AC-087",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

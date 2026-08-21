@@ -1350,21 +1350,52 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                 
                 // Create new name with next number
                 $newName = $originalName . ' Copy ' . ($maxNumber + 1);
-                
-                $item->ids = ids();
-                $item->name = $newName;
-                $item->team_id = $team_id;
-                $item->status = 1;
-                $item->sent = 0;
-                $item->failed = 0;
-                $item->result = '';
-                $item->next_account = null;
-                $item->run = 0;
-                $item->changed = time();
-                $item->created = time();
-                unset($item->id);
+                $newIds = ids();
+                $originalId = (int)$item->id;
+                $targetType = (string)($item->target_type ?? 'contacts');
 
-                $result = db_insert(TB_WHATSAPP_SCHEDULES, (array)$item);
+                include_once APPPATH . '../inc/core/Whatsapp_bulk/Libraries/BulkDuplicator.php';
+                if (class_exists('Core\Whatsapp_bulk\Libraries\BulkDuplicator')) {
+                    $insertData = \Core\Whatsapp_bulk\Libraries\BulkDuplicator::prepareDuplicateData($item, $newName, $newIds);
+                } else {
+                    $item->ids = $newIds;
+                    $item->name = $newName;
+                    $item->team_id = $team_id;
+                    $item->status = 1;
+                    // Preserva sent e failed para continuar de onde parou (offset sent+failed)
+                    $item->sent = (int)($item->sent ?? 0);
+                    $item->failed = (int)($item->failed ?? 0);
+                    $item->result = '';
+                    $item->next_account = null;
+                    $item->run = 0;
+                    $item->changed = time();
+                    $item->created = time();
+                    unset($item->id);
+                    $insertData = (array)$item;
+                }
+
+                $result = db_insert(TB_WHATSAPP_SCHEDULES, $insertData);
+                $newScheduleId = db_insert_id();
+
+                if ($result && $newScheduleId > 0 && $targetType === 'groups') {
+                    $originalGroups = db_fetch("*", "sp_whatsapp_schedule_groups", ["schedule_id" => $originalId]);
+                    if (!empty($originalGroups)) {
+                        if (class_exists('Core\Whatsapp_bulk\Libraries\BulkDuplicator')) {
+                            $groupRecords = \Core\Whatsapp_bulk\Libraries\BulkDuplicator::prepareGroupRecords($originalGroups, $newScheduleId);
+                        } else {
+                            $groupRecords = [];
+                            foreach ($originalGroups as $g) {
+                                $row = (array)$g;
+                                unset($row['id']);
+                                $row['schedule_id'] = $newScheduleId;
+                                $groupRecords[] = $row;
+                            }
+                        }
+                        foreach ($groupRecords as $gRow) {
+                            db_insert("sp_whatsapp_schedule_groups", $gRow);
+                        }
+                    }
+                }
                 
                 if(!$result){
                     ms([

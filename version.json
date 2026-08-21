@@ -1,8 +1,8 @@
 {
-    "version": "8.5.23",
+    "version": "8.5.24",
     "channel": "stable",
-    "build_date": "2026-08-21T15:10:00-03:00",
+    "build_date": "2026-08-21T18:20:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "v8.5.23 - relatório de ligação por etapa, timeline, ring timeout no gateway e reconciliação"
+    "notes": "v8.5.24 - duplicação de campanha continuando de onde parou + substituição universal de variáveis de planilha ({var}, %var%, [var])"
 }
