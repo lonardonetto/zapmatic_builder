@@ -1151,6 +1151,28 @@ Para cada tenant (seguindo o template da secao 2 + checklist da secao 6):
 
 > **Status:** aplicado no main (commit pendente de push); os tenants receberao na re-sincronizacao da secao 4.19.1.
 
+### 4.19.2.1 Limpeza do Baileys (Node.js) — o sistema agora e SOMENTE Go + Cloud API
+
+> **Contexto:** o Baileys (Node.js) foi **removido definitivamente** no commit `7ffefe8d` ("Remocao definitiva de Baileys (Node.js) e seus modulos legados"). O sistema hoje suporta **apenas duas** conexoes: **Whatsmeow (Go)** (`login_type=3`) e **Cloud API Official** (`login_type=1`). O `login_type=2` (Baileys) e **obsoleto** e nao deve aparecer em nenhuma tela, filtro ou fluxo.
+
+**Estado atual (levantado em 2026-08-20):**
+
+| Item | Valor | Acao necessaria |
+|---|---|---|
+| Contas `login_type=2` no banco (main) | 5 | migrar/descartar (decidir) |
+| Arquivos com referencia textual a "baileys" | 21 | revisar e remover/aposentar |
+| Filtros que ainda incluem `login_type=2` | varios (export participants, criptografia_copy, etc.) | trocar `[1,2,3]` → `[1,3]` |
+| View `oauth.php` (Central de Conexao) | ainda tem drawer/aba Baileys | remover aba Baileys, deixar Whatsmeow + Cloud API |
+
+**Pendencia (registrar como trabalho futuro):**
+
+1. Remover a aba/opcao "Baileys" da Central de Conexao (`oauth.php` e controller `Whatsapp_profiles.php`) — deixar apenas Whatsmeow (Go) e Cloud API.
+2. Trocar todos os filtros de instancia `login_type => [1, 2, 3]` por `[1, 3]` (ou `[3]` no caso do modulo de ligacao, ja feito).
+3. Revisar os 21 arquivos com texto "baileys" (labels, helpers, views, status_diagnostic) e limpar o que for obsoleto.
+4. Decidir o destino das 5 contas `login_type=2` no banco (aposentar/migrar).
+
+> **Nota:** isso NAO bloqueia a re-sincronizacao da secao 4.19.1 — os tenants recebem o codigo atual (que ainda contem os trechos Baileys legado), mas a limpeza acima e o proximo passo para deixar o codigo 100% coerente com o estado "somente Go + Cloud API".
+
 ### 4.19.3 Tenants a re-sincronizar
 
 | # | Tenant | Local/Remoto | Status |
