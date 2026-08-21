@@ -1325,6 +1325,56 @@ A partir de 01:13 (21/08), todos os `463` aparecem com `call_id` preenchido + `C
 
 ---
 
+## 4.22 Veredito FINAL — Prova por comparacao A/B (sua conta vs conta do cliente)
+
+> **Teste do usuario (2026-08-21 ~12:11):** usou o proprio numero (`5521970402529`, instancia `WMEOW_6A883C01992CC`) e o numero do cliente (`558594485122`, instancia `WMEOW_6A87568F3A59B`) para ligar para os MESMOS destinos. Resultado: o numero dele ligou para todos; o do cliente deu erro.
+
+### 4.22.1 Prova definitiva (mesmo destino, mesmas contas)
+
+Comparacao do **mesmo numero de destino `558698677699`** nas duas contas, no mesmo periodo:
+
+| Hora | Conta | Destino | Resultado |
+|---|---|---|---|
+| 12:00:46 | SUA (`...1992CC`) | 558698677699 | ✅ `Call answered, media flowing` → `hangup` |
+| 12:11:00 | CLIENTE (`...F3A59B`) | 558698677699 | ❌ `call rejected by server 463` |
+
+E o destino `5521970073323`:
+
+| Hora | Conta | Destino | Resultado |
+|---|---|---|---|
+| 11:54:04 | SUA | 5521970073323 | ✅ `answered` → `hangup` |
+| 11:28:44 / 11:32:40 / 12:11:58 | CLIENTE | 5521970073323 | ❌ `463` (3x) |
+
+### 4.22.2 Conclusao: NAO e o sistema, NAO sao os numeros — e a CONTA do cliente
+
+O mesmo codigo, mesma infra, mesmos destinos: a **sua conta liga e atende**, a **conta do cliente e rejeitada pelo WhatsApp (`463`)**. Isso so tem uma explicacao: **a conta `558594485122` (Meta Zap Automacoes) esta bloqueada/restrita pelo WhatsApp** (denunciada, spam, ou violou ToS). O `463` = "misdial or blocked" e emitido pelo servidor **antes** de qualquer ringing, so para aquela conta.
+
+### 4.22.3 Evidencias de que a conta do cliente esta com problemas
+
+| Timestamp | Evento |
+|---|---|
+| 20/08 20:14:42 | `Logged out` / `Device logged out` (WhatsApp desconectou a sessao) |
+| 20/08 21:22:06 | `Disconnected` / `Device disconnected` |
+| 20/08 21:24:06 | `Push name not available after 120s background poll` |
+| 20/08 23:14 + 21/08 00:18 | `Auto-reconnecting` (reconexoes frequentes) |
+
+A conta do cliente sofreu **logout forçado + desconexoes + reconexoes** ontem — padrao tipico de **restricao/ban temporario do WhatsApp** (por denuncia ou comportamento suspeito).
+
+### 4.22.4 O `usync returned no LID` tambem e sintoma da conta
+
+O erro `usync returned no LID for 558585268578` (que o usuario confirmou ter WhatsApp) acontece porque a **conta do cliente nao consegue resolver o LID** de alguns contatos via `GetUserInfo`/usync — o WhatsApp **recusa responder o usync** para uma conta restrita. Nao e "numero sem WhatsApp": e a **conta sem permissao de resolver**.
+
+### 4.22.5 Acao recomendada (definitiva)
+
+1. **O cliente precisa verificar a conta `558594485122` no WhatsApp** (app oficial): se recebeu aviso de ban/restricao, e por que foi denunciada.
+2. **Aguarde o "cool down"** — restricoes de chamada do WhatsApp geralmente sao temporarias (24-72h), mas exigem que a conta **pare de disparar** no periodo.
+3. **Nao forcar novas ligacoes** com essa conta enquanto estiver restrita (pode agravar para ban permanente).
+4. **Considerar trocar para outra conta Go** (ex.: a sua, `5521970402529`, ou a UniCesumar) para as campanhas de ligacao ate a conta do cliente se normalizar.
+
+> **Regra de ouro:** `463` = bloqueio do lado da **conta que liga**, nao do destino. Se a sua conta liga para o mesmo numero e atende, o problema e 100% a conta do cliente.
+
+---
+
 ## 5. Scripts Auxiliares
 
 ### 5.1 Comparacao de Colunas (Python)
