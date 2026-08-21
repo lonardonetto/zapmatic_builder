@@ -1,3 +1,13 @@
+## v8.5.21 — 20/08/2026
+
+**Fix: Central de Conexão — `Undefined variable $number_accounts`**
+
+- View `oauth.php` usava `$number_accounts` no alerta "Limit number of accounts" do bloco Whatsmeow sem definir a variável (o bloco Baileys define, o Whatsmeow não).
+- Bug latente no main (arquivos idênticos ao Meta), aparecia quando `check_number_account` retorna `false` no fluxo Whatsmeow.
+- Aplicado no main e no MetaSenderPro + restart php-fpm-81.
+
+---
+
 ## v8.5.20 — 20/08/2026
 
 **Fix definitivo: correlação por stanza id (ligações simultâneas)**

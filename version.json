@@ -1,8 +1,8 @@
 {
-    "version": "8.5.20",
+    "version": "8.5.21",
     "channel": "stable",
-    "build_date": "2026-08-20T21:15:00-03:00",
+    "build_date": "2026-08-20T21:30:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "v8.5.20 - fix definitivo call-id meowcaller via correlacao por stanza id (corrige ligacoes simultaneas)"
+    "notes": "v8.5.21 - fix Central de Conexao (Undefined variable number_accounts no bloco Whatsmeow)"
 }
