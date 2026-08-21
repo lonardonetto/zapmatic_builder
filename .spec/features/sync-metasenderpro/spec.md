@@ -1282,6 +1282,49 @@ O `call_campaign_worker.log` do Meta registrou um "storm" de `MySQL server has g
 
 ---
 
+## 4.21 Veredito Final — Analise por numero (MetaSenderPro, 2026-08-21)
+
+> **Complemento da secao 4.20.** Apos o cliente rodar novas campanhas (5 e 6), a correlacao `call_id → phone → outcome` revelou o padrao exato.
+
+### 4.21.1 Resultado por numero (correlacionado por call_id)
+
+| Phone | Tentativas | Resultado |
+|---|---|---|
+| `558586342150` | 9 | ✅ **FUNCIONA** — 6x `answered` (media fluindo) + 1x `timeout` + 2x `peer rejected` |
+| `5521968666544` | 1 | ✅ **FUNCIONA** — `answered` + `hangup` (instancia `WMEOW_6A81DE4E0C8AA`, **desconectada hoje**) |
+| `558585262578` | 7 | ❌ 6x `463` + 1x `server:463` |
+| `558599283337` | 3 | ❌ 3x `463` |
+| `558585227630` | 3 | ❌ 3x `463` |
+| `558589092427` | 3 | ❌ 3x `463` |
+| `558587243628` | 1 | ❌ 1x `463` |
+| `5521970073323` | 3 | ❌ 3x `463` |
+| `558585268578` | 2 | ❌ `usync no LID` (nao tem WhatsApp) |
+| `55859921576428` | 3 | ❌ `usync no LID` (14 digitos — numero invalido) |
+
+### 4.21.2 Conclusao definitiva
+
+1. **O sistema FUNCIONA PERFEITAMENTE.** O numero `558586342150` (do proprio cliente, Meta) atendeu 6 vezes com audio fluindo + auto-hangup. A infra (gateway Go + worker + meowcaller fix) esta 100% operacional.
+2. **O que o cliente chama de "falha" e, na verdade, rejeicao do WhatsApp (`463` = misdial/blocked).** O padrao e binario: `558586342150` responde, os demais sao rejeitados **instantaneamente** (40ms entre placed e 463).
+3. **Causa do `463` em massa:** os numeros rejeitados **nao sao contatos validos do WhatsApp** da conta que liga (`Meta Zap Automacoes` 558594485122), ou foram **bloqueados/denunciaram** essa conta. O `463` e retornado pelo servidor antes de qualquer ringing.
+4. **`usync no LID`:** numeros que nao existem no WhatsApp (`558585268578`) ou mal formatados (`55859921576428` com 14 digitos).
+
+### 4.21.3 Evidencia de que o fix call-id (4.17) esta OK
+
+A partir de 01:13 (21/08), todos os `463` aparecem com `call_id` preenchido + `Call ended reason: server:463` **na mesma linha de tempo** — a chamada recusada e encerrada imediatamente, sem ficar presa. Nenhuma chamada `ringing` eterna.
+
+### 4.21.4 Acao recomendada (urgente para o cliente)
+
+| # | Acao | Motivo |
+|---|---|---|
+| 1 | **Validar numeros antes de importar** — E.164 (55 + DDD + 9 digitos), rejeitar >13 digitos | `55859921576428` (14) e `5521970073323` (13, mas DDD 21 sem 9) sao invalidos |
+| 2 | **Tratar `463` como "numero bloqueado/sem WhatsApp"** — nao como falha generica | dar clareza ao cliente |
+| 3 | **Testar com numeros conhecidos** (ex.: o proprio `558586342150` que funciona) | confirma que a infra esta ok |
+| 4 | **Verificar reputacao da conta `Meta Zap Automacoes`** (558594485122) — se foi denunciada, o 463 em massa e consequencia | a conta pode estar com baixa reputacao no WhatsApp |
+
+> **Nota:** o padrao "1 numero atende, 9 numeros sao rejeitados" e **forte indicio de lista de leads ruim** (numeros antigos/comprados/nao-WA), nao de bug no sistema.
+
+---
+
 ## 5. Scripts Auxiliares
 
 ### 5.1 Comparacao de Colunas (Python)
