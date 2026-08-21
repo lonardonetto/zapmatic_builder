@@ -1,8 +1,8 @@
 {
-    "version": "8.5.21",
+    "version": "8.5.22",
     "channel": "stable",
-    "build_date": "2026-08-20T21:30:00-03:00",
+    "build_date": "2026-08-21T07:33:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "v8.5.21 - fix Central de Conexao (Undefined variable number_accounts no bloco Whatsmeow)"
+    "notes": "v8.5.22 - limpa referencias Baileys, filtro modulo de ligacao [3] (so Go) e ig-challenge"
 }

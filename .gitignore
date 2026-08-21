@@ -23,6 +23,7 @@ $RECYCLE.BIN/
 #-------------------------
 .env
 .venv/
+.well-known/acme-challenge/
 
 #-------------------------
 # Dependencies

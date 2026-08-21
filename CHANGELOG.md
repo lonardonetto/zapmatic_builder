@@ -1,3 +1,13 @@
+## v8.5.22 — 21/08/2026
+
+**Refactor & Clean: Limpeza de referências Baileys e módulo de ligação exclusivo Go**
+
+- Módulo de ligação (`Whatsapp_call_campaign`): filtro atualizado para `login_type => [3]` (somente instâncias Go). Cloud API e Baileys desativados para disparo de voz.
+- Limpeza de referências Baileys em 15 arquivos (filtros de instâncias, comentários, labels ternárias "Local").
+- Adicionado `.well-known/acme-challenge/` ao `.gitignore`.
+
+---
+
 ## v8.5.21 — 20/08/2026
 
 **Fix: Central de Conexão — `Undefined variable $number_accounts`**
