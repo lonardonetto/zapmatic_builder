@@ -1013,33 +1013,35 @@ Como o nó de erro nao trazia `call-id` naquela posicao, `callID` ficava `""`. A
 - A entrada continua em `callStore` com `status: "ringing"` **para sempre**.
 - O `GET /call/list` fica poluido e o worker de disparo de chamadas fica travado (a fila nao avanca porque ha chamadas "ativas").
 
-### 4.17.2 O Ajuste (fallback inteligente)
+### 4.17.2 O Ajuste (correlacao por stanza id — correcao definitiva)
 
-Adicionou-se um fallback em cascata na captura do call-id, no mesmo `onCallAck`:
+> **Importante:** houve DUAS iteracoes. A primeira (fallback `for id := range e.calls`) era **incorreta** e foi substituida.
 
-```go
-callID := ""
-if en := findChild(ack, "error"); en != nil {
-    callID = en.AttrGetter().String("call-id")
-}
-if callID == "" {
-    callID = ack.AttrGetter().String("call-id")   // atributo direto do <ack>
-}
-if callID == "" {
-    callID = ack.AttrGetter().String("id")         // stanza id (ultimo recurso)
-}
-if callID == "" {
-    // fallback final: qualquer chamada ativa registrada na instancia
-    e.mu.Lock()
-    for id := range e.calls {
-        callID = id
-        break
-    }
-    e.mu.Unlock()
-}
-```
+**Primeira tentativa (descarte):** adicionar `if callID == "" { ack.AttrGetter().String("id") }` e depois um fallback `for id := range e.calls { break }`. Esse ultimo pega uma chamada **aleatoria** do map (iteracao de map em Go nao e deterministica). Com mais de uma chamada ativa, ele podia encerrar a chamada **errada** e deixar a realmente rejeitada presa — exatamente o sintoma "ligava pro primeiro e falhava na segunda".
 
-Assim, a chamada recusada e encerrada imediatamente via `finishCall(callID, "server:"+errCode)`, o `OnEnd` dispara, o `callStore` registra `ended`/`failed` e o worker e liberado.
+**Correcao definitiva:** o `<ack class="call" error="463|403">` **ecoa o stanza `id`** do `<call>` original como seu proprio atributo `id` (o call-id vive dentro do child `<offer>`, e nao e repetido pelo ack). O `engineCall` agora **guarda o stanza id** no `placeCall` e a correlacao e feita de forma deterministica:
+
+1. `engineCall.stanzaID` (novo campo) e preenchido no `placeCall` com `cli.GenerateMessageID()` (o mesmo valor colocado em `offer.Attrs["id"]`).
+2. No `onCallAck`, a resolucao do call-id segue esta ordem:
+   ```go
+   callID := ""
+   if en := findChild(ack, "error"); en != nil {
+       callID = en.AttrGetter().String("call-id")      // 1. <error call-id=...>
+   }
+   if callID == "" {
+       callID = ack.AttrGetter().String("call-id")     // 2. atributo direto do <ack>
+   }
+   if callID == "" {
+       callID = e.callIDByStanza(ack.AttrGetter().String("id"))  // 3. stanza id → call-id
+   }
+   if callID == "" {
+       callID = e.onlyActiveCallID()                   // 4. unica chamada ativa (inequivoco)
+   }
+   ```
+3. `callIDByStanza(stanzaID)` varre `e.calls` procurando o `engineCall` cujo `stanzaID` bate — correlacao exata, nunca aleatoria.
+4. `onlyActiveCallID()` so retorna o call-id quando ha **exatamente uma** chamada ativa; com zero ou multiplas, retorna `""` (nunca encerra uma chamada errada).
+
+Assim, a chamada recusada e encerrada imediatamente via `finishCall(callID, "server:"+errCode)`, o `OnEnd` dispara, o `callStore` registra `ended`/`failed` e o worker e liberado — **sem risco de encerrar a chamada errada em cenario de multiplas ligacoes simultaneas**.
 
 > **Nota importante:** o arquivo `engine.go` esta em `vendor/` (ignorado pelo git — `.gitignore` linha `vendor/`). A correcao **nao e versionada** no repositorio main. Ela vive apenas no binario compilado + no arquivo `vendor/.../engine.go` do filesystem de cada servidor. Por isso a propagacao e **por copia de binario/source**, nao por `git pull`. Ver secao 4.17.5 (solucao definitiva via fork + replace).
 
@@ -1070,19 +1072,22 @@ Assim, a chamada recusada e encerrada imediatamente via `finishCall(callID, "ser
 A divida tecnica anterior (patch vivendo apenas no `vendor/` nao-versionado) foi resolvida de forma duradoura:
 
 1. **Fork** do `purpshell/meowcaller` para `lonardonetto/meowcaller` (via API GitHub).
-2. **Patch** aplicado no fork sobre o commit pinado `6d9b7b2c1807` (commit `0280b2b` no fork), com tag `v0.0.0-20260726180203-6d9b7b2c1807-callid`.
+2. **Patch** aplicado no fork sobre o commit pinado `6d9b7b2c1807`:
+   - `0280b2b` — primeira versao (fallback em cascata simples).
+   - `d9c29a2` — **versao definitiva** (correlacao por stanza id; corrige o problema da segunda ligacao em cenario de multiplas chamadas).
+   - Tag: `v0.0.1-callid` (a tag anterior `v0.0.0-...-callid` foi removida por apontar para a versao com fallback aleatorio).
 3. **`replace`** no `go.mod` do main:
    ```
-   replace github.com/purpshell/meowcaller => github.com/lonardonetto/meowcaller v0.0.0-20260726180203-6d9b7b2c1807-callid
+   replace github.com/purpshell/meowcaller => github.com/lonardonetto/meowcaller v0.0.1-callid
    ```
-4. `go mod tidy` + `go mod vendor` + `go build` — o `vendor/` regenerado agora inclui o fallback automaticamente (verificado via `grep "for id := range e.calls"`).
+4. `go mod tidy` + `go mod vendor` + `go build` — o `vendor/` regenerado agora inclui a correlacao por stanza id automaticamente (verificado via `grep "stanzaID\|callIDByStanza\|onlyActiveCallID"`).
 
 **Resultado:** o fix agora e **versionado** (go.mod + go.sum trackeados no repo). Qualquer novo `go mod vendor`/`go mod tidy` puxa o fork com o patch — nao ha mais risco de perder a correcao em builds futuros.
 
 **Refs:**
 - Fork: `https://github.com/lonardonetto/meowcaller`
-- Tag: `v0.0.0-20260726180203-6d9b7b2c1807-callid`
-- Commit patch: `0280b2b8aec8f8b04d37574b8eb804060e1f14e5`
+- Tag: `v0.0.1-callid`
+- Commit patch definitivo: `d9c29a2cf9ae9355cd15a096280567c1b5b70147`
 
 ---
 

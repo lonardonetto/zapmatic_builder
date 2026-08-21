@@ -41,4 +41,4 @@ require (
 
 // Fork do meowcaller com o fix de fallback de call-id em chamadas recusadas
 // (erro 463/403). Ver spec: .spec/features/sync-metasenderpro/spec.md seção 4.17.
-replace github.com/purpshell/meowcaller => github.com/lonardonetto/meowcaller v0.0.0-20260726180203-6d9b7b2c1807-callid
+replace github.com/purpshell/meowcaller => github.com/lonardonetto/meowcaller v0.0.1-callid

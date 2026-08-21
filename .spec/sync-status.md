@@ -8,7 +8,7 @@
 
 > **⚠️ Nota sobre version.json:** o `version.json` do main esta DESATUALIZADO (mostra `8.5.15`), mas o git ja esta em `v8.5.18`. A versao real de referencia e `v8.5.18` (commit `38a6049c`). O `version.json` nao e indicador confiavel de paridade — usar commit git do main como referencia.
 
-> **🔧 Fix call-id meowcaller (2026-08-20):** correcao do fallback de call-id em chamadas recusadas (erro 463/403) — ver `.spec/features/sync-metasenderpro/spec.md` secao 4.17. **Solucao definitiva aplicada:** fork `lonardonetto/meowcaller` + `replace` no `go.mod` (tag `v0.0.0-20260726180203-6d9b7b2c1807-callid`). O fix agora e versionado — `go mod vendor`/`go mod tidy` puxa o patch automaticamente.
+> **🔧 Fix call-id meowcaller (2026-08-20):** correcao do fallback de call-id em chamadas recusadas (erro 463/403) — ver `.spec/features/sync-metasenderpro/spec.md` secao 4.17. **Solucao definitiva aplicada:** fork `lonardonetto/meowcaller` + `replace` no `go.mod` (tag `v0.0.1-callid`), com correlacao por **stanza id** (corrige o caso de multiplas ligacoes simultaneas — a versao anterior `v0.0.0-...-callid` usava fallback aleatorio e foi removida). O fix agora e versionado — `go mod vendor`/`go mod tidy` puxa o patch automaticamente.
 
 ---
 

@@ -1,10 +1,22 @@
+## v8.5.20 — 20/08/2026
+
+**Fix definitivo: correlação por stanza id (ligações simultâneas)**
+
+- Corrige o fix v8.5.19, cujo fallback pegava uma chamada aleatória do map quando o ack de erro não trazia call-id.
+- O `engineCall` agora guarda o stanza id do `<call>` e o `onCallAck` correlaciona o call-id de forma determinística via `callIDByStanza`.
+- Em caso de ambiguidade (zero ou múltiplas chamadas), `onlyActiveCallID` não encerra chamada alguma — nunca encerra a chamada errada.
+- Fork `lonardonetto/meowcaller` re-pontado para a tag `v0.0.1-callid` (commit `d9c29a2`).
+
+---
+
 ## v8.5.19 — 20/08/2026
 
 **Fix: chamadas recusadas não ficam mais presas em `ringing`**
 
 - Causa raiz: quando o WhatsApp recusa uma ligação (erro 463/403), o `<ack class="call" error="...">` não trazia o `call-id` na tag filha `<error>`. O `finishCall("")` era no-op, a chamada ficava em `ringing` para sempre e travava o worker de disparo.
-- Ajuste: fallback em cascata no `onCallAck` do meowcaller (`error.call-id` → `ack.call-id` → `ack.id` → qualquer chamada ativa da instância).
-- Solução definitiva: fork `lonardonetto/meowcaller` com o patch + `replace` no `go.mod`. O fix agora é versionado e sobrevive a `go mod vendor`/`go mod tidy`.
+- Ajuste: correlação por **stanza id** no `onCallAck` do meowcaller (o `<ack>` ecoa o `id` do `<call>` original; o `engineCall` agora guarda esse id e resolve o call-id de forma determinística).
+- Correção do caso de múltiplas ligações simultâneas: o fallback anterior pegava uma chamada aleatória do map — agora só encerra a chamada exata (ou, em caso de ambiguidade, não encerra nenhuma).
+- Solução definitiva: fork `lonardonetto/meowcaller` (tag `v0.0.1-callid`) + `replace` no `go.mod`. O fix é versionado e sobrevive a `go mod vendor`/`go mod tidy`.
 - Aplicado no main (gateway recompilado, `/call/list` limpo) e no MetaSenderPro.
 
 ---
