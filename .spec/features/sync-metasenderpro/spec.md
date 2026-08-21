@@ -1204,6 +1204,84 @@ Foi feita uma **limpeza conservadora** (commit `16db7a92`), removendo as referen
 
 ---
 
+## 4.20 Diagnostico — MetaSenderPro: ligacoes nao executadas (2026-08-21)
+
+> **Solicitacao:** cliente do MetaSenderPro reporta que ligacoes nao estao sendo executadas (3 falharam ontem). Pedido de diagnostico completo + comparacao com IaClicks (que roda bem).
+
+### 4.20.1 Estado atual (coletado em 2026-08-21 ~11:20)
+
+| Componente | MetaSenderPro | IaClicks | Verdict |
+|---|---|---|---|
+| Gateway Go `/health` | ✅ `connected:2` | ✅ `connected:9` | ok ambos |
+| Gateway `/call/list` | ✅ `total:0` (limpo) | — | ok |
+| systemd gateway | ✅ `active` | ✅ `active` | ok ambos |
+| Workers PM2 | ✅ 4 online (root) | ⚠️ so `gmscraper` no PM2 root | ver 4.20.3 |
+| `call:campaigns` vivo | ✅ PID 481619 (sleeping normal) | ✅ PID 9560 (via PM2 admin) | ok ambos |
+| MySQL | ✅ ativo (2 dias) | — | ok |
+| Campanha em execucao | `5 - Meta Zap Pro` (`running`, 4 leads) | `47` (`running`) | ok ambos |
+
+**Conclusao imediata: a infra de ligacao esta VIVA e FUNCIONAL nos dois.** O worker esta rodando, o gateway esta conectado, e ha campanha `running` sendo processada. Nao ha config quebrada obvia.
+
+### 4.20.2 Causa raiz das "3 ligacoes falharam"
+
+As 3 falhas de ontem **nao sao bug de codigo** — sao **rejeicoes do proprio WhatsApp** (erro `463` = "misdial or blocked") e **numeros inexistentes**. O gateway registrou:
+
+```
+21:40:11  Call placed 558585227630  -> 463 (rejeitado pelo servidor, imediato)
+21:45:24  Call placed 558585227630  -> 463
+21:49:34  Call placed 558585227630  -> 463
+21:56:45  Call placed 558587243628  -> 463
+22:05:08  Call placed 558589092427  -> 463
+22:34:40  Failed to place call 558585268578  -> usync returned no LID (nao existe no WhatsApp)
+22:35:35  Call placed 558589092427  -> 463
+22:41:11  Failed to place call 558585268578  -> usync no LID
+22:41:14  Call placed 558589092427  -> 463
+22:49:58  Call placed 558585262578  -> 463
+```
+
+**Padroes identificados:**
+
+1. **`463` "misdial or blocked"** — o WhatsApp recusa a ligacao **imediatamente** (sem ringing). Ocorre quando: (a) o numero de destino **nao esta no WhatsApp**; (b) o numero foi **bloqueado/denunciou** a conta que liga; ou (c) numero **mal formatado** (ex.: `55859921576428` com 14 digitos).
+2. **`usync returned no LID`** — o gateway nao conseguiu resolver o numero em um LID (o contato nao tem WhatsApp). Ex.: `558585268578` falhou **duas vezes** seguidas com esse erro.
+3. **O fix call-id (4.17) esta FUNCIONANDO** — todos os `463` recentes aparecem com `call_id` preenchido + `Call ended reason: server:463` imediato. Ou seja: a chamada recusada **nao fica mais presa** — ela encerra e o worker avanca. Nao ha regressao do bug anterior.
+
+### 4.20.3 Diferenca de arquitetura entre MetaSenderPro e IaClicks (nao e bug)
+
+| Aspecto | MetaSenderPro | IaClicks |
+|---|---|---|
+| Workers `bot:all`/`call:campaigns` | via **PM2 root** (`metasenderpro-bot-worker-all`, `metasenderpro-call-worker`) | via **PM2 admin** (`/home/admin/.pm2`) — PID 9559/9560 |
+| `gmscraper` | PM2 root | PM2 root |
+| Cron de restart | `*/59` → `pm2 restart metasenderpro` (reinicia os 4 workers a cada 59 min) | nao identificado |
+| Porta Go | 8101 | 8098 |
+
+> **Nota:** no IaClicks, o `call:campaigns` roda como usuario `admin` (nao root), e o `pm2 jlist` do root so mostra o gmscraper. Isso nao impede o funcionamento — o worker esta vivo e processando (log ativo "Call answered!"/"Call ended"). O MetaSenderPro usa PM2 root para tudo, que tambem funciona. **A diferenca nao causa o problema das ligacoes.**
+
+### 4.20.4 Evento transiente — "MySQL server has gone away" (20/08 16:46-16:48)
+
+O `call_campaign_worker.log` do Meta registrou um "storm" de `MySQL server has gone away` entre **16:46:13 e 16:48:40** (de 3 em 3 segundos). Causas provaveis (nao confirmadas): conexao MySQL do worker morta por idle/restart, ou sobrecarga momentanea. O worker **se recuperou** (PM2 reiniciou o processo as 19:48 — o log novo `pm2-call-out.log` mostra chamadas normais apos isso).
+
+> **Evidencia de recuperacao:** o log pos-19:48 mostra "Call answered!", "Call ended: no_answer", "Campaign completed" normalmente. O problema de "gone away" **nao persiste** (o MySQL atual responde, 7 threads conectadas).
+
+### 4.20.5 Diagnostico final
+
+| Pergunta | Resposta |
+|---|---|
+| Existe bug nao identificado? | **NAO.** O codigo (meowcaller fix 4.17) esta correto e ativo. |
+| Erro de config no Meta? | **NAO critico.** Gateway, worker, PM2, MySQL todos ativos. Unica observacao: cron de `pm2 restart metasenderpro` a cada 59 min (pode causar breve janela sem worker). |
+| Por que "3 ligacoes falharam"? | **Rejeicao do WhatsApp (erro 463) + numeros sem WhatsApp (usync no LID).** Os numeros `558585227630`, `558589092427`, `558585262578`, `558587243628`, `55859921576428` (14 digitos, invalido) foram recusados. |
+| O sistema esta processando? | **SIM.** Campanha 5 `running`, `calls_made=1`, `calls_no_answer=1`. Worker vivo. |
+
+### 4.20.6 Recomendacoes
+
+1. **Validar numeros antes de disparar** — filtrar/limpar numeros mal formatados (ex.: `55859921576428` com 14 digitos) e remover duplicados/invalidos na importacao de leads.
+2. **Tratar `463` como "numero bloqueado/sem WhatsApp"** — registrar `error_message` mais claro no lead (hoje vira `no_answer` generico).
+3. **Avaliar o cron `*/59 pm2 restart metasenderpro`** — se o restart derruba o worker no meio de uma ligacao, pode ser a causa percebida de "falha". Considerar remover/ajustar esse cron.
+4. **Investigar o "MySQL gone away"** de 20/08 16:46 (se repetir, checar `wait_timeout`/`interactive_timeout` e uso de conexao persistente no worker).
+
+> **Verificacao rapida p/ o cliente:** a campanha 5 `Meta Zap Pro` tem 4 leads, mas apenas 3 linhas em `sp_call_leads`. Conferir se o 4o lead nao foi excluido ou se `total_leads` esta desatualizado.
+
+---
+
 ## 5. Scripts Auxiliares
 
 ### 5.1 Comparacao de Colunas (Python)
