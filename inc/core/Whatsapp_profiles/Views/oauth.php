@@ -222,6 +222,7 @@
                             <?php endif; ?>
                         </div>
                         <?php else: ?>
+                        <?php $number_accounts = (int)permission("number_accounts"); ?>
                         <div class="alert alert-danger d-flex align-items-center">
                             <div class="fs-40 me-3"><i class="fad fa-exclamation-circle"></i></div>
                             <div>

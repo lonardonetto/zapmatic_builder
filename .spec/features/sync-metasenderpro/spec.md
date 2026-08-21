@@ -1091,6 +1091,34 @@ A divida tecnica anterior (patch vivendo apenas no `vendor/` nao-versionado) foi
 
 ---
 
+## 4.18 Fix — Central de Conexao: `Undefined variable $number_accounts` (view oauth.php)
+
+> **Sintoma:** ao acessar a conta de um cliente pelo admin e clicar em "adicionar conta" (Central de Conexão → aba Whatsmeow), aparecia `ErrorException: Undefined variable $number_accounts` em `inc/core/Whatsapp_profiles/Views/oauth.php` na linha 229.
+
+### 4.18.1 Causa Raiz
+
+A view `oauth.php` tem **dois** blocos que exibem o alerta de "Limit number of accounts" quando `check_number_account(...)` retorna `false`:
+
+1. **Bloco Baileys** (linha ~156): define `$number_accounts = (int)permission("number_accounts")` **antes** de usar.
+2. **Bloco Whatsmeow** (linha ~229): usava `$number_accounts` **sem definir** — a única definição anterior (linha 156) fica dentro do `else` do bloco Baileys, e a próxima (linha ~346) vem depois. Quando o limite é atingido no fluxo Whatsmeow e o bloco Baileys não executou, a variável não existe.
+
+> **Importante:** o bug **existe no main também** (os arquivos são idênticos — md5 igual `dd9250af...`). Não é uma divergência Meta vs main; é um bug latente que só aparece quando `check_number_account` retorna `false` no fluxo Whatsmeow (limite de contas atingido).
+
+### 4.18.2 Correcao
+
+Adicionada a definicao `<?php $number_accounts = (int)permission("number_accounts"); ?>` no bloco Whatsmeow, antes do `sprintf`, espelhando o que o bloco Baileys já faz.
+
+### 4.18.3 Aplicacao
+
+| Servidor | Acao | Resultado |
+|---|---|---|
+| Main | edit na view + `php -l` (sem erro de sintaxe) + restart php-fpm-81 | ✅ site 200 |
+| MetaSenderPro | backup `oauth.php.bak_pre_number_accounts` + scp da view corrigida + restart php-fpm-81 | ✅ site 200 |
+
+> **Nota:** existe um caminho duplicado `inc/core/Whatsapp_profiles/Whatsapp_profiles/Views/oauth.php` (dead code, nao referenciado por nenhum controller — o controller usa `Core\Whatsapp_profiles\Views\oauth`). Nao foi tocado.
+
+---
+
 ## 5. Scripts Auxiliares
 
 ### 5.1 Comparacao de Colunas (Python)
