@@ -12,20 +12,37 @@ import (
 
 	"github.com/purpshell/meowcaller"
 	"github.com/lonardonetto/zapmatic-whatsmeow/internal/logging"
+	"github.com/lonardonetto/zapmatic-whatsmeow/internal/runtime"
 )
+
+// callEvent is one step of a call's lifecycle timeline.
+type callEvent struct {
+	Event    string    `json:"event"`
+	Platform string    `json:"platform,omitempty"`
+	Reason   string    `json:"reason,omitempty"`
+	At       time.Time `json:"at"`
+}
 
 // callEntry tracks one active call for status polling and cancellation.
 type callEntry struct {
-	CallID    string    `json:"call_id"`
-	InstanceID string   `json:"instance_id"`
-	Phone     string    `json:"phone"`
-	Status    string    `json:"status"` // ringing, active, ended, failed
-	StartedAt time.Time `json:"started_at"`
+	CallID     string     `json:"call_id"`
+	InstanceID string     `json:"instance_id"`
+	Phone      string     `json:"phone"`
+	Status     string     `json:"status"` // ringing, active, ended, failed
+	StartedAt  time.Time  `json:"started_at"`
 	AnsweredAt *time.Time `json:"answered_at,omitempty"`
-	EndedAt   *time.Time `json:"ended_at,omitempty"`
-	Reason    string    `json:"reason,omitempty"`
-	AudioID   string    `json:"audio_id,omitempty"`
-	call      *meowcaller.Call
+	EndedAt    *time.Time `json:"ended_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
+	AudioID    string     `json:"audio_id,omitempty"`
+	Platform   string     `json:"platform,omitempty"`
+
+	mu                 sync.Mutex
+	timeline           []callEvent
+	ringTimer          *time.Timer
+	endReason          string // override do motivo quando o gateway encerra por ring timeout
+	RingDurationSeconds int   `json:"ring_duration_seconds"`
+	HeardFullAudio     bool   `json:"heard_full_audio"`
+	call               *meowcaller.Call
 }
 
 // callStore is a global in-memory registry of active calls.
@@ -33,6 +50,70 @@ var (
 	callStoreMu sync.RWMutex
 	callStore   = make(map[string]*callEntry)
 )
+
+// appendTimeline records a lifecycle step on the call entry (thread-safe).
+func (e *callEntry) appendTimeline(ev callEvent) {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	e.timeline = append(e.timeline, ev)
+	e.mu.Unlock()
+}
+
+// normalizePlatform maps the WhatsApp RemotePlatform string to a stable label:
+// "smbi"/"smba" (and any other sm*) -> "mobile", everything else -> "web".
+func normalizePlatform(p string) string {
+	p = strings.TrimSpace(strings.ToLower(p))
+	if p == "" {
+		return ""
+	}
+	if strings.HasPrefix(p, "sm") {
+		return "mobile"
+	}
+	return "web"
+}
+
+// applyCallEvent applies one peer lifecycle event to a call entry: it records the
+// timeline step and, on "accepted", stores the normalized platform. It is the
+// pure, testable core of the call-event bridge.
+func applyCallEvent(entry *callEntry, event, platform, reason string) {
+	if entry == nil {
+		return
+	}
+	ev := callEvent{Event: event, At: time.Now()}
+	switch event {
+	case "accepted":
+		if p := normalizePlatform(platform); p != "" {
+			entry.mu.Lock()
+			entry.Platform = p
+			entry.mu.Unlock()
+			ev.Platform = p
+		}
+	case "rejected":
+		ev.Reason = "rejected"
+	case "terminated":
+		ev.Reason = reason
+	}
+	entry.appendTimeline(ev)
+}
+
+// RegisterCallEventBridge wires the gateway to the session manager's call
+// lifecycle events (CallPreAccept/CallAccept/CallReject/CallTerminate) so the
+// platform and peer transitions land in the callStore timeline. It is additive:
+// it does not touch the meowcaller fork and coexists with existing handlers.
+func RegisterCallEventBridge(rt *runtime.Runtime) {
+	if rt == nil || rt.Session() == nil {
+		return
+	}
+	rt.Session().RegisterCallEventListener(func(instanceID, callID, event, platform, reason string) {
+		entry := getCall(callID)
+		if entry == nil {
+			return
+		}
+		applyCallEvent(entry, event, platform, reason)
+	})
+}
 
 func addCall(e *callEntry) {
 	callStoreMu.Lock()
@@ -109,6 +190,7 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		AudioID    string `json:"audio_id"`
 		AudioPath     string `json:"audio_path"`
 		AudioDuration int    `json:"audio_duration"`
+		RingTimeout   int    `json:"ring_timeout"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		r.writeJSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "invalid JSON"})
@@ -152,6 +234,26 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 		AudioID:    body.AudioID,
 		call:       call,
 	}
+	entry.appendTimeline(callEvent{Event: "placed", At: time.Now()})
+
+	// Ring timeout: encerra chamadas que ficam tocando sem resposta (nem accepted
+	// nem ended). Default 30s; o worker envia o timeout_ring da campanha.
+	ringTimeout := body.RingTimeout
+	if ringTimeout <= 0 {
+		ringTimeout = 30
+	}
+	entry.ringTimer = time.AfterFunc(time.Duration(ringTimeout)*time.Second, func() {
+		entry.mu.Lock()
+		stillRinging := entry.Status == "ringing"
+		if stillRinging {
+			entry.endReason = "ring_timeout"
+		}
+		entry.mu.Unlock()
+		if stillRinging {
+			logging.Log.Info().Str("call_id", call.ID()).Int("ring_timeout", ringTimeout).Msg("Ring timeout exceeded, ending call")
+			call.Hangup()
+		}
+	})
 
 	// Attach audio if provided — load BEFORE OnReady so it's ready when answered
 	var audioSrc meowcaller.AudioSource
@@ -199,20 +301,38 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 
 	// SINGLE OnReady callback — meowcaller only keeps the LAST registered handler
 	call.OnReady(func() {
-		entry.Status = "active"
+		if entry.ringTimer != nil {
+			entry.ringTimer.Stop()
+			entry.ringTimer = nil
+		}
 		now := time.Now()
+		entry.mu.Lock()
+		entry.Status = "active"
 		entry.AnsweredAt = &now
+		entry.RingDurationSeconds = int(now.Sub(entry.StartedAt).Seconds())
+		// Adiciona o evento "answered" ATOMICO com a mudança de status.
+		entry.timeline = append(entry.timeline, callEvent{Event: "answered", At: now})
+		entry.mu.Unlock()
 		logging.Log.Info().Str("call_id", call.ID()).Msg("Call answered, media flowing")
 
 		if audioSrc != nil {
 			logging.Log.Info().Str("call_id", call.ID()).Msg("Playing audio to peer")
+			entry.appendTimeline(callEvent{Event: "audio_started", At: time.Now()})
 			player := call.Play(audioSrc)
 			if player != nil {
 				player.OnFinish(func() {
 					logging.Log.Info().Str("call_id", call.ID()).Msg("Audio finished (OnFinish), scheduling auto-hangup in 2s")
+					entry.mu.Lock()
+					entry.HeardFullAudio = true
+					entry.timeline = append(entry.timeline, callEvent{Event: "audio_finished", At: time.Now()})
+					entry.timeline = append(entry.timeline, callEvent{Event: "hangup_scheduled", At: time.Now()})
+					entry.mu.Unlock()
 					go func() {
 						time.Sleep(2 * time.Second)
-						if entry.Status == "active" || entry.Status == "ringing" {
+						entry.mu.Lock()
+						active := entry.Status == "active" || entry.Status == "ringing"
+						entry.mu.Unlock()
+						if active {
 							logging.Log.Info().Str("call_id", call.ID()).Msg("Auto-hangup: 2s after audio ended, hanging up call")
 							call.Hangup()
 						}
@@ -227,7 +347,10 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 			logging.Log.Info().Str("call_id", call.ID()).Int("duration", effectiveDuration).Dur("fallback_hangup_in", hangupDelay).Msg("Safety fallback auto-hangup scheduled")
 			go func() {
 				time.Sleep(hangupDelay)
-				if entry.Status == "active" || entry.Status == "ringing" {
+				entry.mu.Lock()
+				active := entry.Status == "active" || entry.Status == "ringing"
+				entry.mu.Unlock()
+				if active {
 					logging.Log.Info().Str("call_id", call.ID()).Msg("Safety fallback auto-hangup: duration exceeded, ending call")
 					call.Hangup()
 				}
@@ -236,10 +359,22 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 	})
 
 	call.OnEnd(func(reason string) {
+		if entry.ringTimer != nil {
+			entry.ringTimer.Stop()
+			entry.ringTimer = nil
+		}
+		now := time.Now()
+		entry.mu.Lock()
+		if entry.endReason != "" {
+			reason = entry.endReason
+		}
 		entry.Status = "ended"
 		entry.Reason = reason
-		now := time.Now()
 		entry.EndedAt = &now
+		// Adiciona o evento "ended" na timeline ATOMICO com a mudança de status,
+		// para o /call/status nunca expor "ended" sem o evento correspondente.
+		entry.timeline = append(entry.timeline, callEvent{Event: "ended", Reason: reason, At: now})
+		entry.mu.Unlock()
 		logging.Log.Info().Str("call_id", call.ID()).Str("reason", reason).Msg("Call ended")
 		// Clean up after 5 minutes
 		go func() {
@@ -259,6 +394,47 @@ func (r *Router) handleCallStart(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
+// callStatusResponse is the JSON-safe snapshot of a call entry, including the
+// timeline. It keeps the legacy fields intact (retrocompatibilidade).
+type callStatusResponse struct {
+	CallID             string      `json:"call_id"`
+	InstanceID         string      `json:"instance_id"`
+	Phone              string      `json:"phone"`
+	Status             string      `json:"status"`
+	StartedAt          time.Time   `json:"started_at"`
+	AnsweredAt         *time.Time  `json:"answered_at,omitempty"`
+	EndedAt            *time.Time  `json:"ended_at,omitempty"`
+	Reason             string      `json:"reason,omitempty"`
+	AudioID            string      `json:"audio_id,omitempty"`
+	Platform           string      `json:"platform,omitempty"`
+	RingDurationSeconds int        `json:"ring_duration_seconds,omitempty"`
+	HeardFullAudio     bool        `json:"heard_full_audio"`
+	Timeline           []callEvent `json:"timeline,omitempty"`
+}
+
+// snapshot returns a thread-safe copy of the entry's exported state.
+func (e *callEntry) snapshot() callStatusResponse {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	tl := make([]callEvent, len(e.timeline))
+	copy(tl, e.timeline)
+	return callStatusResponse{
+		CallID:             e.CallID,
+		InstanceID:         e.InstanceID,
+		Phone:              e.Phone,
+		Status:             e.Status,
+		StartedAt:          e.StartedAt,
+		AnsweredAt:         e.AnsweredAt,
+		EndedAt:            e.EndedAt,
+		Reason:             e.Reason,
+		AudioID:            e.AudioID,
+		Platform:           e.Platform,
+		RingDurationSeconds: e.RingDurationSeconds,
+		HeardFullAudio:     e.HeardFullAudio,
+		Timeline:           tl,
+	}
+}
+
 // handleCallStatus returns the current state of a call.
 // GET /call/status?call_id=...
 func (r *Router) handleCallStatus(w http.ResponseWriter, req *http.Request) {
@@ -274,7 +450,7 @@ func (r *Router) handleCallStatus(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	r.writeJSON(w, http.StatusOK, entry)
+	r.writeJSON(w, http.StatusOK, entry.snapshot())
 }
 
 // handleCallCancel terminates an active call.

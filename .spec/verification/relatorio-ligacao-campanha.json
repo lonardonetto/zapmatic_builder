@@ -1,0 +1,82 @@
+{
+  "feature": "relatorio-ligacao-campanha",
+  "timestamp": "2026-08-21T13:49:57.795Z",
+  "gitRev": "12b95e6c",
+  "command": "node tests/run_all.mjs",
+  "reporter": "tap",
+  "exitCode": 0,
+  "testsParsed": 83,
+  "results": {
+    "AC-069": {
+      "status": "pass",
+      "testName": "TestCallTimelineOrdered @spec:AC-069",
+      "method": "tap"
+    },
+    "AC-070": {
+      "status": "pass",
+      "testName": "CallReconcileTest::test_eventos_agrupados_por_lead @spec:AC-070",
+      "method": "tap"
+    },
+    "AC-071": {
+      "status": "pass",
+      "testName": "CallOutcomeTest::test_normaliza_plataforma @spec:AC-071",
+      "method": "tap"
+    },
+    "AC-072": {
+      "status": "pass",
+      "testName": "CallOutcomeTest::test_tocou_ate_desligar_ring_timeout @spec:AC-072",
+      "method": "tap"
+    },
+    "AC-073": {
+      "status": "pass",
+      "testName": "CallOutcomeTest::test_ouviu_ate_o_final @spec:AC-073",
+      "method": "tap"
+    },
+    "AC-074": {
+      "status": "pass",
+      "testName": "CallOutcomeTest::test_erro_reportado_pelo_servidor @spec:AC-074",
+      "method": "tap"
+    },
+    "AC-075": {
+      "status": "pass",
+      "testName": "TestCallRingTimeoutGuards @spec:AC-075",
+      "method": "tap"
+    },
+    "AC-076": {
+      "status": "pass",
+      "testName": "CallReconcileTest::test_timeout_cancela_e_marca_failed @spec:AC-076",
+      "method": "tap"
+    },
+    "AC-077": {
+      "status": "pass",
+      "testName": "CallReconcileTest::test_reconciliacao_nao_bloqueante_classifica_status @spec:AC-077",
+      "method": "tap"
+    },
+    "AC-078": {
+      "status": "pass",
+      "testName": "CallReconcileTest::test_modo_simultaneo_fecha_todos_os_contadores @spec:AC-078",
+      "method": "tap"
+    },
+    "AC-079": {
+      "status": "pass",
+      "testName": "CallReconcileTest::test_modo_alternado_alterna_instancias @spec:AC-079",
+      "method": "tap"
+    },
+    "AC-080": {
+      "status": "pass",
+      "testName": "TestCallStatusRetrocompativel @spec:AC-080",
+      "method": "tap"
+    },
+    "AC-081": {
+      "status": "pass",
+      "testName": "TestCallEventBridgePlatform @spec:AC-081",
+      "method": "tap"
+    },
+    "AC-082": {
+      "status": "pass",
+      "testName": "CallEventsMigrationTest::test_migracao_cria_tabela_e_colunas @spec:AC-082",
+      "method": "tap"
+    }
+  },
+  "principles": {}
+}

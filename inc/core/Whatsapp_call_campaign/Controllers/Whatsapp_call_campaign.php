@@ -552,13 +552,26 @@ class Whatsapp_call_campaign extends Controller
             ->orderBy('id', 'ASC')
             ->get()->getResult();
 
-        echo json_encode(['status' => 'success', 'campaign' => $campaign, 'leads' => $leads]);
+        // Carrega a timeline de eventos por lead (se a tabela existir).
+        $eventsByLead = [];
+        try {
+            $events = $this->db->table('sp_call_events')
+                ->where('campaign_id', $campaign_id)
+                ->orderBy('id', 'ASC')
+                ->get()->getResult();
+            foreach ($events as $ev) {
+                $eventsByLead[$ev->lead_id][] = $ev;
+            }
+        } catch (\Throwable $e) {}
+
+        echo json_encode(['status' => 'success', 'campaign' => $campaign, 'leads' => $leads, 'events' => $eventsByLead]);
         exit;
     }
 
     public function results($campaign_id)
     {
         $team_id = get_team("id");
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Helpers/Whatsapp_call_campaign_helper.php';
         $campaign = $this->db->table(self::TB_CAMPAIGNS)
             ->where('id', $campaign_id)
             ->where('team_id', $team_id)
@@ -573,6 +586,18 @@ class Whatsapp_call_campaign extends Controller
             ->orderBy('id', 'ASC')
             ->get()->getResult();
 
+        // Carrega a timeline de eventos por lead (se a tabela existir).
+        $eventsByLead = [];
+        try {
+            $events = $this->db->table('sp_call_events')
+                ->where('campaign_id', $campaign_id)
+                ->orderBy('id', 'ASC')
+                ->get()->getResult();
+            foreach ($events as $ev) {
+                $eventsByLead[$ev->lead_id][] = $ev;
+            }
+        } catch (\Throwable $e) {}
+
         $data = [
             "title" => $this->config['name'] . ' - Resultados',
             "desc" => $campaign->name,
@@ -581,6 +606,7 @@ class Whatsapp_call_campaign extends Controller
                 "config" => $this->config,
                 "campaign" => $campaign,
                 "leads" => $leads,
+                "eventsByLead" => $eventsByLead,
             ])
         ];
 

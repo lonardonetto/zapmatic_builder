@@ -25,6 +25,11 @@ class CallCampaignWorker extends BaseCommand
 
         while (true) {
             try {
+                // Reconcilia leads em `ringing` de TODAS as campanhas ativas
+                // (não-bloqueante). Cobre o modo simultâneo (que não faz poll) e
+                // qualquer lead órfão que tenha ficado para trás.
+                $this->reconcileRingingLeads($db);
+
                 // Find running campaigns
                 $campaigns = $db->table(self::TB_CAMPAIGNS)
                     ->whereIn('status', ['running', 'scheduled'])
@@ -114,6 +119,7 @@ class CallCampaignWorker extends BaseCommand
                 ]);
                 $payload = ['instance_id' => $targetInstance, 'phone' => $lead->phone];
                 if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
+                if (!empty($campaign->timeout_ring)) { $payload['ring_timeout'] = (int)$campaign->timeout_ring; }
                 $batch[] = [
                     'lead_id' => $lead->id,
                     'campaign_id' => $campaign->id,
@@ -190,21 +196,32 @@ class CallCampaignWorker extends BaseCommand
 
         $payload = ['instance_id' => $targetInstanceId, 'phone' => $lead->phone];
         if ($audioInfo) { $payload['audio_path'] = $audioInfo['path']; $payload['audio_duration'] = $audioInfo['duration']; }
+        if (!empty($campaign->timeout_ring)) { $payload['ring_timeout'] = (int)$campaign->timeout_ring; }
 
         CLI::write("[CallCampaignWorker] Calling {$lead->phone} (campaign {$campaign->id})", 'yellow');
         $result = $this->goApiPost($goBaseUrl . '/call/start', $payload);
 
         if (!$result || ($result->status ?? '') !== 'success') {
+            $errMsg = $result->message ?? 'Go API error';
             $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
-                'status' => 'failed', 'error_message' => $result->message ?? 'Go API error', 'ended_at' => date('Y-m-d H:i:s'),
+                'status' => 'failed',
+                'error_message' => $errMsg,
+                'last_error' => $errMsg,
+                'ended_at' => date('Y-m-d H:i:s'),
             ]);
             $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->set('calls_failed', 'calls_failed + 1', false)->update();
+            // Registra o evento de falha na timeline (se a tabela existir).
+            $this->persistEvent($db, $campaign->id, $lead->id, '', 'failed', null, $errMsg);
+            CLI::write("[CallCampaignWorker] Call failed: {$errMsg}", 'red');
             return;
         }
 
         $callId = $result->call_id ?? '';
         $db->table(self::TB_LEADS)->where('id', $lead->id)->update(['call_id' => $callId]);
         $db->table(self::TB_CAMPAIGNS)->where('id', $campaign->id)->set('calls_made', 'calls_made + 1', false)->update();
+
+        // Registra o evento "placed" (ligação realizada) imediatamente.
+        $this->persistEvent($db, $campaign->id, $lead->id, $callId, 'placed', null, null);
 
         $this->pollCallResult($db, $campaign->id, $lead->id, $callId, $campaign->timeout_ring + 60);
 
@@ -301,11 +318,13 @@ class CallCampaignWorker extends BaseCommand
                     ->update([
                         'status' => 'answered',
                         'answered_at' => date('Y-m-d H:i:s'),
+                        'platform' => $this->normalizePlatform($result->platform ?? ''),
                     ]);
                 $db->table(self::TB_CAMPAIGNS)
                     ->where('id', $campaignId)
                     ->set('calls_answered', 'calls_answered + 1', false)
                     ->update();
+                $this->persistTimeline($db, $campaignId, $leadId, $callId, $result);
                 CLI::write("[CallCampaignWorker] Call answered!", 'green');
                 return;
             }
@@ -317,10 +336,9 @@ class CallCampaignWorker extends BaseCommand
                     $duration = strtotime($result->ended_at) - strtotime($result->answered_at);
                 }
 
-                $finalStatus = 'no_answer';
-                if ($duration > 0) $finalStatus = 'answered';
-                elseif (stripos($reason, 'busy') !== false) $finalStatus = 'busy';
-                elseif (stripos($reason, 'reject') !== false) $finalStatus = 'no_answer';
+                $this->persistTimeline($db, $campaignId, $leadId, $callId, $result);
+                $outcome = $this->classifyOutcome($status, $reason, $duration, $result);
+                $finalStatus = $outcome['status'];
 
                 $db->table(self::TB_LEADS)
                     ->where('id', $leadId)
@@ -328,7 +346,12 @@ class CallCampaignWorker extends BaseCommand
                         'status' => $finalStatus,
                         'ended_at' => date('Y-m-d H:i:s'),
                         'duration_seconds' => $duration,
-                        'error_message' => $reason,
+                        'error_message' => $reason ?: null,
+                        'hangup_source' => $outcome['hangup_source'],
+                        'heard_full_audio' => !empty($result->heard_full_audio) ? 1 : $outcome['heard_full_audio'],
+                        'ring_duration_seconds' => (int)($result->ring_duration_seconds ?? 0),
+                        'last_error' => $reason ?: null,
+                        'platform' => $this->normalizePlatform($result->platform ?? ''),
                     ]);
 
                 if ($finalStatus === 'answered') {
@@ -337,6 +360,9 @@ class CallCampaignWorker extends BaseCommand
                 } elseif ($finalStatus === 'busy') {
                     $db->table(self::TB_CAMPAIGNS)->where('id', $campaignId)
                         ->set('calls_busy', 'calls_busy + 1', false)->update();
+                } elseif ($finalStatus === 'failed') {
+                    $db->table(self::TB_CAMPAIGNS)->where('id', $campaignId)
+                        ->set('calls_failed', 'calls_failed + 1', false)->update();
                 } else {
                     $db->table(self::TB_CAMPAIGNS)->where('id', $campaignId)
                         ->set('calls_no_answer', 'calls_no_answer + 1', false)->update();
@@ -347,18 +373,200 @@ class CallCampaignWorker extends BaseCommand
             }
         }
 
-        // Timeout - mark as failed
+        // Timeout - cancela no gateway e marca como failed (evita chamada fantasma)
+        $this->goApiPost($this->getGoBaseUrl() . '/call/cancel', ['call_id' => $callId]);
+
         $db->table(self::TB_LEADS)
             ->where('id', $leadId)
             ->update([
                 'status' => 'failed',
                 'error_message' => 'Timeout waiting for call result',
                 'ended_at' => date('Y-m-d H:i:s'),
+                'hangup_source' => 'worker',
+                'last_error' => 'Timeout waiting for call result',
             ]);
         $db->table(self::TB_CAMPAIGNS)
             ->where('id', $campaignId)
             ->set('calls_failed', 'calls_failed + 1', false)
             ->update();
+    }
+
+    /**
+     * Reconcilia, de forma não-bloqueante, todos os leads em `ringing` das
+     * campanhas ativas. É o que garante o fechamento no modo simultâneo e a
+     * recuperação de leads órfãos. Lê a timeline do /call/status e persiste.
+     */
+    private function reconcileRingingLeads($db)
+    {
+        try {
+            $campaigns = $db->table(self::TB_CAMPAIGNS)
+                ->whereIn('status', ['running', 'scheduled'])
+                ->get()->getResult();
+            if (empty($campaigns)) return;
+
+            $campaignIds = array_map(fn($c) => $c->id, $campaigns);
+            $leads = $db->table(self::TB_LEADS)
+                ->whereIn('campaign_id', $campaignIds)
+                ->where('status', 'ringing')
+                ->where('call_id !=', '')
+                ->get()->getResult();
+            if (empty($leads)) return;
+
+            $goBaseUrl = $this->getGoBaseUrl();
+            foreach ($leads as $lead) {
+                $result = $this->goApiGet($goBaseUrl . '/call/status?call_id=' . urlencode($lead->call_id));
+                if (!$result) continue;
+                $status = $result->status ?? '';
+                if ($status === 'ringing') continue; // ainda tocando
+
+                if ($status === 'active' || $status === 'answered') {
+                    $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
+                        'status' => 'answered',
+                        'answered_at' => date('Y-m-d H:i:s'),
+                        'platform' => $this->normalizePlatform($result->platform ?? ''),
+                    ]);
+                    $db->table(self::TB_CAMPAIGNS)->where('id', $lead->campaign_id)
+                        ->set('calls_answered', 'calls_answered + 1', false)->update();
+                    $this->persistTimeline($db, $lead->campaign_id, $lead->id, $lead->call_id, $result);
+                    continue;
+                }
+
+                if ($status === 'ended') {
+                    $reason = $result->reason ?? '';
+                    $duration = 0;
+                    if (!empty($result->answered_at) && !empty($result->ended_at)) {
+                        $duration = strtotime($result->ended_at) - strtotime($result->answered_at);
+                    }
+                    $this->persistTimeline($db, $lead->campaign_id, $lead->id, $lead->call_id, $result);
+                    $outcome = $this->classifyOutcome($status, $reason, $duration, $result);
+                    $finalStatus = $outcome['status'];
+
+                    $db->table(self::TB_LEADS)->where('id', $lead->id)->update([
+                        'status' => $finalStatus,
+                        'ended_at' => date('Y-m-d H:i:s'),
+                        'duration_seconds' => $duration,
+                        'error_message' => $reason ?: null,
+                        'hangup_source' => $outcome['hangup_source'],
+                        'heard_full_audio' => !empty($result->heard_full_audio) ? 1 : $outcome['heard_full_audio'],
+                        'ring_duration_seconds' => (int)($result->ring_duration_seconds ?? 0),
+                        'last_error' => $reason ?: null,
+                        'platform' => $this->normalizePlatform($result->platform ?? ''),
+                    ]);
+
+                    if ($finalStatus === 'answered') {
+                        $db->table(self::TB_CAMPAIGNS)->where('id', $lead->campaign_id)
+                            ->set('calls_answered', 'calls_answered + 1', false)->update();
+                    } elseif ($finalStatus === 'busy') {
+                        $db->table(self::TB_CAMPAIGNS)->where('id', $lead->campaign_id)
+                            ->set('calls_busy', 'calls_busy + 1', false)->update();
+                    } elseif ($finalStatus === 'failed') {
+                        $db->table(self::TB_CAMPAIGNS)->where('id', $lead->campaign_id)
+                            ->set('calls_failed', 'calls_failed + 1', false)->update();
+                    } else {
+                        $db->table(self::TB_CAMPAIGNS)->where('id', $lead->campaign_id)
+                            ->set('calls_no_answer', 'calls_no_answer + 1', false)->update();
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Reconciliação nunca deve derrubar o worker.
+            CLI::write('[CallCampaignWorker] Reconcile error: ' . $e->getMessage(), 'yellow');
+        }
+    }
+
+    /**
+     * Classifica o desfecho da chamada a partir do status, reason e timeline.
+     * Deleta a lógica para a Library pura CallOutcome (testável sem gateway).
+     */
+    private function classifyOutcome(string $status, string $reason, int $duration, $result): array
+    {
+        $timeline = $result->timeline ?? null;
+        $events = [];
+        if (is_array($timeline)) {
+            foreach ($timeline as $ev) {
+                $events[] = [
+                    'event' => $ev->event ?? '',
+                    'platform' => $ev->platform ?? '',
+                    'reason' => $ev->reason ?? '',
+                ];
+            }
+        }
+
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Libraries/CallOutcome.php';
+        if (class_exists('Core\Whatsapp_call_campaign\Libraries\CallOutcome')) {
+            return \Core\Whatsapp_call_campaign\Libraries\CallOutcome::classify($status, $reason, $duration, $events);
+        }
+
+        // Fallback inline (nunca deve quebrar se a Library não carregar).
+        return [
+            'status' => 'no_answer',
+            'hangup_source' => null,
+            'heard_full_audio' => 0,
+        ];
+    }
+
+    /**
+     * Persiste a timeline do /call/status na tabela sp_call_events, se existir.
+     * É aditiva e protegida: se a migração ainda não rodou, falha silenciosamente.
+     */
+    private function persistTimeline($db, $campaignId, $leadId, $callId, $result)
+    {
+        try {
+            $timeline = $result->timeline ?? null;
+            if (!is_array($timeline)) return;
+
+            $existing = $db->table('sp_call_events')
+                ->where('call_id', $callId)
+                ->get()->getResult();
+            $existingEvents = array_column($existing, 'event');
+
+            foreach ($timeline as $ev) {
+                $evt = $ev->event ?? '';
+                if ($evt === '' || in_array($evt, $existingEvents, true)) continue;
+
+                $this->persistEvent(
+                    $db, $campaignId, $leadId, $callId, $evt,
+                    $ev->platform ?? null, $ev->reason ?? null,
+                    $ev->at ?? null
+                );
+            }
+        } catch (\Throwable $e) {
+            // sp_call_events pode não existir ainda (migração pendente).
+        }
+    }
+
+    /**
+     * Insere um único evento na timeline (sp_call_events), protegido contra
+     * duplicidade (UNIQUE KEY call_id+event) e contra tabela ausente.
+     */
+    private function persistEvent($db, $campaignId, $leadId, $callId, $event, $platform, $reason, $at = null)
+    {
+        try {
+            $createdAt = $at ? date('Y-m-d H:i:s', strtotime($at)) : date('Y-m-d H:i:s');
+            $db->table('sp_call_events')->insert([
+                'campaign_id' => $campaignId,
+                'lead_id' => $leadId,
+                'call_id' => $callId ?: 'legacy-' . $leadId . '-' . $event,
+                'event' => $event,
+                'platform' => $this->normalizePlatform($platform),
+                'reason' => $reason ?: null,
+                'created_at' => $createdAt,
+            ]);
+        } catch (\Throwable $e) {
+            // Duplicidade (UNIQUE KEY) ou tabela ausente — ignora silenciosamente.
+        }
+    }
+
+    private function normalizePlatform(?string $platform): ?string
+    {
+        include_once APPPATH . '../inc/core/Whatsapp_call_campaign/Libraries/CallOutcome.php';
+        if (class_exists('Core\Whatsapp_call_campaign\Libraries\CallOutcome')) {
+            return \Core\Whatsapp_call_campaign\Libraries\CallOutcome::normalizePlatform($platform);
+        }
+        if (empty($platform)) return null;
+        $p = strtolower(trim($platform));
+        if (strncmp($p, 'sm', 2) === 0) return 'mobile';
+        return 'web';
     }
 
     private function isWithinScheduleWindow($campaign): bool

@@ -1,27 +1,177 @@
 <?php
 
+if (!function_exists('call_label_event')) {
+    /**
+     * Traduz o nome do evento da timeline para português amigável.
+     */
+    function call_label_event(string $event): string
+    {
+        $map = [
+            'placed'          => 'Ligação realizada',
+            'preaccepted'     => 'Aparelho do contato tocou',
+            'accepted'        => 'Atendeu',
+            'answered'        => 'Atendeu (áudio em fluxo)',
+            'audio_started'   => 'Começou a tocar o áudio',
+            'audio_finished'  => 'Áudio concluído',
+            'hangup_scheduled'=> 'Desligamento automático agendado',
+            'ended'           => 'Chamada encerrada',
+            'failed'          => 'Falha na ligação',
+            'rejected'        => 'Chamada recusada',
+            'terminated'      => 'Chamada encerrada',
+            'ring_timeout'    => 'Não atendeu (tempo esgotado)',
+        ];
+        return $map[$event] ?? $event;
+    }
+}
+
+if (!function_exists('call_label_status')) {
+    /**
+     * Traduz o status do lead para português amigável.
+     */
+    function call_label_status(string $status): string
+    {
+        $map = [
+            'pending'   => 'Pendente',
+            'ringing'   => 'Chamando',
+            'answered'  => 'Atendeu',
+            'no_answer' => 'Não atendeu',
+            'busy'      => 'Ocupado',
+            'failed'    => 'Falhou',
+            'cancelled' => 'Cancelada',
+        ];
+        return $map[$status] ?? $status;
+    }
+}
+
+if (!function_exists('call_label_platform')) {
+    /**
+     * Traduz a plataforma do atendimento para português amigável.
+     */
+    function call_label_platform(?string $platform): string
+    {
+        $map = [
+            'mobile' => '📱 Celular',
+            'web'    => '💻 WhatsApp Web',
+        ];
+        return $map[$platform] ?? '—';
+    }
+}
+
+if (!function_exists('call_label_reason')) {
+    /**
+     * Traduz o motivo do encerramento da chamada para português amigável.
+     */
+    function call_label_reason(?string $reason): string
+    {
+        if (empty($reason)) return '';
+        $lower = strtolower(trim($reason));
+        $map = [
+            'ring_timeout' => 'não atendeu (tempo esgotado)',
+            'hangup'       => 'desligada pelo sistema',
+            'rejected'     => 'recusada pelo contato',
+            'busy'         => 'linha ocupada',
+            'timeout'      => 'tempo esgotado',
+        ];
+        if (isset($map[$lower])) return $map[$lower];
+        // Motivos de servidor: "server:463" -> "erro do servidor (463)"
+        if (strpos($lower, 'server:') === 0) {
+            return 'erro do servidor (' . substr($reason, 7) . ')';
+        }
+        if (stripos($lower, 'no devices') !== false || stripos($lower, 'unreachable') !== false) {
+            return 'sem WhatsApp / inalcançável';
+        }
+        return $reason;
+    }
+}
+
+if (!function_exists('call_label_hangup_source')) {
+    /**
+     * Traduz a origem do desligamento para português amigável.
+     */
+    function call_label_hangup_source(?string $source): string
+    {
+        $map = [
+            'auto'         => 'Automático',
+            'peer'         => 'Desligado pelo contato',
+            'server'       => 'Desligado pelo servidor',
+            'ring_timeout' => 'Tempo de toque esgotado',
+            'worker'       => 'Cancelado pelo sistema',
+        ];
+        return $map[$source] ?? ($source ?: '');
+    }
+}
+
+if (!function_exists('call_translations_json')) {
+    /**
+     * Devolve o mapa de traduções como JSON para uso no JavaScript da view.
+     */
+    function call_translations_json(): string
+    {
+        $data = [
+            'events' => [
+                'placed' => 'Ligação realizada',
+                'preaccepted' => 'Aparelho do contato tocou',
+                'accepted' => 'Atendeu',
+                'answered' => 'Atendeu (áudio em fluxo)',
+                'audio_started' => 'Começou a tocar o áudio',
+                'audio_finished' => 'Áudio concluído',
+                'hangup_scheduled' => 'Desligamento automático agendado',
+                'ended' => 'Chamada encerrada',
+                'failed' => 'Falha na ligação',
+                'rejected' => 'Chamada recusada',
+                'terminated' => 'Chamada encerrada',
+                'ring_timeout' => 'Não atendeu (tempo esgotado)',
+            ],
+            'status' => [
+                'pending' => 'Pendente',
+                'ringing' => 'Chamando',
+                'answered' => 'Atendeu',
+                'no_answer' => 'Não atendeu',
+                'busy' => 'Ocupado',
+                'failed' => 'Falhou',
+                'cancelled' => 'Cancelada',
+            ],
+            'platform' => [
+                'mobile' => '📱 Celular',
+                'web' => '💻 WhatsApp Web',
+            ],
+            'reasons' => [
+                'ring_timeout' => 'não atendeu (tempo esgotado)',
+                'hangup' => 'desligada pelo sistema',
+                'rejected' => 'recusada pelo contato',
+                'busy' => 'linha ocupada',
+                'timeout' => 'tempo esgotado',
+            ],
+        ];
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
+}
+
 if (!function_exists('call_normalize_phone')) {
     /**
      * Normaliza telefone brasileiro para formato WhatsApp JID.
-     * Aplica regra do 9º dígito:
-     *   DDD >= 31: remove o 9 (ex: 558694482065 → 558694482065)
-     *   DDD <= 30: mantém o 9 (ex: 5521999999999 → 5521999999999)
+     *
+     * Regra do 9º dígito (Anatel, correta):
+     *   - Celulares brasileiros têm 9 dígitos (55 + DDD + 9xxxxxxxx).
+     *   - Se o número brasileiro (DDI 55) tem 8 dígitos locais iniciando com
+     *     6/7/8/9, ADICIONA o '9' após o DDD.
+     *   - NUNCA remove o 9º dígito: removê-lo transforma um celular em número
+     *     de fixo (sem WhatsApp) e faz a chamada falhar com "usync no LID".
      */
     function call_normalize_phone(string $phone): string
     {
         $clean = preg_replace('/[^0-9]/', '', $phone);
 
-        // Adiciona 55 se não tiver
+        // Adiciona 55 se não tiver (número local com DDD + 8/9 dígitos)
         if (strlen($clean) >= 10 && strlen($clean) <= 11 && substr($clean, 0, 2) !== '55') {
             $clean = '55' . $clean;
         }
 
-        // Formato: 55 + DDD (2 dígitos) + número
-        if (strlen($clean) >= 12 && substr($clean, 0, 2) === '55') {
-            $ddd = intval(substr($clean, 2, 2));
-            // DDD >= 31: WhatsApp usa SEM nono dígito
-            if ($ddd >= 31 && strlen($clean) === 13 && $clean[4] === '9') {
-                $clean = substr($clean, 0, 4) . substr($clean, 5);
+        // Adiciona o 9º dígito quando é celular brasileiro com 8 dígitos locais
+        if (substr($clean, 0, 2) === '55' && strlen($clean) === 12) {
+            $localNumber = substr($clean, 6); // últimos 8 dígitos (após DDI + DDD)
+            if (strlen($localNumber) === 8 && in_array(substr($localNumber, 0, 1), ['6', '7', '8', '9'], true)) {
+                $clean = substr($clean, 0, 4) . '9' . substr($clean, 4);
             }
         }
 

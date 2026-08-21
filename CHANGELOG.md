@@ -1,3 +1,14 @@
+## v8.5.23 — 21/08/2026
+
+**Feat: Relatório de ligação por etapa, timeline auditável, ring timeout no gateway e reconciliação assíncrona**
+
+- Gateway Go: adicionado `ring_timeout` no gateway, timeline de eventos por chamada, plataforma (mobile/web) via handler whatsmeow, motivos de encerramento detalhados.
+- Worker PHP (`CallCampaignWorker`): reconciliação assíncrona não bloqueante nos 3 modos (fila, simultâneo, alternado), cancelamento no gateway ao estourar timeout, gravação da timeline em `sp_call_events`.
+- Banco: criada a tabela `sp_call_events` e adicionadas colunas `platform`, `heard_full_audio`, `hangup_source`, `ring_duration_seconds`, `last_error` em `sp_call_leads`.
+- UI: resultados da campanha exibem timeline traduzida para português amigável (etapas, plataforma 📱/💻, ouviu áudio, motivos).
+
+---
+
 ## v8.5.22 — 21/08/2026
 
 **Refactor & Clean: Limpeza de referências Baileys e módulo de ligação exclusivo Go**

@@ -94,6 +94,38 @@ type StatusInfo struct {
 	Uptime   string `json:"uptime,omitempty"`
 }
 
+// CallEventListener recebe eventos do ciclo de vida de chamadas vindos do client
+// whatsmeow (CallPreAccept/CallAccept), para que o pacote http (relatório de
+// chamadas) correlacione por CallID e registre plataforma/timeline — sem acoplar
+// o pacote session ao pacote http (evita ciclo de import).
+type CallEventListener func(instanceID, callID, event, platform, reason string)
+
+var (
+	callEventMu        sync.RWMutex
+	callEventListeners []CallEventListener
+)
+
+// RegisterCallEventListener adiciona um listener de eventos de chamada (aditivo).
+func (m *Manager) RegisterCallEventListener(fn CallEventListener) {
+	if fn == nil {
+		return
+	}
+	callEventMu.Lock()
+	callEventListeners = append(callEventListeners, fn)
+	callEventMu.Unlock()
+}
+
+// emitCallEvent dispara o evento para todos os listeners registrados.
+func emitCallEvent(instanceID, callID, event, platform, reason string) {
+	callEventMu.RLock()
+	listeners := make([]CallEventListener, len(callEventListeners))
+	copy(listeners, callEventListeners)
+	callEventMu.RUnlock()
+	for _, fn := range listeners {
+		fn(instanceID, callID, event, platform, reason)
+	}
+}
+
 // ConnectionResult é o resultado unificado do processo de pareamento.
 // O WhatsApp pode enviar QR Code ou desafio Passkey — ambos retornam pelo mesmo endpoint.
 type ConnectionResult struct {
@@ -655,6 +687,18 @@ func (m *Manager) handleEvent(instanceID string, evt interface{}) {
 		inst.State = StateDisconnected
 		m.mu.Unlock()
 		logging.Log.Error().Err(v.Error).Bool("continuation", v.Continuation).Str("instance", instanceID).Msg("Passkey error")
+
+	// Ciclo de vida de chamada (relatório de chamadas): captura plataforma e
+	// transições do peer. O pacote http registra um CallEventListener para gravar
+	// a timeline na callEntry. Aditivo: não interfere no meowcaller.
+	case *events.CallPreAccept:
+		emitCallEvent(instanceID, v.CallID, "preaccepted", v.RemotePlatform, "")
+	case *events.CallAccept:
+		emitCallEvent(instanceID, v.CallID, "accepted", v.RemotePlatform, "")
+	case *events.CallReject:
+		emitCallEvent(instanceID, v.CallID, "rejected", "", "")
+	case *events.CallTerminate:
+		emitCallEvent(instanceID, v.CallID, "terminated", "", v.Reason)
 	}
 
 	m.recv.HandleEvent(instanceID, evt)

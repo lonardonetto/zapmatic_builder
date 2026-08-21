@@ -23,6 +23,7 @@ func NewRouter(rt *runtime.Runtime, apiKey string) *Router {
 		sender: sender.New(rt.Session()),
 		apiKey: apiKey,
 	}
+	RegisterCallEventBridge(rt)
 	r.mux.HandleFunc("/health", r.corsMiddleware(r.handleHealth))
 	r.mux.HandleFunc("/capabilities", r.corsMiddleware(r.handleCapabilities))
 	r.mux.HandleFunc("/status", r.corsMiddleware(r.authGuard(r.handleStatus)))

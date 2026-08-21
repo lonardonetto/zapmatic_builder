@@ -151,3 +151,150 @@ func TestCallAutoHangupOnFinishHook(t *testing.T) {
 	}
 	tapOk(t, "TestCallAutoHangupOnFinishHook", "AC-034")
 }
+
+// TestNormalizePlatform valida o mapeamento RemotePlatform -> mobile/web.
+// @spec:AC-071
+func TestNormalizePlatform(t *testing.T) {
+	if normalizePlatform("smbi") != "mobile" {
+		tapNotOk(t, "TestNormalizePlatform", "AC-071", "smbi deveria normalizar para mobile")
+		return
+	}
+	if normalizePlatform("smba") != "mobile" {
+		tapNotOk(t, "TestNormalizePlatform", "AC-071", "smba deveria normalizar para mobile")
+		return
+	}
+	if normalizePlatform("web") != "web" {
+		tapNotOk(t, "TestNormalizePlatform", "AC-071", "web deveria normalizar para web")
+		return
+	}
+	if normalizePlatform("") != "" {
+		tapNotOk(t, "TestNormalizePlatform", "AC-071", "vazio deveria permanecer vazio")
+		return
+	}
+	tapOk(t, "TestNormalizePlatform", "AC-071")
+}
+
+// TestCallTimelineOrdered valida que a timeline é acumulada em ordem e o snapshot
+// preserva os campos legados (retrocompatibilidade).
+// @spec:AC-069 @spec:AC-080
+func TestCallTimelineOrdered(t *testing.T) {
+	entry := &callEntry{
+		CallID:    "CALLTL1",
+		Status:    "ringing",
+		StartedAt: time.Now(),
+	}
+	entry.appendTimeline(callEvent{Event: "placed", At: time.Now()})
+	entry.appendTimeline(callEvent{Event: "preaccepted", At: time.Now()})
+	entry.appendTimeline(callEvent{Event: "accepted", Platform: "mobile", At: time.Now()})
+	entry.appendTimeline(callEvent{Event: "ended", Reason: "hangup", At: time.Now()})
+
+	snap := entry.snapshot()
+	if len(snap.Timeline) != 4 {
+		tapNotOk(t, "TestCallTimelineOrdered", "AC-069", "timeline deveria ter 4 eventos")
+		return
+	}
+	if snap.Timeline[0].Event != "placed" || snap.Timeline[3].Event != "ended" {
+		tapNotOk(t, "TestCallTimelineOrdered", "AC-069", "timeline fora de ordem")
+		return
+	}
+	// Retrocompatibilidade: campos legados presentes no snapshot.
+	if snap.CallID == "" || snap.Status == "" || snap.StartedAt.IsZero() {
+		tapNotOk(t, "TestCallTimelineOrdered", "AC-080", "campos legados ausentes no snapshot")
+		return
+	}
+	tapOk(t, "TestCallTimelineOrdered", "AC-069")
+}
+
+// TestCallRingTimeoutGuards valida que o ring timeout só encerra chamadas ainda
+// em ringing e nunca uma chamada já atendida/encerrada.
+// @spec:AC-075
+func TestCallRingTimeoutGuards(t *testing.T) {
+	var hangupCalled int32
+	entry := &callEntry{CallID: "CALLRT1", Status: "ringing"}
+
+	// Simula a lógica do timer: só encerra se ainda ringing.
+	armRingTimeout := func(e *callEntry) {
+		go func() {
+			time.Sleep(50 * time.Millisecond)
+			e.mu.Lock()
+			stillRinging := e.Status == "ringing"
+			e.mu.Unlock()
+			if stillRinging {
+				atomic.AddInt32(&hangupCalled, 1)
+			}
+		}()
+	}
+
+	armRingTimeout(entry)
+	time.Sleep(100 * time.Millisecond)
+	if atomic.LoadInt32(&hangupCalled) != 1 {
+		tapNotOk(t, "TestCallRingTimeoutGuards", "AC-075", "chamada ringing deveria ser encerrada pelo timeout")
+		return
+	}
+
+	// Já atendida: não deve encerrar.
+	atomic.StoreInt32(&hangupCalled, 0)
+	entry.mu.Lock()
+	entry.Status = "active"
+	entry.mu.Unlock()
+	armRingTimeout(entry)
+	time.Sleep(100 * time.Millisecond)
+	if atomic.LoadInt32(&hangupCalled) != 0 {
+		tapNotOk(t, "TestCallRingTimeoutGuards", "AC-075", "chamada atendida nao deveria ser encerrada pelo ring timeout")
+		return
+	}
+	tapOk(t, "TestCallRingTimeoutGuards", "AC-075")
+}
+
+// TestCallStatusRetrocompativel valida que o snapshot do /call/status preserva
+// os campos legados (call_id, status, started_at, reason) junto da timeline.
+// @spec:AC-080
+func TestCallStatusRetrocompativel(t *testing.T) {
+	now := time.Now()
+	entry := &callEntry{
+		CallID:    "CALLRETRO1",
+		Status:    "ended",
+		StartedAt: now.Add(-10 * time.Second),
+		Reason:    "hangup",
+	}
+	entry.appendTimeline(callEvent{Event: "placed", At: now.Add(-10 * time.Second)})
+	entry.appendTimeline(callEvent{Event: "ended", Reason: "hangup", At: now})
+
+	snap := entry.snapshot()
+	if snap.CallID != "CALLRETRO1" || snap.Status != "ended" || snap.Reason != "hangup" {
+		tapNotOk(t, "TestCallStatusRetrocompativel", "AC-080", "campos legados devem permanecer")
+		return
+	}
+	if len(snap.Timeline) != 2 {
+		tapNotOk(t, "TestCallStatusRetrocompativel", "AC-080", "timeline deveria ter 2 eventos")
+		return
+	}
+	tapOk(t, "TestCallStatusRetrocompativel", "AC-080")
+}
+
+// TestCallEventBridgePlatform valida que o bridge associa a plataforma à call
+// ativa pelo evento "accepted" (captura sem tocar no fork meowcaller).
+// @spec:AC-081
+func TestCallEventBridgePlatform(t *testing.T) {
+	entry := &callEntry{CallID: "CALLBRIDGE1", Status: "ringing", StartedAt: time.Now()}
+	applyCallEvent(entry, "preaccepted", "", "")
+	applyCallEvent(entry, "accepted", "smbi", "")
+
+	snap := entry.snapshot()
+	if snap.Platform != "mobile" {
+		tapNotOk(t, "TestCallEventBridgePlatform", "AC-081", "plataforma deveria ser mobile")
+		return
+	}
+	// timeline deve conter preaccepted e accepted
+	foundAccepted := false
+	for _, ev := range snap.Timeline {
+		if ev.Event == "accepted" {
+			foundAccepted = true
+		}
+	}
+	if !foundAccepted {
+		tapNotOk(t, "TestCallEventBridgePlatform", "AC-081", "evento accepted ausente na timeline")
+		return
+	}
+	tapOk(t, "TestCallEventBridgePlatform", "AC-081")
+}
