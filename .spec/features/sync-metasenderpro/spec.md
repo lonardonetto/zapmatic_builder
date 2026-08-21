@@ -1119,6 +1119,56 @@ Adicionada a definicao `<?php $number_accounts = (int)permission("number_account
 
 ---
 
+## 4.19 Pendente — Re-sincronizar TODOS os sistemas com os ajustes atuais (2026-08-20)
+
+> **Status:** PENDENTE (sera executado quando o usuario solicitar).
+
+Os ajustes feitos nesta rodada (fix call-id meowcaller, fix `oauth.php`/Central de Conexao e o ajuste de filtro de instancias do modulo de ligacao abaixo) precisam ser propagados para **todos** os tenants (locais e remotos), mantendo a paridade com o main v8.5.21.
+
+### 4.19.1 Escopo da re-sincronizacao
+
+Para cada tenant (seguindo o template da secao 2 + checklist da secao 6):
+
+1. **Codigo PHP/views** — rsync de `inc/`, `app/`, `assets/`, `migrations/`, `sql/`, `.spec/`, `docs/`, `_bmad/` (preservando `.env`, `writable/`, sessions).
+2. **Gateway Go** — rsync de `app_zapmatic_whatsmeow_api/` (incluindo `go.mod`/`go.sum` com o `replace` do fork) + recompilacao `CGO_ENABLED=1 -mod=vendor` no servidor.
+3. **Fork meowcaller** — o `go.mod` agora aponta para `github.com/lonardonetto/meowcaller v0.0.1-callid` (correlacao por stanza id); nao ha mais patch manual no `vendor/`.
+4. **Restart** — systemd (gateway Go) + php-fpm do tenant (limpar OPcache).
+5. **Testes** — `/health`, `/call/list`, web 200, DB 76 tabelas, ligacao + auto-hangup.
+
+### 4.19.2 Ajuste adicional — Modulo de ligacao lista APENAS contas Go (Cloud API fora)
+
+> **Motivo:** o recurso de ligacao de voz usa a **API Go (whatsmeow)**. A Cloud API nao faz chamadas de voz — logo nao deve aparecer como opcao de disparo no modulo de ligacao.
+
+**O que foi mudado (ja aplicado no main):** no controller `inc/core/Whatsapp_call_campaign/Controllers/Whatsapp_call_campaign.php`, os 3 filtros de instancias passaram de `login_type => [1, 3]` para `login_type => [3]` (apenas Go). Validado com `php -l` (sem erro de sintaxe).
+
+| Linha | Contexto | De | Para |
+|---|---|---|---|
+| 67 | `index()` | `[1, 3]` | `[3]` |
+| 103 | `create()` | `[1, 3]` | `[3]` |
+| 350 | `edit()` | `[1, 3]` | `[3]` |
+
+> **Lembretes de valores `login_type`:** `1` = Cloud API Official, `2` = Baileys, `3` = Whatsmeow (Go).
+
+> **Status:** aplicado no main (commit pendente de push); os tenants receberao na re-sincronizacao da secao 4.19.1.
+
+### 4.19.3 Tenants a re-sincronizar
+
+| # | Tenant | Local/Remoto | Status |
+|---|---|---|---|
+| 1 | MetaSenderPro | remoto (92.113.149.185) | **ja recebeu** call-id + oauth (falta apenas o filtro `[3]` do modulo de ligacao) |
+| 2 | Astros | local | pendente |
+| 3 | Paulo | local | pendente |
+| 4 | Elias | local | pendente |
+| 5 | Renovo | local | pendente |
+| 6 | AgenciaMCW (Frank) | remoto (144.22.167.45) | pendente |
+| 7 | Kivozap | remoto (144.22.167.45) | pendente |
+| 8 | Chatbut | remoto (144.22.167.45) | pendente (tem pendencia de reconectar QR) |
+| 9 | PlusZap | remoto (92.113.144.161) | pendente (muito defasado) |
+| 10 | IaClicks | remoto (45.148.29.92) | pendente (defasado) |
+| 11 | Elite | remoto (193.180.211.190) | pendente (muito defasado) |
+
+---
+
 ## 5. Scripts Auxiliares
 
 ### 5.1 Comparacao de Colunas (Python)

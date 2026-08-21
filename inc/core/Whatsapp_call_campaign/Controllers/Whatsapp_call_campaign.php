@@ -64,7 +64,7 @@ class Whatsapp_call_campaign extends Controller
         $accounts = db_fetch("*", TB_ACCOUNTS, [
             "social_network" => "whatsapp",
             "category" => "profile",
-            "login_type" => [1, 3],
+            "login_type" => [3],
             "team_id" => $team_id,
             "status" => 1
         ], "created", "ASC");
@@ -100,7 +100,7 @@ class Whatsapp_call_campaign extends Controller
 
         $accounts = db_fetch("*", TB_ACCOUNTS, [
             "social_network" => "whatsapp", "category" => "profile",
-            "login_type" => [1, 3], "team_id" => $team_id, "status" => 1
+            "login_type" => [3], "team_id" => $team_id, "status" => 1
         ], "created", "ASC");
 
         $audios = $this->db->table(self::TB_AUDIOS)
@@ -347,7 +347,7 @@ class Whatsapp_call_campaign extends Controller
 
         $accounts = db_fetch("*", TB_ACCOUNTS, [
             "social_network" => "whatsapp", "category" => "profile",
-            "login_type" => [1, 3], "team_id" => $team_id, "status" => 1
+            "login_type" => [3], "team_id" => $team_id, "status" => 1
         ], "created", "ASC");
 
         $audios = $this->db->table(self::TB_AUDIOS)
