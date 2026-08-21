@@ -3,7 +3,7 @@
  * Script de diagnóstico para verificar se a tabela de status existe e se há dados sendo gravados.
  *
  * O tracking de status só grava quando o envio é feito via Cloud API (login_type=1).
- * Campanhas com Baileys (login_type=2) não geram registros.
+ * Campanhas com contas locais (Go, login_type=3) não geram registros.
  */
 
 if (!function_exists('diagnostic_status_table')) {
@@ -91,7 +91,7 @@ if (!function_exists('diagnostic_status_table')) {
             $result['error_last'] = $e->getMessage();
         }
 
-        // 6. Contas da campanha e tipo (Cloud vs Baileys)
+        // 6. Contas da campanha e tipo (Cloud vs local/Go)
         $result['campaign_accounts'] = [];
         $result['uses_cloud'] = false;
         if ($schedule_item && !empty($schedule_item->accounts)) {
@@ -107,7 +107,7 @@ if (!function_exists('diagnostic_status_table')) {
                         'id' => $acc['id'],
                         'name' => $acc['name'],
                         'login_type' => (int)($acc['login_type'] ?? 0),
-                        'tipo' => ($acc['login_type'] == 1) ? 'Cloud API (grava status)' : (($acc['login_type'] == 3) ? 'Whatsmeow/Go (não grava status)' : 'Baileys (não grava status)'),
+                        'tipo' => ($acc['login_type'] == 1) ? 'Cloud API (grava status)' : (($acc['login_type'] == 3) ? 'Whatsmeow/Go (não grava status)' : 'Local/legado (não grava status)'),
                     ];
                     if (($acc['login_type'] ?? 0) == 1) {
                         $result['uses_cloud'] = true;
@@ -116,8 +116,8 @@ if (!function_exists('diagnostic_status_table')) {
             }
         }
         $result['diagnostico'] = $result['uses_cloud']
-            ? 'A campanha usa Cloud API. Se total_records=0, o Node.js pode estar falhando ao gravar ou o disparo ainda não passou por process_send_message.'
-            : 'A campanha usa apenas Baileys. O tracking de status só funciona para contas Cloud API (login_type=1). Selecione uma conta Cloud na campanha para ver os status.';
+            ? 'A campanha usa Cloud API. Se total_records=0, o gateway pode estar falhando ao gravar ou o disparo ainda não passou por process_send_message.'
+            : 'A campanha não usa conta Cloud API. O tracking de status só funciona para contas Cloud API (login_type=1). Selecione uma conta Cloud na campanha para ver os status.';
 
         return $result;
     }

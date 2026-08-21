@@ -20,7 +20,7 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         ];
 
         $team_id = get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 3], "team_id" => $team_id, "status" => 1], "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -38,7 +38,7 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         $team_id = get_team("id");
         $access_token = get_team("ids");
         $ids = post("account");
-        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids, "team_id" => $team_id]);
+        $account = db_get("*", TB_ACCOUNTS, ["social_network" => "whatsapp", "login_type" => [1, 3], "ids" => $ids, "team_id" => $team_id]);
 
         if (!empty($account) || $ids == "all") {
             $result = false;
@@ -209,7 +209,7 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
         }
 
         if (!empty($account)) {
-            // Verifica se é Cloud API (login_type = 1), Baileys (login_type = 2) ou Whatsmeow (login_type = 3)
+            // Verifica se é Cloud API (login_type = 1), Go/whatsmeow (login_type = 3) ou legado
             if ($account->login_type == 3) {
                 switch ($type) {
                     case 1: // Texto

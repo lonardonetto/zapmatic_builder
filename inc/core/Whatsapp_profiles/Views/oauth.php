@@ -441,7 +441,7 @@
                                             $display_name = trim((string) ($value->pid ?? 'Perfil WhatsApp'));
                                         }
 
-                                        $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Baileys');
+                                        $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Local');
                                         $profile_type_color = $is_cloud ? 'success' : ($is_whatsmeow ? 'info' : 'primary');
                                         $profile_type_filter = $is_cloud ? 'cloud' : ($is_whatsmeow ? 'whatsmeow' : 'baileys');
 
@@ -491,7 +491,7 @@
                                                 <?php elseif ($is_whatsmeow): ?>
                                                     <div class="wa-local-note"><?php _e('Conexão via Whatsmeow (Go)') ?></div>
                                                 <?php else: ?>
-                                                    <div class="wa-local-note"><?php _e('Conexão local via Baileys') ?></div>
+                                                    <div class="wa-local-note"><?php _e('Conexão local') ?></div>
                                                 <?php endif; ?>
                                             </div>
 

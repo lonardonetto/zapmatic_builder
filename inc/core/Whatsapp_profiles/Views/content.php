@@ -134,7 +134,7 @@
                 $is_cloud = $lt === 1;
                 $is_whatsmeow = $lt === 3;
                 $is_connected = (int)($account->status ?? 0) === 1;
-                $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Baileys');
+                $profile_type_label = $is_cloud ? 'Cloud API' : ($is_whatsmeow ? 'Go / Whatsmeow' : 'Local');
                 $profile_type_color = $is_cloud ? 'success' : ($is_whatsmeow ? 'info' : 'primary');
                 $profile_type_filter = $is_cloud ? 'cloud' : ($is_whatsmeow ? 'whatsmeow' : 'baileys');
                 $displayName = !empty($account->name) ? $account->name : str_replace('@s.whatsapp.net', '', $account->pid);
@@ -178,7 +178,7 @@
                         <?php elseif ($is_whatsmeow): ?>
                             <div class="wa-local-note"><i class="fas fa-server me-1"></i><?php _e('Conexão via Whatsmeow (Go)') ?></div>
                         <?php else: ?>
-                            <div class="wa-local-note"><i class="fas fa-qrcode me-1"></i><?php _e('Conexão local via Baileys') ?></div>
+                            <div class="wa-local-note"><i class="fas fa-qrcode me-1"></i><?php _e('Conexão local') ?></div>
                         <?php endif; ?>
                     </div>
 

@@ -1111,7 +1111,7 @@ public function save_bot_settings()
             // ★ Extract the actual sender's phone number (wa_phone)
             $sender_jid = !empty($message['key']['participant']) ? $message['key']['participant'] : ($message['key']['remoteJid'] ?? '');
             
-            // USE participantAlt if available (Baileys puts the real phone number here)
+            // USE participantAlt if available (the real phone number is placed here)
             if (!empty($message['key']['participantAlt'])) {
                 $sender_jid = $message['key']['participantAlt'];
             }
@@ -3151,7 +3151,7 @@ private function get_group_name($group_id, $instance_id)
             }
         } catch (\Throwable $e) {}
 
-        // Se a lista de grupos ainda estiver vazia, tenta o fallback do Baileys
+        // Se a lista de grupos ainda estiver vazia, tenta o fallback do gateway Go
         if (empty($group_list)) {
             try {
                 if (function_exists('wa_get_curl')) {

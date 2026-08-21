@@ -26,7 +26,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         ];
 
         $team_id = (int)get_team("id");
-        $accounts = db_fetch("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam([ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 2, 3], "status" => 1], $team_id), "created", "ASC");
+        $accounts = db_fetch("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam([ "social_network" => "whatsapp", "category" => "profile", "login_type" => [1, 3], "status" => 1], $team_id), "created", "ASC");
         permission_accounts($accounts);
 
         $data_content = [
@@ -161,7 +161,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
         $team_id = get_team("id");
         $access_token = get_team("ids");
         $ids = post("account");
-        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $ids], (int)$team_id));
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 3], "ids" => $ids], (int)$team_id));
 
         if(!empty($account)){
             // Fallback para contas Go onde username fica vazio e o numero real está no pid
@@ -209,7 +209,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     public function export_group($account_id = false, $group_id = false){
         $team_id = get_team("id");
         $access_token = get_team("ids");
-        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], (int)$team_id));
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 3], "ids" => $account_id], (int)$team_id));
     
         if(!empty($account)){
             $result = $this->fetch_groups($account, $access_token);
@@ -269,7 +269,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     {
         $team_id = (int)get_team("id");
         $access_token = get_team("ids");
-        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], (int)$team_id));
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 3], "ids" => $account_id], (int)$team_id));
 
         if (empty($account)) {
             ms([
@@ -407,7 +407,7 @@ class Whatsapp_export_participants extends \CodeIgniter\Controller
     {
         $team_id = (int)get_team("id");
         $access_token = get_team("ids");
-        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 2, 3], "ids" => $account_id], $team_id));
+        $account = db_get("*", TB_ACCOUNTS, \Core\Whatsapp_export_participants\Libraries\AccountScope::withTeam(["social_network" => "whatsapp", "login_type" => [1, 3], "ids" => $account_id], $team_id));
 
         if (empty($account)) {
             ms([

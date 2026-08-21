@@ -28,7 +28,7 @@ defined('TB_WHATSAPP_FLOW_ENDPOINTS') || define('TB_WHATSAPP_FLOW_ENDPOINTS', 's
  * Tipos de templates no `sp_whatsapp_template`.
  *
  * Observação:
- * - A tabela é compartilhada entre Baileys (templates internos) e Cloud API (templates oficiais).
+ * - A tabela é compartilhada entre templates internos (Go) e Cloud API (templates oficiais).
  * - Para evitar duplicação de tabelas no SaaS, reservamos types específicos para o fluxo oficial Meta.
  */
 defined('WA_TEMPLATE_TYPE_META_APPROVED') || define('WA_TEMPLATE_TYPE_META_APPROVED', 6); // Templates oficiais aprovados (por WABA/idioma)
@@ -40,7 +40,7 @@ defined('WA_TEMPLATE_TYPE_META_DRAFT') || define('WA_TEMPLATE_TYPE_META_DRAFT', 
  *
  * Observação:
  * - O canal primário da operação é Cloud API.
- * - O Baileys entrará depois como camada de compatibilidade.
+ * - O Go (whatsmeow) é a camada local de envio.
  */
 defined('WA_FLOW_STATUS_LOCAL_DRAFT') || define('WA_FLOW_STATUS_LOCAL_DRAFT', 'draft');
 defined('WA_FLOW_STATUS_LOCAL_READY') || define('WA_FLOW_STATUS_LOCAL_READY', 'ready');

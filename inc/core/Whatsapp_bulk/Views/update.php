@@ -91,7 +91,7 @@
             <div class="card-body position-relative">
                 <div class="mb-3">
                     <label class="form-label"><?php _e("Select WhatsApp accounts")?></label>
-                    <?php echo view_cell('\Core\Account_manager\Controllers\Account_manager::widget', [ "whereIn" => ["id" => json_decode( get_data($result, "accounts") ) ] ,"wheres" => ["social_network" => "whatsapp", "login_type" => [1, 2, 3], "status" => 1, "team_id" => get_team("id")] ]) ?>
+                    <?php echo view_cell('\Core\Account_manager\Controllers\Account_manager::widget', [ "whereIn" => ["id" => json_decode( get_data($result, "accounts") ) ] ,"wheres" => ["social_network" => "whatsapp", "login_type" => [1, 3], "status" => 1, "team_id" => get_team("id")] ]) ?>
                 </div>
                 <div class="alert alert-warning d-none mb-3" id="call-campaign-account-hint">
                     <div class="fw-600"><?php _e("Baileys accounts only")?></div>

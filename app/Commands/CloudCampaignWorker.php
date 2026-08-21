@@ -124,7 +124,7 @@ class CloudCampaignWorker extends BaseCommand
         }
 
         // So processamos aqui campanhas 100% Cloud API. Se houver qualquer conta
-        // Whatsmeow/Baileys, deixamos o Go seguir cuidando (comportamento atual).
+        // Whatsmeow/Go, deixamos o Go seguir cuidando (comportamento atual).
         if (!$this->isAllCloud($accounts)) {
             return;
         }
