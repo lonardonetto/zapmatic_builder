@@ -1374,20 +1374,19 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     $insertData = (array)$item;
                 }
 
-                $result = db_insert(TB_WHATSAPP_SCHEDULES, $insertData);
-                $newScheduleId = db_insert_id();
+                $newScheduleId = db_insert(TB_WHATSAPP_SCHEDULES, $insertData);
 
-                if ($result && $newScheduleId > 0 && $targetType === 'groups') {
+                if ($newScheduleId && (int)$newScheduleId > 0 && $targetType === 'groups') {
                     $originalGroups = db_fetch("*", "sp_whatsapp_schedule_groups", ["schedule_id" => $originalId]);
                     if (!empty($originalGroups)) {
                         if (class_exists('Core\Whatsapp_bulk\Libraries\BulkDuplicator')) {
-                            $groupRecords = \Core\Whatsapp_bulk\Libraries\BulkDuplicator::prepareGroupRecords($originalGroups, $newScheduleId);
+                            $groupRecords = \Core\Whatsapp_bulk\Libraries\BulkDuplicator::prepareGroupRecords($originalGroups, (int)$newScheduleId);
                         } else {
                             $groupRecords = [];
                             foreach ($originalGroups as $g) {
                                 $row = (array)$g;
                                 unset($row['id']);
-                                $row['schedule_id'] = $newScheduleId;
+                                $row['schedule_id'] = (int)$newScheduleId;
                                 $groupRecords[] = $row;
                             }
                         }
@@ -1397,7 +1396,7 @@ class Whatsapp_bulk extends \CodeIgniter\Controller
                     }
                 }
                 
-                if(!$result){
+                if(!$newScheduleId){
                     ms([
                         "status" => "error",
                         "message" => __('Failed to duplicate campaign')

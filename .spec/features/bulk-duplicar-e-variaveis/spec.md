@@ -1,7 +1,7 @@
 # Spec: Duplicação de Campanhas de Bulk Continuada e Substituição de Variáveis de Planilha
 
 > feature: bulk-duplicar-e-variaveis
-> status: rascunho
+> status: concluido
 
 ## Contexto
 

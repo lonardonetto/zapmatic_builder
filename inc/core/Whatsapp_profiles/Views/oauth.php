@@ -2344,10 +2344,14 @@ function clearEmbeddedSignupData() {
 function storeEmbeddedSignupData(data) {
     if (!data || typeof data !== 'object') return;
 
-    _embeddedSignupData = data;
+    var current = getEmbeddedSignupData() || {};
+    if (data.waba_id) current.waba_id = data.waba_id;
+    if (data.phone_number_id) current.phone_number_id = data.phone_number_id;
+
+    _embeddedSignupData = current;
 
     try {
-        sessionStorage.setItem(_embeddedSignupStorageKey, JSON.stringify(data));
+        sessionStorage.setItem(_embeddedSignupStorageKey, JSON.stringify(current));
     } catch (e) {}
 }
 
@@ -2378,7 +2382,7 @@ function normalizeEmbeddedSignupEventPayload(payload) {
         }
     }
 
-    if (typeof payload !== 'object') {
+    if (typeof payload !== 'object' || payload === null) {
         return null;
     }
 
@@ -2388,6 +2392,23 @@ function normalizeEmbeddedSignupEventPayload(payload) {
 
     if (payload.data && typeof payload.data === 'object' && payload.data.type === 'WA_EMBEDDED_SIGNUP') {
         return payload.data;
+    }
+
+    // Extração flexível para Coexistence / Meta Embedded Signup V3 (sessionInfo)
+    var target = (payload.data && typeof payload.data === 'object') ? payload.data : (payload.sessionInfo && typeof payload.sessionInfo === 'object' ? payload.sessionInfo : payload);
+    var wabaId = target.waba_id || target.waba_account_id || payload.waba_id || payload.waba_account_id || '';
+    var phoneId = target.phone_number_id || target.phone_id || payload.phone_number_id || payload.phone_id || '';
+    var evt = payload.event || target.event || (payload.current_step === 'FINISH' || target.current_step === 'FINISH' ? 'FINISH' : '');
+
+    if (wabaId || phoneId || evt) {
+        return {
+            type: 'WA_EMBEDDED_SIGNUP',
+            event: evt || 'FINISH',
+            data: {
+                waba_id: wabaId,
+                phone_number_id: phoneId
+            }
+        };
     }
 
     return null;
@@ -2544,18 +2565,13 @@ function resetEmbeddedButton() {
 
 // Listener para eventos do Embedded Signup popup
 window.addEventListener('message', function(event) {
-    var allowedOrigins = [
-        "https://www.facebook.com",
-        "https://web.facebook.com",
-        "https://business.facebook.com"
-    ];
-    if (allowedOrigins.indexOf(event.origin) === -1) return;
+    if (!event.origin || !/(facebook\.com)$/i.test(event.origin.replace(/^https?:\/\//, ''))) return;
     try {
         var data = normalizeEmbeddedSignupEventPayload(event.data);
         if (!data) return;
 
         if (data.type === 'WA_EMBEDDED_SIGNUP') {
-            if (data.event === 'FINISH') {
+            if (data.event === 'FINISH' || (data.data && (data.data.waba_id || data.data.phone_number_id))) {
                 console.log('🎉 Embedded Signup FINISH:', data.data);
                 // Armazenar dados do FINISH para uso no AJAX
                 storeEmbeddedSignupData(data.data || {});
