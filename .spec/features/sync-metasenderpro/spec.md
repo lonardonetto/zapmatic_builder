@@ -1,10 +1,10 @@
 # Sincronizacao MetaSenderPro — Especificacao, Execucao e Template
 
 > **Status:** concluido  
-> **Data:** 2026-08-17 (primeira) / 2026-08-20 (atualizacao)  
+> **Data:** 2026-08-17 (primeira) / 2026-08-20 (atualizacao) / 2026-08-25 (v8.5.25)  
 > **Executado por:** Kilo (automatizado via SSH)  
-> **Versao resultante:** v8.5.18 (identico ao main)  
-> **Commit main:** `38a6049c`  
+> **Versao resultante:** v8.5.25 (identico ao main)  
+> **Commit main:** `a4b1ff2b`  
 > **Principio:** main Zapmatic (`zapmatic.tec.br`) e o laboratorio de desenvolvimento — todos os demais servidores devem ser identicos ao main em codigo, estrutura e comportamento, mas com credenciais proprias e autonomas.
 
 ---
@@ -270,7 +270,7 @@ sshpass -p '{SSH_PASS}' ssh {SSH_USER}@{SSH_IP} "
 | `{GO_PORT}` | 8101 | 8095 | 8096 | 8097 | 8098 | 8099 | 8100 |
 | `{TENANT}` | metasenderpro | kivozap | agenciamcw | chatbut | iaclicks | elite | pluszap |
 | `{TENANT_NAME}` | MetaSenderPro | Kivozap | AgenciaMCW | Chatbut | IaClicks | Elite | PlusZap |
-| **Status** | **CONCLUIDO (v8.5.18)** | pendente | pendente | **CONCLUIDO (v8.5.17)** | pendente | pendente | pendente |
+| **Status** | **CONCLUIDO (v8.5.25)** | pendente | pendente | **CONCLUIDO (v8.5.17)** | pendente | pendente | pendente |
 
 ---
 
@@ -1431,3 +1431,69 @@ for table in sorted(set(main.keys()) & set(tenant.keys())):
 - [ ] Verificar que PM2 nomes tem prefixo do destino
 - [ ] Verificar que `.env` nao contem `db_zapmatic_sql` nem `zapmatic.tec.br`
 - [ ] Executar todos os testes da secao 1.8 antes de marcar como concluido
+
+---
+
+## 4.22 Resultado da Atualizacao — MetaSenderPro (2026-08-25, v8.5.25)
+
+> Atualizacao completa para incorporar: fix onboarding Meta COEX (SessionInfo v3), duplicacao de campanha continuada, substituicao universal de variaveis de planilha, e correcoes no Embedded Signup.
+
+### 4.22.1 Banco de Dados
+
+| Item | Antes | Depois |
+|---|---|---|
+| Total de tabelas | 77 | 78 |
+| Tabelas adicionadas | — | `sp_call_events` |
+| Colunas adicionadas | — | `sp_call_leads.{platform, heard_full_audio, hangup_source, ring_duration_seconds, last_error}` |
+| Tabelas legado dropadas | 0 | 0 |
+
+### 4.22.2 Codigo
+
+| Pasta | Acao | Status |
+|---|---|---|
+| `inc/`, `app/`, `app_zapmatic_scraper/`, `app_zapmatic_whatsmeow_api/`, `assets/`, `migrations/`, `sql/`, `.spec/`, `docs/` | rsync completo via SSH (`--rsync-path="sudo rsync"`) | ✅ |
+| Root files | scp + sudo mv | ✅ |
+| `.env` | NAO substituido | ✅ preservado (`sql_metasenderpro_db`) |
+| `writable/` | NAO substituido | ✅ preservado |
+| `storage/sessions/` (SQLite) | NAO substituido | ✅ preservado |
+
+### 4.22.3 Go Binary
+
+| Item | Valor |
+|---|---|
+| Compilacao | `CGO_ENABLED=1` no proprio servidor |
+| Go version | 1.22.6 |
+| Includes | fix onboarding COEX, correlacao stanza id meowcaller |
+
+### 4.22.4 Credenciais (restauradas apos rsync)
+
+| Arquivo | Conteudo | Cross-ref main |
+|---|---|---|
+| `.env` | `sql_metasenderpro_db` / `sender.metanivelpro.com` | ✅ ZERO |
+| `config.json` | port 8101 / `sql_metasenderpro_db` / webhook `sender.metanivelpro.com` | ✅ ZERO |
+| `ecosystem.config.js` | prefixo `metasenderpro-` (4 workers) | ✅ ZERO |
+| systemd service | port 8101 | ✅ ZERO |
+
+### 4.22.5 Processos
+
+| Processo | Tipo | Status |
+|---|---|---|
+| `zapmatic-whatsmeow-metasenderpro` | systemd | ✅ active (port 8101) |
+| `metasenderpro-bot-worker-all` | PM2 | ✅ online |
+| `metasenderpro-call-worker` | PM2 | ✅ online |
+| `metasenderpro-gmscraper` | PM2 | ✅ online |
+| `metasenderpro-cloud-campaign-worker` | PM2 | ✅ online |
+
+### 4.22.6 Testes Executados
+
+| Teste | Resultado | Detalhe |
+|---|---|---|
+| Go health | ✅ OK | `{"connected":0,"provider":"whatsmeow","status":"ok","total_instances":5,"version":"0.1.0"}` |
+| Web interface | ✅ 200 | `https://sender.metanivelpro.com/` |
+| DB tables | ✅ 78 | Identico ao main |
+| Credenciais | ✅ limpo | Nenhum dado do main no config.json/.env |
+| PM2 | ✅ 4 online | Prefixo `metasenderpro-` |
+| Systemd | ✅ active | Port 8101 |
+| Versao | ✅ 8.5.25 | Identica ao main |
+
+> **Nota:** `connected:0` no health check indica que as 5 instancias WhatsApp existentes nao reconectaram imediatamente apos o restart (comportamento normal — o gateway precisa de tempo para restaurar sessoes SQLite). As sessoes foram preservadas (`storage/sessions/` nao substituido).
