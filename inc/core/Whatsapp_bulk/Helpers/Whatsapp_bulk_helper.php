@@ -229,6 +229,54 @@ if (!function_exists('whatsapp_bulk_fetch_cloud_message_statuses')) {
     }
 }
 
+if (!function_exists('whatsapp_bulk_fetch_delivery_reports')) {
+    /**
+     * Lê resultados individuais de sp_whatsapp_delivery_reports (preenchido pelo
+     * motor Go) e retorna no mesmo formato que o relatório espera.
+     */
+    function whatsapp_bulk_fetch_delivery_reports(int $schedule_id, int $campaign_type = 1): array
+    {
+        if ($schedule_id <= 0) {
+            return [];
+        }
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('sp_whatsapp_delivery_reports');
+        $builder->select('*');
+        $builder->where('schedule_id', $schedule_id);
+        $builder->orderBy('id', 'ASC');
+        $query = $builder->get();
+        $rows = $query->getResult();
+        $query->freeResult();
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $is_call_campaign = $campaign_type === 7;
+        $items = [];
+        foreach ($rows as $row) {
+            $status = (string) ($row->status ?? 'sent');
+            $is_success = ($status === 'sent');
+            $message = $is_success
+                ? ($is_call_campaign ? 'Ligação iniciada' : 'Enviado com sucesso')
+                : (($row->error_reason ?? '') !== '' ? $row->error_reason : whatsapp_bulk_baileys_failure_message($is_call_campaign));
+
+            $items[] = (object) [
+                'phone_number'   => (string) ($row->phone_number ?? ''),
+                'status'         => $is_success,
+                'message'        => $message,
+                'dispatch_state' => $status,
+                'sent_at'        => strtotime($row->created_at ?? '') ?: 0,
+                'error_code'     => null,
+                'wa_message_id'  => (string) ($row->message_id ?? ''),
+            ];
+        }
+
+        return $items;
+    }
+}
+
 if (!function_exists('whatsapp_bulk_baileys_failure_message')) {
     function whatsapp_bulk_baileys_failure_message(bool $is_call_campaign = false): string
     {
@@ -401,8 +449,9 @@ if (!function_exists('whatsapp_bulk_get_report_items')) {
             return $items;
         }
 
+        // Fallback: ler de sp_whatsapp_delivery_reports (preenchido pelo motor Go)
         if (empty($schedule->result)) {
-            return [];
+            return whatsapp_bulk_fetch_delivery_reports((int) ($schedule->id ?? 0), (int) ($schedule->type ?? 1));
         }
 
         $items = json_decode($schedule->result, false);

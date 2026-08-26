@@ -634,10 +634,34 @@ func (p *Processor) cleanupCampaign(cid int) {
 
 func recordSuccess(c *Campaign, phoneID int, phone, msgID string, accID int) {
 	UpdateCampaignResult(c.ID, true, time.Now().Unix()+int64(CalculateDelay(c.MinDelay, c.MaxDelay)), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
+	insertDeliveryReport(c.TeamID, c.ID, msgID, phone, "sent", "")
 }
 
 func recordFailure(c *Campaign, phoneID int, phone, errMsg string, accID int) {
 	UpdateCampaignResult(c.ID, false, time.Now().Unix()+int64(rand.Intn(10)+5), sql.NullInt64{Int64: c.NextAccount.Int64 + 1, Valid: true})
+	insertDeliveryReport(c.TeamID, c.ID, "", phone, "failed", errMsg)
+}
+
+// insertDeliveryReport grava o resultado individual de cada envio na tabela
+// sp_whatsapp_delivery_reports para que o relatório Excel possa listar cada
+// número com seu status (sent/failed).
+func insertDeliveryReport(teamID, scheduleID int, messageID, phone, status, errorReason string) {
+	if mysqlDB == nil {
+		return
+	}
+	if messageID == "" {
+		messageID = fmt.Sprintf("go_%d_%d", scheduleID, time.Now().UnixNano())
+	}
+	_, err := mysqlDB.Exec(
+		`INSERT INTO sp_whatsapp_delivery_reports
+		 (team_id, schedule_id, message_id, phone_number, status, error_reason)
+		 VALUES (?, ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE status = VALUES(status), error_reason = VALUES(error_reason)`,
+		teamID, scheduleID, messageID, phone, status, errorReason,
+	)
+	if err != nil {
+		logging.Log.Warn().Err(err).Int("schedule", scheduleID).Str("phone", phone).Msg("Failed to insert delivery report")
+	}
 }
 
 func phoneFromJID(jid string) string {
