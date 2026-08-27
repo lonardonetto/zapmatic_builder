@@ -1295,7 +1295,16 @@ if (isset($response->status) && $response->status === 'success') {
             ];
         }
 
-        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $number, 'image', [
+        // Detectar tipo real da mídia pela extensão
+        $media_ext = strtolower(pathinfo(parse_url($media_url ?? '', PHP_URL_PATH), PATHINFO_EXTENSION));
+        $media_type = match($media_ext) {
+            'ogg', 'oga', 'opus', 'mp3', 'wav', 'm4a', 'aac', 'flac' => 'audio',
+            'mp4', 'avi', 'mov', 'mkv', 'webm', '3gp' => 'video',
+            'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'ppt', 'pptx' => 'document',
+            default => 'image',
+        };
+
+        $response = \App\Services\WhatsAppGatewayService::send($instance_id, $number, $media_type, [
             'url' => $media_url,
             'caption' => $message,
             'filename' => $filename

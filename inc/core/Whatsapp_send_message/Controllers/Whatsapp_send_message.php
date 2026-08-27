@@ -214,14 +214,52 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
                 switch ($type) {
                     case 1: // Texto
                         if (!empty($media)) {
-                            // Detectar tipo real da mídia pela extensão
+                            // Detectar tipo real da mídia pela extensão da URL
                             $ext = strtolower(pathinfo(parse_url($media, PHP_URL_PATH), PATHINFO_EXTENSION));
                             $mediaType = match($ext) {
-                                'ogg', 'oga', 'opus', 'mp3', 'wav', 'm4a', 'aac' => 'audio',
-                                'mp4', 'avi', 'mov', 'mkv', 'webm' => 'video',
-                                'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt' => 'document',
+                                'ogg', 'oga', 'opus', 'mp3', 'wav', 'm4a', 'aac', 'flac' => 'audio',
+                                'mp4', 'avi', 'mov', 'mkv', 'webm', '3gp' => 'video',
+                                'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'ppt', 'pptx' => 'document',
                                 default => 'image',
                             };
+
+                            // Fallback: se extensão não é de imagem conhecida, checar banco de arquivos
+                            if ($mediaType === 'image' && !in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'jfif', 'bmp', 'svg'])) {
+                                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off' ? 'https://' . $_SERVER['HTTP_HOST'] : 'http://' . $_SERVER['HTTP_HOST'];
+                                $path = str_replace($protocol . '/writeable/', '', $media);
+                                $fileInfo = db_get("*", TB_FILES, ["file" => $path]);
+                                if (!empty($fileInfo)) {
+                                    $detect = strtolower($fileInfo->detect ?? '');
+                                    $storedExt = strtolower($fileInfo->extension ?? '');
+                                    $storedMime = strtolower($fileInfo->type ?? '');
+                                    if ($detect === 'audio' || in_array($storedExt, ['ogg', 'oga', 'opus', 'mp3', 'wav', 'm4a', 'aac']) || strpos($storedMime, 'audio/') === 0) {
+                                        $mediaType = 'audio';
+                                    } elseif ($detect === 'video' || in_array($storedExt, ['mp4', 'avi', 'mov', 'mkv', 'webm']) || strpos($storedMime, 'video/') === 0) {
+                                        $mediaType = 'video';
+                                    } elseif (in_array($detect, ['pdf', 'doc', 'csv']) || strpos($storedMime, 'application/') === 0) {
+                                        $mediaType = 'document';
+                                    }
+                                }
+                            }
+
+                            // Se extensão vazia E sem match no banco, tentar detectar por MIME do conteúdo
+                            if ($mediaType === 'image' && $ext === '') {
+                                $head = @file_get_contents($media, false, null, 0, 8192);
+                                if ($head !== false) {
+                                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                                    $detectedMime = $finfo->buffer($head);
+                                    if (strpos($detectedMime, 'audio/') === 0) {
+                                        $mediaType = 'audio';
+                                    } elseif (strpos($detectedMime, 'video/') === 0) {
+                                        $mediaType = 'video';
+                                    } elseif (strpos($detectedMime, 'application/pdf') === 0) {
+                                        $mediaType = 'document';
+                                    }
+                                }
+                            }
+
+                            file_put_contents('/tmp/media_type_debug.log', date('Y-m-d H:i:s') . " url=$media ext=$ext mediaType=$mediaType\n", FILE_APPEND);
+
                             $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, $mediaType, ['url' => $media, 'caption' => spintax($caption)]);
                             $result['status'] == 'success' ? ms(["status" => "success", "message" => "Media sent via Whatsmeow"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
                         }
