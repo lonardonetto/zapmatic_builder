@@ -1,12 +1,12 @@
 # Acompanhamento de Sincronizacao — Todos os Sistemas
 
 > **Referencia:** main Zapmatic (`zapmatic.tec.br`) — o laboratorio de desenvolvimento  
-> **Versao atual do main:** v8.5.18 (commit `38a6049c`, 2026-08-20)  
-> **Tabelas no main:** 76  
+> **Versao atual do main:** v8.5.26 (tag `v8.5.26`, 2026-08-27)  
+> **Tabelas no main:** 77  
 > **Processos por tenant:** 4 PM2 (bot, call, gmscraper, cloud-campaign) + 1 systemd  
 > **Spec template:** `.spec/features/sync-metasenderpro/spec.md`
 
-> **⚠️ Nota sobre version.json:** o `version.json` do main esta DESATUALIZADO (mostra `8.5.15`), mas o git ja esta em `v8.5.18`. A versao real de referencia e `v8.5.18` (commit `38a6049c`). O `version.json` nao e indicador confiavel de paridade — usar commit git do main como referencia.
+> **⚠️ Nota sobre version.json:** o `version.json` do main esta em v8.5.26. A versao de referencia e `v8.5.26` (tag `v8.5.26`).
 
 > **🔧 Fix call-id meowcaller (2026-08-20):** correcao do fallback de call-id em chamadas recusadas (erro 463/403) — ver `.spec/features/sync-metasenderpro/spec.md` secao 4.17. **Solucao definitiva aplicada:** fork `lonardonetto/meowcaller` + `replace` no `go.mod` (tag `v0.0.1-callid`), com correlacao por **stanza id** (corrige o caso de multiplas ligacoes simultaneas — a versao anterior `v0.0.0-...-callid` usava fallback aleatorio e foi removida). O fix agora e versionado — `go mod vendor`/`go mod tidy` puxa o patch automaticamente.
 
@@ -26,7 +26,7 @@
 | 8 | **Elite** | 193.180.211.190 | elitecomunicacao.zapmatic.tec.br | v8.3.28 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
 | 9 | **Paulo** (local) | local | atualizaleads.app.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8091 | ✅ 4 proc | **CONCLUIDO** |
 | 10 | **Elias** (local) | local | multiconnecta.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8092 | ✅ 4 proc | **CONCLUIDO** |
-| 11 | **Renovo** (local) | local | renovo.app | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8093 | ✅ 4 proc | **CONCLUIDO** |
+| 11 | **Renovo** (local) | local | renovo.app | v8.5.26 | ✅ 77 | ✅ SIM | ✅ 8093 | ✅ 4 proc | **CONCLUIDO** |
 
 **Legenda:**
 - ✅ concluido e verificado
@@ -45,7 +45,7 @@
 | **Astros** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Paulo** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Elias** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
-| **Renovo** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
+| **Renovo** | 2026-08-27 | 4 workers, 77 tab, cloud-campaign OK, v8.5.26 |
 | **AgenciaMCW (Frank)** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Kivozap** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Chatbut** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK (pendencia: reconectar QR) |
@@ -199,17 +199,17 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | CloudCampaignWorker | ❌ NAO |
 | PM2 | 3 workers (sem cloud-campaign) |
 
-### 3.11 Renovo — PENDENTE (local)
+### 3.11 Renovo — CONCLUIDO (local)
 
 | Item | Valor |
 |---|---|
 | Path | /www/wwwroot/renovo_app |
 | DB | db_renovo_sql / inTwk7z37PnhWcY5 |
 | Go port | 8093 |
-| Versao | v8.5.1 |
-| DB tables | 75 (falta 1) |
-| CloudCampaignWorker | ❌ NAO |
-| PM2 | 3 workers (sem cloud-campaign) |
+| Versao | v8.5.26 (atualizado 2026-08-27) |
+| DB tables | 77 ✅ (adicionada sp_call_events) |
+| CloudCampaignWorker | ✅ SIM |
+| PM2 | 4 workers (bot, call, gmscraper, cloud-campaign) ✅ |
 
 ---
 
@@ -241,4 +241,4 @@ Para cada servidor pendente:
 | Parciais | 0 |
 | Pendentes | 3 (PlusZap, IaClicks, Elite) |
 | Progresso | 80% concluido |
-| Versao main referencia | v8.5.18 (commit `38a6049c`) |
+| Versao main referencia | v8.5.26 (tag `v8.5.26`) |
