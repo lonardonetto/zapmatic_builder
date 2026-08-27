@@ -3,8 +3,10 @@ package sender
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"time"
 
@@ -121,13 +123,24 @@ func (s *Sender) SendMedia(ctx context.Context, req SendRequest) SendResponse {
 
 	logging.Log.Info().Int("size_bytes", len(mediaBytes)).Str("mime", mimeType).Str("instance", req.InstanceID).Msg("Media downloaded successfully")
 
+	// Normalizar MIME type para áudio - WhatsApp requer audio/ogg para mensagens de voz
+	if mediaType == "audio" {
+		// Se for OGG (application/ogg, application/octet-stream, ou detectado pelos magic bytes),
+		// usar o MIME type correto para mensagens de voz do WhatsApp
+		isOgg := mimeType == "application/ogg" || mimeType == "application/octet-stream" ||
+			(len(mediaBytes) >= 4 && string(mediaBytes[:4]) == "OggS")
+		if isOgg {
+			mimeType = "audio/ogg; codecs=opus"
+		}
+	}
+
 	// Fallback MIME type
 	if mimeType == "" || mimeType == "application/octet-stream" {
 		switch mediaType {
 		case "image":
 			mimeType = "image/jpeg"
 		case "audio":
-			mimeType = "audio/ogg"
+			mimeType = "audio/ogg; codecs=opus"
 		case "video":
 			mimeType = "video/mp4"
 		case "document":
@@ -184,7 +197,9 @@ func (s *Sender) SendMedia(ctx context.Context, req SendRequest) SendResponse {
 		}}
 		// Handle é opcional mas ajuda na exibição
 	case "audio":
-		msg = &waE2E.Message{AudioMessage: &waE2E.AudioMessage{
+		// Generate waveform visualization (required by WhatsApp for audio messages)
+		waveform := generateWaveform(mediaBytes)
+		audioMsg := &waE2E.AudioMessage{
 			URL:           proto.String(uploaded.URL),
 			DirectPath:    proto.String(uploaded.DirectPath),
 			Mimetype:      proto.String(mimeType),
@@ -192,7 +207,13 @@ func (s *Sender) SendMedia(ctx context.Context, req SendRequest) SendResponse {
 			FileEncSHA256: uploaded.FileEncSHA256,
 			FileLength:    proto.Uint64(uploaded.FileLength),
 			MediaKey:      uploaded.MediaKey,
-		}}
+			PTT:           proto.Bool(true),
+			Waveform:      waveform,
+		}
+		if dur := detectAudioDuration(mediaBytes, mimeType); dur > 0 {
+			audioMsg.Seconds = proto.Uint32(dur)
+		}
+		msg = &waE2E.Message{AudioMessage: audioMsg}
 	case "video":
 		msg = &waE2E.Message{VideoMessage: &waE2E.VideoMessage{
 			URL:           proto.String(uploaded.URL),
@@ -236,4 +257,146 @@ func (s *Sender) SendMedia(ctx context.Context, req SendRequest) SendResponse {
 		Msg("Media sent successfully")
 
 	return SendResponse{Status: "success", Provider: "whatsmeow", MessageID: resp.ID}
+}
+
+// detectAudioDuration tries to detect audio duration in seconds.
+// For OGG/Opus: parses last OGG page granule position.
+// For others: estimates from file size (rough fallback).
+func detectAudioDuration(data []byte, mimeType string) uint32 {
+	if len(data) < 4 {
+		return 0
+	}
+
+	// OGG/Opus: parse granule position from last page
+	if bytes.HasPrefix(data[:4], []byte("OggS")) || mimeType == "audio/ogg" || mimeType == "audio/ogg; codecs=opus" {
+		return detectOggDuration(data)
+	}
+
+	// MP3 and others: rough estimate from file size (assume ~128kbps)
+	if len(data) > 0 {
+		// Very rough: 128kbps = 16000 bytes/sec
+		return uint32(len(data) / 16000)
+	}
+
+	return 0
+}
+
+// detectOggDuration parses OGG container to find total duration from last page granule position.
+func detectOggDuration(data []byte) uint32 {
+	if len(data) < 27 {
+		return 0
+	}
+
+	var lastGranule int64
+	// Scan all OGG pages to find the last granule position
+	offset := 0
+	for offset+27 <= len(data) {
+		// Check for OGG capture pattern
+		if string(data[offset:offset+4]) != "OggS" {
+			break
+		}
+
+		// Granule position is at bytes 6-13 (little-endian int64)
+		if offset+14 <= len(data) {
+			granule := int64(binary.LittleEndian.Uint64(data[offset+6 : offset+14]))
+			if granule > 0 {
+				lastGranule = granule
+			}
+		}
+
+		// Number of segments at byte 26
+		if offset+27 > len(data) {
+			break
+		}
+		numSegments := int(data[offset+26])
+
+		// Calculate page size: header (27) + segment table (numSegments) + segment data
+		if offset+27+numSegments > len(data) {
+			break
+		}
+		segmentDataSize := 0
+		for i := 0; i < numSegments; i++ {
+			segmentDataSize += int(data[offset+27+i])
+		}
+
+		pageSize := 27 + numSegments + segmentDataSize
+		offset += pageSize
+	}
+
+	if lastGranule <= 0 {
+		return 0
+	}
+
+	// Opus sample rate is always 48000 Hz
+	// Granule position = total samples (pre-skip already accounted)
+	const opusSampleRate = 48000
+	durationSeconds := uint32(lastGranule / opusSampleRate)
+	if durationSeconds == 0 {
+		durationSeconds = 1 // minimum 1 second
+	}
+	return durationSeconds
+}
+
+// generateWaveform creates a 64-byte waveform visualization from audio data.
+// WhatsApp requires this field for audio/voice messages to be displayed correctly.
+func generateWaveform(data []byte) []byte {
+	const numSamples = 64
+	waveform := make([]byte, numSamples)
+
+	if len(data) == 0 {
+		// Return a flat waveform for empty data
+		for i := range waveform {
+			waveform[i] = 1
+		}
+		return waveform
+	}
+
+	// Sample the data at regular intervals and compute amplitude
+	chunkSize := len(data) / numSamples
+	if chunkSize == 0 {
+		chunkSize = 1
+	}
+
+	maxVal := byte(0)
+	for i := 0; i < numSamples; i++ {
+		start := i * chunkSize
+		end := start + chunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+
+		// Compute RMS-like amplitude for this chunk
+		var sum float64
+		count := 0
+		for j := start; j < end; j++ {
+			// Treat bytes as unsigned samples centered at 128
+			sample := float64(data[j]) - 128.0
+			sum += sample * sample
+			count++
+		}
+		if count > 0 {
+			rms := byte(math.Sqrt(sum/float64(count)))
+			if rms > 127 {
+				rms = 127
+			}
+			waveform[i] = rms + 1 // ensure non-zero
+			if waveform[i] > maxVal {
+				maxVal = waveform[i]
+			}
+		} else {
+			waveform[i] = 1
+		}
+	}
+
+	// Normalize to 0-255 range
+	if maxVal > 0 {
+		for i := range waveform {
+			waveform[i] = byte(int(waveform[i]) * 255 / int(maxVal))
+			if waveform[i] == 0 {
+				waveform[i] = 1
+			}
+		}
+	}
+
+	return waveform
 }
