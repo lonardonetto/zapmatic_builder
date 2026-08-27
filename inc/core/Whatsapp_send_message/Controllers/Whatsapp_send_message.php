@@ -214,7 +214,15 @@ class Whatsapp_send_message extends \CodeIgniter\Controller
                 switch ($type) {
                     case 1: // Texto
                         if (!empty($media)) {
-                            $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, 'image', ['url' => $media, 'caption' => spintax($caption)]);
+                            // Detectar tipo real da mídia pela extensão
+                            $ext = strtolower(pathinfo(parse_url($media, PHP_URL_PATH), PATHINFO_EXTENSION));
+                            $mediaType = match($ext) {
+                                'ogg', 'oga', 'opus', 'mp3', 'wav', 'm4a', 'aac' => 'audio',
+                                'mp4', 'avi', 'mov', 'mkv', 'webm' => 'video',
+                                'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt' => 'document',
+                                default => 'image',
+                            };
+                            $result = \App\Services\WhatsAppGatewayService::send($account->token, $send_to, $mediaType, ['url' => $media, 'caption' => spintax($caption)]);
                             $result['status'] == 'success' ? ms(["status" => "success", "message" => "Media sent via Whatsmeow"]) : ms(["status" => "error", "message" => $result['message'] ?? "Send failed"]);
                         }
                         $text = spintax($caption);
