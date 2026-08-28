@@ -22,7 +22,7 @@
 | 4 | **AgenciaMCW** | 144.22.167.45 | chatbot.agenciamcw.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8096 | ✅ 4 proc | **CONCLUIDO** |
 | 5 | **Kivozap** | 144.22.167.45 | kivozap.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8090 | ✅ 4 proc | **CONCLUIDO** |
 | 6 | **PlusZap** | 92.113.144.161 | pluszap.com | v8.3.24 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
-| 7 | **IaClicks** | 45.148.29.92 | iaclicks.com | v8.5.1 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
+| 7 | **IaClicks** | 45.148.29.92 | iaclicks.com | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8098 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 8 | **Elite** | 193.180.211.190 | elitecomunicacao.zapmatic.tec.br | v8.3.28 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
 | 9 | **Paulo** (local) | local | atualizaleads.app.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8091 | ✅ 4 proc | **CONCLUIDO** |
 | 10 | **Elias** (local) | local | multiconnecta.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8092 | ✅ 4 proc | **CONCLUIDO** |
@@ -46,6 +46,7 @@
 | **Paulo** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Elias** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Renovo** | 2026-08-27 | 4 workers, 77 tab, cloud-campaign OK, v8.5.26 |
+| **IaClicks** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 |
 | **AgenciaMCW (Frank)** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Kivozap** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Chatbut** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK (pendencia: reconectar QR) |
@@ -149,7 +150,7 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | CloudCampaignWorker | ❌ NAO |
 | PM2 | 2 workers |
 
-### 3.7 IaClicks — PENDENTE
+### 3.7 IaClicks — CONCLUIDO (2026-08-28)
 
 | Item | Valor |
 |---|---|
@@ -158,9 +159,11 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | Path | /www/wwwroot/app_zapmatic_app |
 | DB | sql_iaclicks_db / FxMzzfdLPr2yDS2F |
 | Go port | 8098 |
-| Versao | v8.5.1 |
-| CloudCampaignWorker | ❌ NAO |
-| PM2 | 2 workers |
+| Versao | v8.5.27 (atualizado 2026-08-28) |
+| CloudCampaignWorker | ✅ SIM |
+| PM2 | 4 workers |
+| Commit | 3744e9bd |
+| Backup | /tmp/backup_iaclicks_20260828_162454 |
 
 ### 3.8 Elite — PENDENTE
 
