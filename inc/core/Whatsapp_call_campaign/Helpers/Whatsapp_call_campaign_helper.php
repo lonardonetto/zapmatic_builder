@@ -204,7 +204,7 @@ if (!function_exists('call_get_contacts_with_phones')) {
             foreach ($phones as $p) {
                 $normalized = call_normalize_phone($p->phone);
                 $contact->phones[] = $normalized;
-                if ($p->is_valid == 1 && strlen($normalized) >= 12) {
+                if ($p->is_valid !== 0 && $p->is_valid !== '0' && strlen($normalized) >= 12) {
                     $contact->valid_phones[] = $normalized;
                 }
             }

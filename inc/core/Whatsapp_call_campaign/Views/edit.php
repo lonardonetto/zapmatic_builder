@@ -85,7 +85,6 @@
                         <div id="addContactsPanel">
                             <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
                                 <?php foreach ($contacts as $c): ?>
-                                <?php if ($c->phone_count > 0): ?>
                                 <div class="form-check py-1">
                                     <input class="form-check-input" type="checkbox" name="add_contacts[]" value="<?php echo (int)$c->id ?>" id="edit_contact_<?php echo (int)$c->id ?>">
                                     <label class="form-check-label" for="edit_contact_<?php echo (int)$c->id ?>">
@@ -93,7 +92,6 @@
                                         <span class="badge bg-light text-muted"><?php echo $c->phone_count ?> tel</span>
                                     </label>
                                 </div>
-                                <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
                         </div>
