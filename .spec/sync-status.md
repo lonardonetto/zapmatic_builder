@@ -19,7 +19,7 @@
 | 1 | **MetaSenderPro** | 92.113.149.185 | sender.metanivelpro.com | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8101 | ✅ 4 proc | **CONCLUIDO** (+fix call-id) |
 | 2 | **Astros** (local) | local | app.astroscomunicacaodigital.com | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8094 | ✅ 4 proc | **CONCLUIDO** |
 | 3 | **Chatbut** | 144.22.167.45 | chatbut.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8097 | ✅ 4 proc | **CONCLUIDO** (pendencia: reconectar instancias via QR) |
-| 4 | **AgenciaMCW** | 144.22.167.45 | chatbot.agenciamcw.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8096 | ✅ 4 proc | **CONCLUIDO** |
+| 4 | **AgenciaMCW** | 144.22.167.45 | chatbot.agenciamcw.com.br | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8096 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 5 | **Kivozap** | 144.22.167.45 | kivozap.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8090 | ✅ 4 proc | **CONCLUIDO** |
 | 6 | **PlusZap** | 92.113.144.161 | pluszap.com | v8.3.24 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
 | 7 | **IaClicks** | 45.148.29.92 | iaclicks.com | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8098 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
@@ -47,7 +47,7 @@
 | **Elias** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Renovo** | 2026-08-27 | 4 workers, 77 tab, cloud-campaign OK, v8.5.26 |
 | **IaClicks** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 |
-| **AgenciaMCW (Frank)** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
+| **AgenciaMCW (Frank)** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 (era v8.5.25) |
 | **Kivozap** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Chatbut** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK (pendencia: reconectar QR) |
 
@@ -107,7 +107,7 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | PM2 | ⚠️ 2 workers (bot, call) — falta cloud-campaign + gmscraper |
 | Pendencias | iniciar `cloud-campaign-worker` e `gmscraper` no PM2 |
 
-### 3.4 AgenciaMCW — PENDENTE
+### 3.4 AgenciaMCW — CONCLUIDO (2026-08-28)
 
 | Item | Valor |
 |---|---|
@@ -116,11 +116,13 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | Path | /www/wwwroot/app_frank_agencia |
 | DB | sql_frank_db / apw4iTDGjePic8cb |
 | Go port | 8096 |
-| Versao | v8.5.15 |
-| DB tables | 78 (76 do main + 2 legado: `sp_whatsapp_autoresponder`, `sp_whatsapp_chatbot`) |
-| CloudCampaignWorker | ❌ NAO |
-| PM2 | 2 workers (frank-bot, frank-call) |
-| Pendencias | dropar 2 tabelas legado, adicionar CCW, adicionar cloud-campaign worker |
+| Versao | v8.5.27 (atualizado 2026-08-28) |
+| DB tables | 77 ✅ |
+| CloudCampaignWorker | ✅ SIM |
+| PM2 | 4 workers (bot, call, cloud-campaign, gmscraper) |
+| Commit | d251f68c |
+| Backup | /tmp/backup_agenciamcw_20260828_152856 |
+| Pendencias | web 404 pre-existente (dominio nao configurado no nginx) |
 
 ### 3.5 Kivozap — PENDENTE
 
