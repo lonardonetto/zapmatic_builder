@@ -17,11 +17,11 @@
 | # | Servidor | IP | Dominio | Versao | DB | Codigo (CCW) | Go | PM2 | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | **MetaSenderPro** | 92.113.149.185 | sender.metanivelpro.com | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8101 | ✅ 4 proc | **CONCLUIDO** (+fix call-id) |
-| 2 | **Astros** (local) | local | app.astroscomunicacaodigital.com | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8094 | ✅ 4 proc | **CONCLUIDO** |
+| 2 | **Astros** (local) | local | app.astroscomunicacaodigital.com | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8094 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 3 | **Chatbut** | 144.22.167.45 | chatbut.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8097 | ✅ 4 proc | **CONCLUIDO** (pendencia: reconectar instancias via QR) |
 | 4 | **AgenciaMCW** | 144.22.167.45 | chatbot.agenciamcw.com.br | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8096 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 5 | **Kivozap** | 144.22.167.45 | kivozap.com.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8090 | ✅ 4 proc | **CONCLUIDO** |
-| 6 | **PlusZap** | 92.113.144.161 | pluszap.com | v8.3.24 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
+| 6 | **PlusZap** | 92.113.144.161 | pluszap.com | v8.5.27 | ✅ 88 | ✅ SIM | ✅ 8100 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 7 | **IaClicks** | 45.148.29.92 | iaclicks.com | v8.5.27 | ✅ 77 | ✅ SIM | ✅ 8098 | ✅ 4 proc | **CONCLUIDO** (2026-08-28) |
 | 8 | **Elite** | 193.180.211.190 | elitecomunicacao.zapmatic.tec.br | v8.3.28 | ❌ | ❌ NAO | ❌ | ❌ 2 proc | **PENDENTE** |
 | 9 | **Paulo** (local) | local | atualizaleads.app.br | v8.5.15 | ✅ 76 | ✅ SIM | ✅ 8091 | ✅ 4 proc | **CONCLUIDO** |
@@ -42,12 +42,13 @@
 | Tenant | Data | Nota |
 |---|---|---|
 | **MetaSenderPro** | 2026-08-17 (v8.5.18 update 08-20) | 4 workers, 76 tab, cloud-campaign OK |
-| **Astros** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
+| **Astros** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 (era v8.5.25) |
 | **Paulo** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Elias** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Renovo** | 2026-08-27 | 4 workers, 77 tab, cloud-campaign OK, v8.5.26 |
 | **IaClicks** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 |
 | **AgenciaMCW (Frank)** | 2026-08-28 | 4 workers, 77 tab, cloud-campaign OK, v8.5.27 (era v8.5.25) |
+| **PlusZap** | 2026-08-28 | 4 workers, 88 tab (77 main + 11 legado), cloud-campaign OK, v8.5.27 (era v8.3.24) |
 | **Kivozap** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK |
 | **Chatbut** | 2026-08-20 | 4 workers, 76 tab, cloud-campaign OK (pendencia: reconectar QR) |
 
@@ -59,8 +60,6 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 
 | Tenant | Versao atual | DB | Principais divergencias |
 |---|---|---|---|
-| **PlusZap** | v8.3.24 | ❌ | muito defasado (3 versoes); 2 workers |
-| **IaClicks** | v8.5.1 | ❌ | defasado; 2 workers |
 | **Elite** | v8.3.28 | ❌ | muito defasado (3 versoes); 2 workers |
 
 ---
@@ -80,17 +79,17 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | Credenciais | 100% propias, zero cross-ref com main |
 | Fix call-id (meowcaller) | ✅ aplicado 2026-08-20 (ver secao 4.17 da spec) |
 
-### 3.2 Astros — CONCLUIDO (local)
+### 3.2 Astros — CONCLUIDO (2026-08-28)
 
 | Item | Valor |
 |---|---|
-| Data da sincronizacao | 2026-08-20 |
-| Spec | `.spec/features/sync-metasenderpro/spec.md` (secao 4.10) |
-| Commit main | `38a6049c` (v8.5.18) |
-| DB | 76 tabelas (migration aplicada, legado dropado) |
-| Go binary | Compilado no servidor, CGO_ENABLED=1, arm64 |
-| PM2 | 4 workers (bot, call, gmscraper, cloud-campaign) |
+| Data da sincronizacao | 2026-08-28 (era v8.5.25) |
+| Commit main | `a5d9c549` (v8.5.27) |
+| DB | 77 tabelas, 932 colunas (paridade total) |
+| Go binary | 27MB, compilado 2026-08-28 |
+| PM2 | 4 workers (astros-bot, astros-call, astros-cloud-campaign, astros-gmscraper) |
 | Credenciais | 100% propias (sql_eudezio_db), zero cross-ref |
+| Backup | /tmp/backup_astros_20260828_154847 |
 
 ### 3.3 Chatbut — PARCIAL
 
@@ -139,7 +138,7 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | PM2 | 2 workers |
 | Pendencias | atualizar para v8.5.18, adicionar CCW + cloud-campaign worker |
 
-### 3.6 PlusZap — PENDENTE
+### 3.6 PlusZap — CONCLUIDO (2026-08-28)
 
 | Item | Valor |
 |---|---|
@@ -148,9 +147,12 @@ _(nenhum — todos os que estavam parciais foram concluidos)_
 | Path | /www/wwwroot/app_zapmatic_app |
 | DB | sql_zapmatic_db / ZnCYYPwZwYxw8b6r |
 | Go port | 8100 |
-| Versao | v8.3.24 |
-| CloudCampaignWorker | ❌ NAO |
-| PM2 | 2 workers |
+| Versao | v8.5.27 (atualizado 2026-08-28, era v8.3.24) |
+| DB tables | 88 (77 main + 11 legado) |
+| CloudCampaignWorker | ✅ SIM |
+| PM2 | 4 workers (bot, call, cloud-campaign, gmscraper) |
+| Commit | a5d9c549 |
+| Backup | /tmp/backup_pluszap_20260828_185533 |
 
 ### 3.7 IaClicks — CONCLUIDO (2026-08-28)
 
