@@ -64,7 +64,14 @@
 						<div class="search-accounts">
 							<label class="am-choice-item d-flex flex-stack" for="am_<?php _ec($value->id)?>" data-pid="<?php _ec($value->pid)?>" data-account='<?php _ec( json_encode( $value ) )?>' >
 								<div class="symbol symbol-35px px-3 py-2">
-									<img src="<?php _ec( get_file_url($value->avatar) )?>" class="align-self-center" alt="">
+									<?php
+										$_avatar_url = get_file_url($value->avatar);
+										if (empty($_avatar_url) || $_avatar_url === null) {
+											$_avatar_color = ['E74645', 'FB7756', 'FACD60', '12492F', 'F7A400', '58B368'][array_rand(['E74645', 'FB7756', 'FACD60', '12492F', 'F7A400', '58B368'])];
+											$_avatar_url = "https://ui-avatars.com/api/?name=" . urlencode(substr($value->name, 0, 2)) . "&background={$_avatar_color}&color=fff&font-size=0.5&rounded=false&format=png";
+										}
+									?>
+									<img src="<?php _ec($_avatar_url)?>" class="align-self-center" alt="">
 								</div>
 								<div class="d-flex align-items-center flex-row-fluid flex-wrap">
 									<div class="flex-grow-1 me-2 text-over-all">
@@ -81,7 +88,7 @@
 			                    	<div class="am-selected-item border mb-1 mt-1 rounded float-start px-2 me-2 miw-100 mw-150" data-id="<?php _e($value->ids)?>" data-network="<?php _ec($value->social_network)?>">
 										<div class="d-flex flex-stack ">
 											<div class="symbol symbol-20px pe-2 py-2">
-												<img src="<?php _ec( get_file_url($value->avatar) )?>" class="align-self-center" alt="">
+												<img src="<?php _ec($_avatar_url)?>" class="align-self-center" alt="">
 											</div>
 											<div class="d-flex align-items-center flex-row-fluid flex-wrap">
 												<div class="text-gray-800 text-hover-primary fs-12 fw-bold text-over"><?php _e($value->name)?></div>
