@@ -2305,6 +2305,7 @@ class Whatsapp_profiles extends \CodeIgniter\Controller
                 "team_id" => $team_id,
                 "social_network" => "whatsapp",
                 "category" => "profile",
+                "module" => "whatsapp_profiles",
                 "name" => $name,
                 "description" => $description,
                 "status" => 0,

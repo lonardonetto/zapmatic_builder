@@ -178,6 +178,7 @@ class Connect extends Controller
                 'ids' => uniqid(), 'team_id' => $teamId, 'token' => $instanceId,
                 'pid' => $jid, 'name' => $pushName ?: $phone, 'avatar' => $avatar,
                 'social_network' => 'whatsapp', 'category' => 'profile',
+                'module' => 'whatsapp_profiles',
                 'status' => 1, 'login_type' => 3, 'data' => $accountData
             ]);
         }
