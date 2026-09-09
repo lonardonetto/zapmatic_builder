@@ -44,8 +44,7 @@
 - Notas: Routes.php deployado no Astros. Template id=19 corrigido no banco. PHP syntax OK. Servicos Go e PM2 reiniciados.
 - Esforço: medio
 
-## T-055 — Escrever testes TDD anotados com @spec [em-andamento]
-
+## T-055 — Escrever testes TDD anotados com @spec [concluida]
 - Refs: US-036, US-037, US-038, US-039, US-040, AC-095..AC-108
 - Arquivos: tests/CarouselRoutingTest.php, tests/CarouselWidgetTest.php
 - Notas: Testes PHP unit para verificar (1) rota save vai para controller correto, (2) type=5 no banco, (3) widget presente em todas as paginas, (4) ajax_list filtra type=5, (5) edicao preserva cards.
