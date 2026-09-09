@@ -45,6 +45,13 @@ $routes->get('mcp/oauth/callback', '\App\Controllers\McpOauth::callback');
 // NUCLEAR OPTION: Force route for Whatsapp Profiles
 $routes->add('whatsapp_profiles/save_official', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_official');
 $routes->add('whatsapp_profiles/save_embedded', '\Core\Whatsapp_profiles\Controllers\Whatsapp_profiles::save_embedded');
+// NUCLEAR OPTION: Force routes for Carousel template (fix auto-routing bug)
+$routes->add("whatsapp_carousel_template/save/(:any)", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::save/$1");
+$routes->add("whatsapp_carousel_template/save", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::save");
+$routes->add("whatsapp_carousel_template/delete", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::delete");
+$routes->add("whatsapp_carousel_template/ajax_list", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::ajax_list");
+$routes->add("whatsapp_carousel_template/index/(:any)", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index/$1");
+$routes->add("whatsapp_carousel_template/index", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index");
 
 // NUCLEAR OPTION: Campaign Analytics
 $routes->get('whatsapp_campaign_analytics', '\Core\Whatsapp_campaign_analytics\Controllers\Whatsapp_campaign_analytics::index');
