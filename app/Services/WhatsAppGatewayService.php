@@ -380,9 +380,16 @@ class WhatsAppGatewayService
                 $btns = [];
                 foreach ($card['buttons'] ?? [] as $j => $btn) {
                     $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
+
+                    // Parse buttonParamsJson (formato carousel: {name, buttonParamsJson})
+                    $bp = [];
+                    if (isset($b['buttonParamsJson'])) {
+                        $bp = is_string($b['buttonParamsJson']) ? (json_decode($b['buttonParamsJson'], true) ?: []) : (is_array($b['buttonParamsJson']) ? $b['buttonParamsJson'] : []);
+                    }
+
                     $qr = $b['quickReplyButton'] ?? [];
-                    $id = $qr['id'] ?? $b['id'] ?? "btn_{$i}_{$j}";
-                    $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção";
+                    $id = $bp['id'] ?? $qr['id'] ?? $b['id'] ?? "btn_{$i}_{$j}";
+                    $text = $bp['display_text'] ?? $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção";
                     $btns[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
                 }
 
