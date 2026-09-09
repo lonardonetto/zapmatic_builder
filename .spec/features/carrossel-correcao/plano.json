@@ -1,0 +1,149 @@
+{
+  "runId": "app_zapmatic_app-carrossel-correcao-mtucaiyf",
+  "feature": "carrossel-correcao",
+  "agent": "claude",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-09-09 16:55",
+  "branchTrabalho": "spec/carrossel-correcao",
+  "baseDir": ".spec/features/carrossel-correcao",
+  "specDir": ".spec",
+  "repoName": "app_zapmatic_app",
+  "logsDir": "../onp-worktrees/app_zapmatic_app-carrossel-correcao-logs",
+  "ondas": [
+    [
+      "faixa-1",
+      "faixa-2"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/carrossel-correcao-faixa-1",
+      "worktree": "../onp-worktrees/app_zapmatic_app-carrossel-correcao-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-049",
+          "titulo": "Investigar causa raiz: debug save, redirect e listagem do carrossel",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_carousel_template/Controllers/Whatsapp_carousel_template.php",
+            "inc/core/Whatsapp/Models/WhatsappModel.php"
+          ],
+          "refs": [
+            "US-036",
+            "AC-095",
+            "AC-096",
+            "AC-097"
+          ]
+        },
+        {
+          "id": "T-051",
+          "titulo": "Garantir isolamento entre queries de carrossel e botoes",
+          "modelo": "claude-sonnet-5",
+          "esforco": "low",
+          "arquivos": [
+            "inc/core/Whatsapp_carousel_template/Models/Whatsapp_carousel_templateModel.php",
+            "inc/core/Whatsapp_button_template/Models/Whatsapp_button_templateModel.php",
+            "inc/core/Whatsapp_carousel_template/Controllers/Whatsapp_carousel_template.php"
+          ],
+          "refs": [
+            "US-036",
+            "AC-096",
+            "AC-100",
+            "AC-101",
+            "US-038"
+          ]
+        },
+        {
+          "id": "T-052",
+          "titulo": "Corrigir edicao de template de carrossel",
+          "modelo": "claude-sonnet-5",
+          "esforco": "low",
+          "arquivos": [
+            "inc/core/Whatsapp_carousel_template/Controllers/Whatsapp_carousel_template.php",
+            "inc/core/Whatsapp_carousel_template/Views/update.php"
+          ],
+          "refs": [
+            "US-037",
+            "AC-098",
+            "AC-099"
+          ]
+        },
+        {
+          "id": "T-053",
+          "titulo": "Validar compatibilidade com Bot Builder (inspector-templates.js)",
+          "modelo": "claude-sonnet-5",
+          "esforco": "low",
+          "arquivos": [
+            "inc/core/Bot_builder/Assets/js/builder/inspector-templates.js",
+            "inc/core/Bot_builder/Controllers/Bot_builder.php",
+            "inc/core/Whatsapp/Controllers/Whatsapp.php"
+          ],
+          "refs": [
+            "US-039",
+            "AC-102",
+            "AC-103",
+            "AC-104"
+          ]
+        },
+        {
+          "id": "T-054",
+          "titulo": "Testes end-to-end e remocao de debug",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "inc/core/Whatsapp_carousel_template/Controllers/Whatsapp_carousel_template.php",
+            "inc/core/Whatsapp/Controllers/Whatsapp.php"
+          ],
+          "refs": [
+            "US-036",
+            "US-037",
+            "US-038",
+            "US-039",
+            "AC-095",
+            "AC-096",
+            "AC-097",
+            "AC-098",
+            "AC-099",
+            "AC-100",
+            "AC-101",
+            "AC-102",
+            "AC-103",
+            "AC-104"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-2",
+      "branch": "spec/carrossel-correcao-faixa-2",
+      "worktree": "../onp-worktrees/app_zapmatic_app-carrossel-correcao-faixa-2",
+      "tarefas": [
+        {
+          "id": "T-050",
+          "titulo": "Corrigir renderizacao das abas de template no sidebar",
+          "modelo": "claude-sonnet-5",
+          "esforco": "high",
+          "arquivos": [
+            "inc/core/Whatsapp_carousel_template/Views/widget/content.php",
+            "inc/core/Whatsapp_carousel_template/Views/widget/menu.php",
+            "inc/core/Whatsapp_button_template/Views/widget/content.php",
+            "inc/core/Whatsapp_button_template/Views/widget/menu.php"
+          ],
+          "refs": [
+            "US-036",
+            "AC-095",
+            "AC-097"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}
