@@ -51,6 +51,8 @@
             </li>
             <?php echo view_cell('\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::widget_menu', ["result" => $result]) ?>
             <?php echo view_cell('\Core\Whatsapp_list_message_template\Controllers\Whatsapp_list_message_template::widget_menu', ["result" => $result]) ?>
+            <?php echo view_cell('\Core\Whatsapp_poll_template\Controllers\Whatsapp_poll_template::widget_menu', ["result" => $result]) ?>
+            <?php echo view_cell('\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::widget_menu', ["result" => $result]) ?>
         </ul>
 
 	 	<div class="tab-content" id="pills-tabContent">
@@ -66,6 +68,8 @@
 			</ul>
 			</div>
 			<?php echo view_cell('\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::widget_content', ["result" => $result]) ?>
+            <?php echo view_cell('\Core\Whatsapp_poll_template\Controllers\Whatsapp_poll_template::widget_content', ["result" => $result]) ?>
+            <?php echo view_cell('\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::widget_content', ["result" => $result]) ?>
             <?php echo view_cell('\Core\Whatsapp_list_message_template\Controllers\Whatsapp_list_message_template::widget_content', ["result" => $result]) ?>
 		</div>
 
