@@ -213,9 +213,32 @@ func (s *Sender) SendCarousel(ctx context.Context, req InteractiveRequest) SendR
 	for _, card := range req.Cards {
 		btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(card.Buttons))
 		for _, b := range card.Buttons {
+			var flowName string
+			var paramsJSON string
+			switch b.Type {
+			case "url":
+				flowName = "cta_url"
+				btnURL := b.URL
+				if btnURL == "" { btnURL = "https://example.com" }
+				merchantURL := btnURL
+				paramsJSON = fmt.Sprintf(`{"display_text":"%s","url":"%s","merchant_url":"%s"}`, b.Text, btnURL, merchantURL)
+			case "phone":
+				flowName = "cta_call"
+				phone := b.Phone
+				if phone == "" { phone = "0" }
+				paramsJSON = fmt.Sprintf(`{"display_text":"%s","phone_number":"%s"}`, b.Text, phone)
+			case "copy":
+				flowName = "cta_copy"
+				copyCode := b.CopyCode
+				if copyCode == "" { copyCode = b.ID }
+				paramsJSON = fmt.Sprintf(`{"display_text":"%s","copy_code":"%s"}`, b.Text, copyCode)
+			default:
+				flowName = "quick_reply"
+				paramsJSON = fmt.Sprintf(`{"display_text":"%s","id":"%s"}`, b.Text, b.ID)
+			}
 			btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-				Name: proto.String("quick_reply"),
-				ButtonParamsJSON: proto.String(fmt.Sprintf(`{"display_text":"%s","id":"%s"}`, b.Text, b.ID)),
+				Name: proto.String(flowName),
+				ButtonParamsJSON: proto.String(paramsJSON),
 			})
 		}
 		

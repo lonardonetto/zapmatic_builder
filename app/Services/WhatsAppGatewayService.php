@@ -390,7 +390,22 @@ class WhatsAppGatewayService
                     $qr = $b['quickReplyButton'] ?? [];
                     $id = $bp['id'] ?? $qr['id'] ?? $b['id'] ?? "btn_{$i}_{$j}";
                     $text = $bp['display_text'] ?? $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção";
-                    $btns[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+
+                    // Detectar tipo real do botão (cta_url, cta_call, cta_copy, quick_reply)
+                    $btnName = $b['name'] ?? 'quick_reply';
+
+                    $btnData = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+                    if ($btnName === 'cta_url' && !empty($bp['url'])) {
+                        $btnData['type'] = 'url';
+                        $btnData['url'] = $bp['url'];
+                    } elseif ($btnName === 'cta_call' && !empty($bp['phone_number'])) {
+                        $btnData['type'] = 'phone';
+                        $btnData['phone_number'] = $bp['phone_number'];
+                    } elseif ($btnName === 'cta_copy' && !empty($bp['copy_code'])) {
+                        $btnData['type'] = 'copy';
+                        $btnData['copy_code'] = $bp['copy_code'];
+                    }
+                    $btns[] = $btnData;
                 }
 
                 $cards[] = [
