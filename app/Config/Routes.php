@@ -52,6 +52,9 @@ $routes->add("whatsapp_carousel_template/delete", "\Core\Whatsapp_carousel_templ
 $routes->add("whatsapp_carousel_template/ajax_list", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::ajax_list");
 $routes->add("whatsapp_carousel_template/index/(:any)", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index/$1");
 $routes->add("whatsapp_carousel_template/index", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index");
+$routes->add("whatsapp_carousel_template/update/(:any)", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index/update/$1");
+$routes->add("whatsapp_carousel_template/update", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index/update");
+$routes->add("whatsapp_carousel_template", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index");
 
 // NUCLEAR OPTION: Campaign Analytics
 $routes->get('whatsapp_campaign_analytics', '\Core\Whatsapp_campaign_analytics\Controllers\Whatsapp_campaign_analytics::index');
