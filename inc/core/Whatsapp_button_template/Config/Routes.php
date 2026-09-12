@@ -12,7 +12,7 @@ if(
 ){
     $routes->setDefaultNamespace( ucfirst($config['folder']) . "/" . ucfirst($config['menu']['sub_menu']["id"]) . "/Controllers");
 }else if( url_is( $config["id"] ) || url_is( $config["id"].'/*' ) ){
-    // removed default namespace override
+    $routes->setDefaultNamespace( ucfirst($config['folder']) . "/" . ucfirst($config['id']) . "/Controllers");
 }
 
 if ( file_exists( realpath(  __DIR__."/../Helpers" ) ) ) {

@@ -1,8 +1,8 @@
 {
-    "version": "8.5.27",
+    "version": "8.5.29",
     "channel": "stable",
-    "build_date": "2026-08-28T15:42:00-03:00",
+    "build_date": "2026-09-12T17:55:00-03:00",
     "git_commit": "",
     "min_php": "8.0",
-    "notes": "v8.5.27 - fix: perfis WhatsApp criados via connection_link e create_profile() não apareciam em campanhas (module NULL). Corrigido em 6 pontos de inserção + fallback de avatar + spec de análise de áudio OGG."
+    "notes": "v8.5.29 - fix(button_template): restaura roteamento do modulo de botoes template (setDefaultNamespace e rotas explicitas) corrigindo erro 404 em criacao e edicao."
 }

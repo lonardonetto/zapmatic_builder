@@ -56,6 +56,20 @@ $routes->add("whatsapp_carousel_template/update/(:any)", "\Core\Whatsapp_carouse
 $routes->add("whatsapp_carousel_template/update", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index/update");
 $routes->add("whatsapp_carousel_template", "\Core\Whatsapp_carousel_template\Controllers\Whatsapp_carousel_template::index");
 
+// NUCLEAR OPTION: Force routes for Button template (fix auto-routing bug)
+$routes->add("whatsapp_button_template/save/(:any)", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::save/$1");
+$routes->add("whatsapp_button_template/save", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::save");
+$routes->add("whatsapp_button_template/delete", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::delete");
+$routes->add("whatsapp_button_template/ajax_list", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::ajax_list");
+$routes->add("whatsapp_button_template/index/(:any)/(:any)", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index/$1/$2");
+$routes->add("whatsapp_button_template/index/(:any)", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index/$1");
+$routes->add("whatsapp_button_template/index", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index");
+$routes->add("whatsapp_button_template/update/(:any)", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index/update/$1");
+$routes->add("whatsapp_button_template/update", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index/update");
+$routes->add("whatsapp_button_template/meta_submit/(:any)", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::meta_submit/$1");
+$routes->add("whatsapp_button_template/meta_submit", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::meta_submit");
+$routes->add("whatsapp_button_template", "\Core\Whatsapp_button_template\Controllers\Whatsapp_button_template::index");
+
 // NUCLEAR OPTION: Campaign Analytics
 $routes->get('whatsapp_campaign_analytics', '\Core\Whatsapp_campaign_analytics\Controllers\Whatsapp_campaign_analytics::index');
 $routes->post('whatsapp_campaign_analytics/ajax_list', '\Core\Whatsapp_campaign_analytics\Controllers\Whatsapp_campaign_analytics::ajax_list');
