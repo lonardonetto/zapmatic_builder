@@ -435,10 +435,27 @@ class WhatsAppGatewayService
                     return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
                 }
                 $tData = json_decode($tpl['data'], true) ?: [];
-                $body['body'] = $tData['text'] ?? $tData['caption'] ?? 'Escolha';
-                $body['title'] = $tData['title'] ?? '';
-                $body['footer'] = $tData['footer'] ?? '';
+                $body['body'] = $payload['body'] ?? $payload['text'] ?? $payload['caption'] ?? $tData['text'] ?? $tData['caption'] ?? 'Escolha';
+                $body['title'] = $payload['title'] ?? $tData['title'] ?? '';
+                $body['footer'] = $payload['footer'] ?? $tData['footer'] ?? '';
+                
+                // Anexar mídia do template caso exista e não tenha vindo no payload
+                if (empty($body['image']) && !empty($tData['image']['url'])) {
+                    $body['image'] = ['url' => $tData['image']['url']];
+                }
+                if (empty($body['document']) && !empty($tData['document']['url'])) {
+                    $body['document'] = ['url' => $tData['document']['url']];
+                }
+                if (empty($body['video']) && !empty($tData['video']['url'])) {
+                    $body['video'] = ['url' => $tData['video']['url']];
+                }
             }
+            
+            // Aceitar mídia vinda do payload
+            if (!empty($payload['image']['url'])) $body['image'] = ['url' => $payload['image']['url']];
+            if (!empty($payload['document']['url'])) $body['document'] = ['url' => $payload['document']['url']];
+            if (!empty($payload['video']['url'])) $body['video'] = ['url' => $payload['video']['url']];
+
             $buttons = [];
             if ($isInline) {
                 $source = $payload['buttons'] ?? [];
@@ -448,9 +465,19 @@ class WhatsAppGatewayService
             foreach ($source as $i => $btn) {
                 $b = is_array($btn) && isset($btn['button']) ? $btn['button'] : $btn;
                 $qr = $b['quickReplyButton'] ?? [];
-                $id = $qr['id'] ?? $b['id'] ?? "btn_$i";
-                $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção " . ($i+1);
-                $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+                if (isset($b['urlButton'])) {
+                     $text = $b['urlButton']['displayText'] ?? "URL " . ($i+1);
+                     $id = "btn_$i";
+                     $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'url', 'url' => $b['urlButton']['url'] ?? ''];
+                } elseif (isset($b['callButton'])) {
+                     $text = $b['callButton']['displayText'] ?? "Ligar " . ($i+1);
+                     $id = "btn_$i";
+                     $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'phone', 'phone_number' => $b['callButton']['phoneNumber'] ?? ''];
+                } else {
+                     $id = $qr['id'] ?? $b['id'] ?? "btn_$i";
+                     $text = $qr['displayText'] ?? $qr['display_text'] ?? $b['display_text'] ?? $b['text'] ?? "Opção " . ($i+1);
+                     $buttons[] = ['id' => $id, 'text' => $text, 'type' => 'reply'];
+                }
             }
             $body['buttons'] = $buttons;
 
@@ -475,10 +502,10 @@ class WhatsAppGatewayService
                     return ['status' => 'error', 'provider' => 'whatsmeow', 'message' => 'Template não encontrado'];
                 }
                 $tData = json_decode($tpl['data'], true) ?: [];
-                $body['body'] = $tData['text'] ?? 'Selecione';
-                $body['title'] = $tData['title'] ?? '';
-                $body['footer'] = $tData['footer'] ?? '';
-                $body['button_text'] = $tData['buttonText'] ?? 'Opções';
+                $body['body'] = $payload['body'] ?? $payload['text'] ?? $payload['caption'] ?? $tData['text'] ?? 'Selecione';
+                $body['title'] = $payload['title'] ?? $tData['title'] ?? '';
+                $body['footer'] = $payload['footer'] ?? $tData['footer'] ?? '';
+                $body['button_text'] = $payload['buttonText'] ?? $payload['button_text'] ?? $tData['buttonText'] ?? 'Opções';
                 $sourceSections = $tData['sections'] ?? [];
             }
             
@@ -835,7 +862,7 @@ class WhatsAppGatewayService
 
                         // Botões podem estar em: templateButtons, buttons, ou interactiveButtons
                         $tplButtons = $tplData['templateButtons'] ?? $tplData['buttons'] ?? $tplData['interactiveButtons'] ?? [];
-                        $btnBody = $tplData['text'] ?? $tplData['caption'] ?? $tpl['text'] ?? 'Escolha:';
+                        $btnBody = $payload['body'] ?? $payload['text'] ?? $payload['caption'] ?? $tplData['text'] ?? $tplData['caption'] ?? $tpl['text'] ?? 'Escolha:';
 
                         // Separa botões de URL/telefone (cta_url) dos de resposta (reply).
                         // urlButton: {"displayText":"...","url":"https://..."}
@@ -887,9 +914,29 @@ class WhatsAppGatewayService
                                     ],
                                 ],
                             ];
-                            if (!empty($tplData['title'])) {
-                                $msg['interactive']['header'] = ['type' => 'text', 'text' => $tplData['title']];
+                            
+                            $header = null;
+                            if (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($tplData['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $tplData['image']['url']]];
+                            } elseif (!empty($tplData['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $tplData['video']['url']]];
+                            } elseif (!empty($tplData['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $tplData['document']['url'], 'filename' => $tplData['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            } elseif (!empty($tplData['title'])) {
+                                $header = ['type' => 'text', 'text' => $tplData['title']];
                             }
+                            if ($header) {
+                                $msg['interactive']['header'] = $header;
+                            }
+
                             if (!empty($tplData['footer'])) {
                                 $msg['interactive']['footer'] = ['text' => $tplData['footer']];
                             }
@@ -907,9 +954,29 @@ class WhatsAppGatewayService
                                     'action' => ['buttons' => $replyButtons],
                                 ],
                             ];
-                            if (!empty($tplData['title'])) {
-                                $msg['interactive']['header'] = ['type' => 'text', 'text' => $tplData['title']];
+                            
+                            $header = null;
+                            if (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($tplData['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $tplData['image']['url']]];
+                            } elseif (!empty($tplData['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $tplData['video']['url']]];
+                            } elseif (!empty($tplData['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $tplData['document']['url'], 'filename' => $tplData['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            } elseif (!empty($tplData['title'])) {
+                                $header = ['type' => 'text', 'text' => $tplData['title']];
                             }
+                            if ($header) {
+                                $msg['interactive']['header'] = $header;
+                            }
+
                             if (!empty($tplData['footer'])) {
                                 $msg['interactive']['footer'] = ['text' => $tplData['footer']];
                             }
@@ -926,7 +993,7 @@ class WhatsAppGatewayService
                     ];
                 }
 
-                $btnBody = $payload['body'] ?? $payload['text'] ?? 'Escolha:';
+                $btnBody = $payload['body'] ?? $payload['text'] ?? $payload['caption'] ?? 'Escolha:';
                 $buttons = [];
 
                 // Converter 'options' (string separada por vírgula) para array de botões
@@ -984,9 +1051,29 @@ class WhatsAppGatewayService
                             ],
                         ],
                     ];
-                    if (!empty($payload['title'])) {
-                        $msg['interactive']['header'] = ['type' => 'text', 'text' => $payload['title']];
-                    }
+                    
+                            $header = null;
+                            if (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            }
+                            if ($header) {
+                                $msg['interactive']['header'] = $header;
+                            }
+
                     if (!empty($payload['footer'])) {
                         $msg['interactive']['footer'] = ['text' => $payload['footer']];
                     }
@@ -1013,9 +1100,29 @@ class WhatsAppGatewayService
                         'action' => ['buttons' => $replyButtons],
                     ],
                 ];
-                if (!empty($payload['title'])) {
-                    $msg['interactive']['header'] = ['type' => 'text', 'text' => $payload['title']];
-                }
+                
+                            $header = null;
+                            if (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['image']['url'])) {
+                                $header = ['type' => 'image', 'image' => ['link' => $payload['image']['url']]];
+                            } elseif (!empty($payload['video']['url'])) {
+                                $header = ['type' => 'video', 'video' => ['link' => $payload['video']['url']]];
+                            } elseif (!empty($payload['document']['url'])) {
+                                $header = ['type' => 'document', 'document' => ['link' => $payload['document']['url'], 'filename' => $payload['document']['filename'] ?? 'document']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            } elseif (!empty($payload['title'])) {
+                                $header = ['type' => 'text', 'text' => $payload['title']];
+                            }
+                            if ($header) {
+                                $msg['interactive']['header'] = $header;
+                            }
+
                 if (!empty($payload['footer'])) {
                     $msg['interactive']['footer'] = ['text' => $payload['footer']];
                 }

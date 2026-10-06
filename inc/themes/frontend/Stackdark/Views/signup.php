@@ -189,6 +189,7 @@
               type: 'POST',
               dataType: 'json',
               data: {
+              csrf: csrf,
               number: number,
               message: 'Seu código OTP é ' + otp
               },

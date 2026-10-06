@@ -58,9 +58,9 @@ deploy_remote() {
       -e "sshpass -p '$pass' ssh -o StrictHostKeyChecking=no" \
       "$MAIN/inc/" "$user@$ip:$path/inc/" 2>&1 | tail -1
 
-    # Enviar Go API (exceto config.json, sessions, logs)
+    # Enviar Go API (exceto config.json, sessions, logs, binarios compilados)
     rsync -avz --delete --force \
-      --exclude='config.json' --exclude='storage/sessions/' --exclude='logs/' \
+      --exclude='config.json' --exclude='storage/sessions/' --exclude='logs/' --exclude='zapmatic-whatsmeow*' \
       -e "sshpass -p '$pass' ssh -o StrictHostKeyChecking=no" \
       "$MAIN/app_zapmatic_whatsmeow_api/" "$user@$ip:$path/app_zapmatic_whatsmeow_api/" 2>&1 | tail -1
 
@@ -77,7 +77,7 @@ deploy_remote() {
 
       # Compilar se Go instalado
       if [ -f /usr/local/go/bin/go ]; then
-        CGO_ENABLED=1 /usr/local/go/bin/go build -o zapmatic-whatsmeow-amd64 ./cmd/server/ 2>/dev/null
+        CGO_ENABLED=1 /usr/local/go/bin/go build -buildvcs=false -o zapmatic-whatsmeow-amd64 ./cmd/server/ 2>/dev/null
         if [ -f zapmatic-whatsmeow-amd64 ]; then
           cp zapmatic-whatsmeow-amd64 zapmatic-whatsmeow
           chmod +x zapmatic-whatsmeow

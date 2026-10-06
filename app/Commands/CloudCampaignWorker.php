@@ -314,12 +314,12 @@ class CloudCampaignWorker extends BaseCommand
 
         // Interactive button (fallback / nao-official)
         $buttons = $tplData['templateButtons'] ?? $tplData['interactiveButtons'] ?? [];
-        $body = (string) ($tplData['text'] ?? $tplData['caption'] ?? ' ');
+        $body = (string) ($item->caption !== '' ? $item->caption : ($tplData['text'] ?? $tplData['caption'] ?? ' '));
         if (function_exists('spintax')) {
             $body = spintax($body);
         }
         $footer = (string) ($tplData['footer'] ?? '');
-        $imageUrl = $tplData['image']['url'] ?? null;
+        $imageUrl = (string) ($item->media !== '' ? $item->media : ($tplData['image']['url'] ?? null));
 
         // Caso de botao unico do tipo URL -> cta_url (melhor UX na Cloud API)
         if (count($buttons) === 1) {

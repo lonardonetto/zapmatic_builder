@@ -35,9 +35,32 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 
 	btns := make([]*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton, 0, len(req.Buttons))
 	for _, b := range req.Buttons {
+		var flowName string
+		var paramsJSON string
+		switch b.Type {
+		case "url":
+			flowName = "cta_url"
+			btnURL := b.URL
+			if btnURL == "" { btnURL = "https://example.com" }
+			merchantURL := btnURL
+			paramsJSON = fmt.Sprintf(`{"display_text":"%s","url":"%s","merchant_url":"%s"}`, b.Text, btnURL, merchantURL)
+		case "phone":
+			flowName = "cta_call"
+			phone := b.Phone
+			if phone == "" { phone = "0" }
+			paramsJSON = fmt.Sprintf(`{"display_text":"%s","phone_number":"%s"}`, b.Text, phone)
+		case "copy":
+			flowName = "cta_copy"
+			copyCode := b.CopyCode
+			if copyCode == "" { copyCode = b.ID }
+			paramsJSON = fmt.Sprintf(`{"display_text":"%s","copy_code":"%s"}`, b.Text, copyCode)
+		default:
+			flowName = "quick_reply"
+			paramsJSON = fmt.Sprintf(`{"display_text":"%s","id":"%s"}`, b.Text, b.ID)
+		}
 		btns = append(btns, &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-			Name: proto.String("quick_reply"),
-			ButtonParamsJSON: proto.String(fmt.Sprintf(`{"display_text":"%s","id":"%s","disabled":false}`, b.Text, b.ID)),
+			Name: proto.String(flowName),
+			ButtonParamsJSON: proto.String(paramsJSON),
 		})
 	}
 
@@ -50,6 +73,81 @@ func (s *Sender) SendButtons(ctx context.Context, req InteractiveRequest) SendRe
 			},
 		},
 		ContextInfo: &waE2E.ContextInfo{Expiration: proto.Uint32(0)},
+	}
+	
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	if req.Image != nil && req.Image.URL != "" {
+		httpReq, _ := http.NewRequestWithContext(ctx, "GET", req.Image.URL, nil)
+		httpReq.Header.Set("User-Agent", "Zapmatic-Whatsmeow/1.0")
+		if httpResp, err := httpClient.Do(httpReq); err == nil {
+			if mediaBytes, err := io.ReadAll(httpResp.Body); err == nil && len(mediaBytes) > 0 {
+				mimeType := httpResp.Header.Get("Content-Type")
+				if mimeType == "" { mimeType = "image/jpeg" }
+				if uploaded, err := client.Upload(ctx, mediaBytes, whatsmeow.MediaImage); err == nil {
+					interactive.Header.HasMediaAttachment = proto.Bool(true)
+					interactive.Header.Media = &waE2E.InteractiveMessage_Header_ImageMessage{
+						ImageMessage: &waE2E.ImageMessage{
+							URL:           proto.String(uploaded.URL),
+							DirectPath:    proto.String(uploaded.DirectPath),
+							Mimetype:      proto.String(mimeType),
+							FileSHA256:    uploaded.FileSHA256,
+							FileEncSHA256: uploaded.FileEncSHA256,
+							FileLength:    proto.Uint64(uploaded.FileLength),
+							MediaKey:      uploaded.MediaKey,
+						},
+					}
+				}
+			}
+			httpResp.Body.Close()
+		}
+	} else if req.Video != nil && req.Video.URL != "" {
+		httpReq, _ := http.NewRequestWithContext(ctx, "GET", req.Video.URL, nil)
+		httpReq.Header.Set("User-Agent", "Zapmatic-Whatsmeow/1.0")
+		if httpResp, err := httpClient.Do(httpReq); err == nil {
+			if mediaBytes, err := io.ReadAll(httpResp.Body); err == nil && len(mediaBytes) > 0 {
+				mimeType := httpResp.Header.Get("Content-Type")
+				if mimeType == "" { mimeType = "video/mp4" }
+				if uploaded, err := client.Upload(ctx, mediaBytes, whatsmeow.MediaVideo); err == nil {
+					interactive.Header.HasMediaAttachment = proto.Bool(true)
+					interactive.Header.Media = &waE2E.InteractiveMessage_Header_VideoMessage{
+						VideoMessage: &waE2E.VideoMessage{
+							URL:           proto.String(uploaded.URL),
+							DirectPath:    proto.String(uploaded.DirectPath),
+							Mimetype:      proto.String(mimeType),
+							FileSHA256:    uploaded.FileSHA256,
+							FileEncSHA256: uploaded.FileEncSHA256,
+							FileLength:    proto.Uint64(uploaded.FileLength),
+							MediaKey:      uploaded.MediaKey,
+						},
+					}
+				}
+			}
+			httpResp.Body.Close()
+		}
+	} else if req.Document != nil && req.Document.URL != "" {
+		httpReq, _ := http.NewRequestWithContext(ctx, "GET", req.Document.URL, nil)
+		httpReq.Header.Set("User-Agent", "Zapmatic-Whatsmeow/1.0")
+		if httpResp, err := httpClient.Do(httpReq); err == nil {
+			if mediaBytes, err := io.ReadAll(httpResp.Body); err == nil && len(mediaBytes) > 0 {
+				mimeType := httpResp.Header.Get("Content-Type")
+				if mimeType == "" { mimeType = "application/pdf" }
+				if uploaded, err := client.Upload(ctx, mediaBytes, whatsmeow.MediaDocument); err == nil {
+					interactive.Header.HasMediaAttachment = proto.Bool(true)
+					interactive.Header.Media = &waE2E.InteractiveMessage_Header_DocumentMessage{
+						DocumentMessage: &waE2E.DocumentMessage{
+							URL:           proto.String(uploaded.URL),
+							DirectPath:    proto.String(uploaded.DirectPath),
+							Mimetype:      proto.String(mimeType),
+							FileSHA256:    uploaded.FileSHA256,
+							FileEncSHA256: uploaded.FileEncSHA256,
+							FileLength:    proto.Uint64(uploaded.FileLength),
+							MediaKey:      uploaded.MediaKey,
+						},
+					}
+				}
+			}
+			httpResp.Body.Close()
+		}
 	}
 	if req.Title != "" { interactive.Header.Title = proto.String(req.Title) }
 	if req.Footer != "" { interactive.Footer = &waE2E.InteractiveMessage_Footer{Text: proto.String(req.Footer)} }

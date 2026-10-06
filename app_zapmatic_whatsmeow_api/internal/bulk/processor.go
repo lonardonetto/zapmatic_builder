@@ -452,6 +452,8 @@ func (p *Processor) sendText(c *Campaign, instanceID, chatID string, params map[
 func (p *Processor) sendButton(c *Campaign, instanceID, chatID string, params map[string]string, pushName string) sender.SendResponse {
 	tpl, err := p.template.LoadTemplate(c.Template)
 	if err != nil { return sender.SendResponse{Status: "error", Error: err.Error()} }
+	if c.Caption != "" { tpl.Text = c.Caption }
+	if c.Media != "" { tpl.ImageURL = c.Media }
 	p.template.ApplySpintax(tpl, params, pushName, instanceID, pushName, phoneFromJID(chatID))
 	return p.snd.SendButtons(context.Background(), p.template.ToButtonsRequest(tpl, instanceID, chatID))
 }
@@ -459,6 +461,8 @@ func (p *Processor) sendButton(c *Campaign, instanceID, chatID string, params ma
 func (p *Processor) sendList(c *Campaign, instanceID, chatID string, params map[string]string, pushName string) sender.SendResponse {
 	tpl, err := p.template.LoadTemplate(c.Template)
 	if err != nil { return sender.SendResponse{Status: "error", Error: err.Error()} }
+	if c.Caption != "" { tpl.Text = c.Caption }
+	if c.Media != "" { tpl.ImageURL = c.Media }
 	p.template.ApplySpintax(tpl, params, pushName, instanceID, pushName, phoneFromJID(chatID))
 	return p.snd.SendList(context.Background(), p.template.ToListRequest(tpl, instanceID, chatID, "Ver opções"))
 }

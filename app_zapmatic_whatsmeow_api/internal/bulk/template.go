@@ -92,6 +92,31 @@ func (tl *TemplateLoader) LoadTemplate(templateID int) (*TemplateData, error) {
 	if rawData != "" {
 		json.Unmarshal([]byte(rawData), &tpl.Data)
 		json.Unmarshal([]byte(rawData), tpl)
+		
+		// Fix for nested media objects in DB (e.g. {"image": {"url": "..."}})
+		if imgObj, ok := tpl.Data["image"].(map[string]interface{}); ok {
+			if urlStr, ok := imgObj["url"].(string); ok {
+				tpl.ImageURL = urlStr
+			}
+		} else if imgStr, ok := tpl.Data["image"].(string); ok {
+			tpl.ImageURL = imgStr
+		}
+		
+		if vidObj, ok := tpl.Data["video"].(map[string]interface{}); ok {
+			if urlStr, ok := vidObj["url"].(string); ok {
+				tpl.VideoURL = urlStr
+			}
+		} else if vidStr, ok := tpl.Data["video"].(string); ok {
+			tpl.VideoURL = vidStr
+		}
+		
+		if docObj, ok := tpl.Data["document"].(map[string]interface{}); ok {
+			if urlStr, ok := docObj["url"].(string); ok {
+				tpl.DocumentURL = urlStr
+			}
+		} else if docStr, ok := tpl.Data["document"].(string); ok {
+			tpl.DocumentURL = docStr
+		}
 	}
 	return tpl, nil
 }
@@ -151,12 +176,35 @@ func (tl *TemplateLoader) ToButtonsRequest(tpl *TemplateData, instanceID, chatID
 		Body:       tpl.Text,
 		Footer:     tpl.Footer,
 	}
+	
+	if tpl.ImageURL != "" {
+		req.Image = &sender.ImagePayload{URL: tpl.ImageURL}
+	} else if tpl.VideoURL != "" {
+		req.Video = &sender.ImagePayload{URL: tpl.VideoURL}
+	} else if tpl.DocumentURL != "" {
+		req.Document = &sender.ImagePayload{URL: tpl.DocumentURL}
+	}
+
 	for _, b := range tpl.Buttons {
 		if b.QuickReply != nil {
 			req.Buttons = append(req.Buttons, sender.Button{
 				ID:   b.QuickReply.ID,
 				Text: b.QuickReply.DisplayText,
 				Type: "reply",
+			})
+		} else if b.URLButton != nil {
+			req.Buttons = append(req.Buttons, sender.Button{
+				ID:   "url_" + b.URLButton.DisplayText,
+				Text: b.URLButton.DisplayText,
+				Type: "url",
+				URL:  b.URLButton.URL,
+			})
+		} else if b.CallButton != nil {
+			req.Buttons = append(req.Buttons, sender.Button{
+				ID:    "call_" + b.CallButton.DisplayText,
+				Text:  b.CallButton.DisplayText,
+				Type:  "phone",
+				Phone: b.CallButton.PhoneNumber, // Wait! The CallButton struct might use a different name!
 			})
 		}
 	}

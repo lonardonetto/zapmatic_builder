@@ -2978,7 +2978,7 @@ if (!function_exists('send_whats')) {
     function send_whats($phone, $message)
     {
 
-        $url = "https://" . $_SERVER['HTTP_HOST'] . "/api/send";
+        $url = base_url("api/send");
         $access_token = get_option('otp_id_token');
         $instance_id = get_option('otp_id_instacia');
         $data = [
@@ -3031,7 +3031,7 @@ if (!function_exists('valide_phone')) {
 if (!function_exists('send_whats')) {
 function send_whats($phone, $message){
     
-    $url = "https://" . $_SERVER['HTTP_HOST'] . "/api/send";
+    $url = base_url("api/send");
     $access_token = get_option('otp_id_token');
     $instance_id = get_option('otp_id_instacia');
     $data   = ['number' => $phone,
